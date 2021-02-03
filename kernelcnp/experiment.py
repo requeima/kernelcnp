@@ -12,7 +12,7 @@ from convcnp.architectures import SimpleConv, UNet
 from kernelcnp.model import KernelCNP
 import lab as B
 
-B.epsilon = 1e-8
+B.epsilon = 1e-6
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -81,8 +81,9 @@ def plot_model_task(model, task, idx, legend):
     # Make predictions with the model.
     model.eval()
     with torch.no_grad():
-        y_mean, y_std = model(task['x_context'], task['y_context'], x_test.repeat(num_functions, 1, 1))
+        y_mean, y_cov = model(task['x_context'], task['y_context'], x_test.repeat(num_functions, 1, 1))
     
+    y_std = torch.transpose(torch.diagonal(y_cov, 0), 0, 1)[:, :, None]
     # Plot the task and the model predictions.
     x_context, y_context = to_numpy(task['x_context'][idx]), to_numpy(task['y_context'][idx])
     x_target, y_target = to_numpy(task['x_target'][idx]), to_numpy(task['y_target'][idx])

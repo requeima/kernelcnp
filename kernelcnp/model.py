@@ -236,6 +236,7 @@ class KernelCNP(nn.Module):
         self.points_per_unit = points_per_unit
         init_length_scale = 2.0 / self.points_per_unit
         init_noise_scale = 0.0
+        init_weight_scale = 0.0
         
         # Instantiate encoder
         self.encoder = ConvDeepSet(out_channels=self.rho.in_channels,
@@ -250,14 +251,17 @@ class KernelCNP(nn.Module):
 
         # Kernel Parameters
         self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
+        self.kernel_weight = nn.Parameter( init_weight_scale * torch.ones(1), requires_grad=True)
         self.kernel_fn = torch.exp
 
         # Noise Parameters
         self.noise_value = nn.Parameter(init_noise_scale * torch.ones(1), requires_grad=True)
         self.noise_fn = torch.exp        
 
-    def rbf_kernel(self, basis_emb):
-        dists = torch.cdist(basis_emb, basis_emb) 
+    def rbf_kernel(self, basis_emb, x_out):
+        x_dists = torch.cdist(x_out, x_out)
+        emb_dists = torch.cdist(basis_emb, basis_emb) 
+        dists = emb_dists + self.kernel_fn(self.kernel_weight) * x_dists
         # Compute the RBF kernel, broadcasting appropriately.
         scales = self.sigma_fn(self.kernel_sigma)
         return torch.exp(-0.5 * dists / scales ** 2)
@@ -300,7 +304,7 @@ class KernelCNP(nn.Module):
         mean = self.mean_layer(x_grid, h, x_out)
         basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, x_out))
 
-        cov = self.rbf_kernel(basis_emb)
+        cov = self.rbf_kernel(basis_emb, x_out)
         eps = self.noise_fn(self.noise_value) * torch.eye(cov.shape[1])[None, ...]
 
         return mean, cov + eps
