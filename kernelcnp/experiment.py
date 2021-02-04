@@ -21,13 +21,6 @@ def to_numpy(x):
     """Convert a PyTorch tensor to NumPy."""
     return x.squeeze().detach().cpu().numpy() 
 
-kernel = stheno.Matern52().stretch(0.25)
-gen = convcnp.data.GPGenerator(kernel=kernel)
-
-x_test = np.linspace(-2, 2, 300)
-gp = stheno.GP(kernel)
-
-
 def plot_task(task, idx, legend):
     x_context, y_context = to_numpy(task['x_context'][idx]), to_numpy(task['y_context'][idx])
     x_target, y_target = to_numpy(task['x_target'][idx]), to_numpy(task['y_target'][idx])
@@ -45,14 +38,6 @@ def plot_task(task, idx, legend):
     if legend:
         plt.legend()
 
-
-task = gen.generate_task()
-fig = plt.figure(figsize=(24, 5))
-for i in range(3):
-    plt.subplot(1, 3, i + 1)
-    plot_task(task, i, legend=i==2)
-plt.show()
-
 def train(data, model, opt):
     """Perform a training epoch."""
     ravg = RunningAverage()
@@ -62,18 +47,11 @@ def train(data, model, opt):
         dist = torch.distributions.multivariate_normal.MultivariateNormal(loc=y_mean[:, :, 0], covariance_matrix=y_cov)
         obj = torch.mean(-dist.log_prob(task['y_target'][:, :, 0]))
         
-
-        
         obj.backward()
         opt.step()
         opt.zero_grad()
         ravg.update(obj.item() / data.batch_size, data.batch_size)
     return ravg.avg
-
-
-# Create a fixed set of outputs to predict at when plotting.
-x_test = torch.linspace(-2., 2., 200)[None, :, None].to(device)
-
 
 def plot_model_task(model, task, idx, legend):
     num_functions = task['x_context'].shape[0]
@@ -83,7 +61,7 @@ def plot_model_task(model, task, idx, legend):
     with torch.no_grad():
         y_mean, y_cov = model(task['x_context'], task['y_context'], x_test.repeat(num_functions, 1, 1))
     
-    y_std = torch.transpose(torch.diagonal(y_cov, 0), 0, 1)[:, :, None]
+    y_std = torch.diagonal(y_cov, 0, dim1=-2, dim2=-1)[:, :, None]
     # Plot the task and the model predictions.
     x_context, y_context = to_numpy(task['x_context'][idx]), to_numpy(task['y_context'][idx])
     x_target, y_target = to_numpy(task['x_target'][idx]), to_numpy(task['y_target'][idx])
@@ -113,6 +91,22 @@ PLOT_FREQ = 10
 # Initialize optimizer
 opt = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+kernel = stheno.Matern52().stretch(0.25)
+gen = convcnp.data.GPGenerator(kernel=kernel)
+
+# x_test = np.linspace(-2, 2, 300)
+# gp = stheno.GP(kernel)
+
+# task = gen.generate_task()
+# fig = plt.figure(figsize=(24, 5))
+# for i in range(3):
+#     plt.subplot(1, 3, i + 1)
+#     plot_task(task, i, legend=i==2)
+# plt.show()
+
+# Create a fixed set of outputs to predict at when plotting.
+x_test = torch.linspace(-2., 2., 200)[None, :, None].to(device)
+
 # Run the training loop.
 for epoch in range(NUM_EPOCHS):
 
@@ -127,4 +121,4 @@ for epoch in range(NUM_EPOCHS):
         for i in range(3):
             plt.subplot(1, 3, i + 1)
             plot_model_task(model, task, idx=i, legend=i==2)
-        plt.show()
+        plt.savefig('model epoch: ' + str(epoch))

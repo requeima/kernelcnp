@@ -38,14 +38,20 @@ class ConvDeepSet(nn.Module):
         init_length_scale (float): Initial value for the length scale.
     """
 
-    def __init__(self, out_channels, init_length_scale):
+    def __init__(self, out_channels, init_length_scale, init_noise_std=None, num_noise_samples=0):
         super(ConvDeepSet, self).__init__()
         self.out_channels = out_channels
-        self.in_channels = 2
+        self.in_channels = 2 + num_noise_samples
+        self.num_noise_samples = num_noise_samples
         self.g = self.build_weight_model()
         self.sigma = nn.Parameter(np.log(init_length_scale) *
                                   torch.ones(self.in_channels), requires_grad=True)
         self.sigma_fn = torch.exp
+        if init_noise_std is not None:
+            self.noise_std = nn.Parameter(init_noise_std * torch.ones(1), requires_grad=True)
+        else:
+            self.noise_std =  None
+        self.noise_fn = torch.exp
 
     def build_weight_model(self):
         """Returns a function point-wise function that transforms the
@@ -75,6 +81,10 @@ class ConvDeepSet(nn.Module):
         scales = self.sigma_fn(self.sigma)[None, None, None, :]
         a, b, c = dists.shape
         return torch.exp(-0.5 * dists.view(a, b, c, -1) / scales ** 2)
+
+    def sample_noise(self, batch_size, n_in):
+        m = torch.distributions.Normal(torch.tensor([0.0]), torch.tensor([1.0])) 
+        return m.sample((batch_size, n_in, self.num_noise_samples)).view((batch_size, n_in, self.num_noise_samples)) * self.noise_fn(self.noise_std)
 
     def forward(self, x, y, t):
         """Forward pass through the layer with evaluations at locations t.
@@ -106,8 +116,12 @@ class ConvDeepSet(nn.Module):
         density = torch.ones(batch_size, n_in, 1).to(device)
 
         # Concatenate the channel.
-        # Shape: (batch, n_in, in_channels + 1).
-        y_out = torch.cat([density, y], dim=2)
+        if self.noise_std is not None:
+            noise_samples = self.sample_noise(batch_size, n_in)
+            y_out = torch.cat([density, y, noise_samples], dim=2)
+        else:
+            # Shape: (batch, n_in, in_channels + 1).
+            y_out = torch.cat([density, y], dim=2)
 
         # Perform the weighting.
         # Shape: (batch, n_in, n_out, in_channels + 1).
@@ -225,22 +239,28 @@ class KernelCNP(nn.Module):
             Used to discretize function.
     """
 
-    def __init__(self, rho, points_per_unit, sigma_channels=1):
+    def __init__(self, rho, points_per_unit, sigma_channels=1, add_dists_in_kernel=False):
         super(KernelCNP, self).__init__()
         self.activation = nn.Sigmoid()
         self.sigma_fn = nn.Softplus()
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
+        self.add_dists_in_kernel = add_dists_in_kernel
+        self.param_root = True
 
         # Compute initialisation.
         self.points_per_unit = points_per_unit
         init_length_scale = 2.0 / self.points_per_unit
         init_noise_scale = 0.0
         init_weight_scale = 0.0
+        init_noise_scale = 0.0
+        num_noise_samples = 3
         
         # Instantiate encoder
         self.encoder = ConvDeepSet(out_channels=self.rho.in_channels,
-                                   init_length_scale=init_length_scale)
+                                   init_length_scale=init_length_scale, 
+                                   init_noise_std=init_noise_scale,
+                                   num_noise_samples=num_noise_samples)
         
         # Instantiate mean and standard deviation layers
         self.mean_layer = FinalLayer(in_channels=self.rho.out_channels,
@@ -259,9 +279,12 @@ class KernelCNP(nn.Module):
         self.noise_fn = torch.exp        
 
     def rbf_kernel(self, basis_emb, x_out):
-        x_dists = torch.cdist(x_out, x_out)
-        emb_dists = torch.cdist(basis_emb, basis_emb) 
-        dists = emb_dists + self.kernel_fn(self.kernel_weight) * x_dists
+        if self.add_dists_in_kernel:
+            x_dists = torch.cdist(x_out, x_out)
+            emb_dists = torch.cdist(basis_emb, basis_emb) 
+            dists = emb_dists + self.kernel_fn(self.kernel_weight) * x_dists
+        else:
+            dists = torch.cdist(basis_emb, basis_emb) 
         # Compute the RBF kernel, broadcasting appropriately.
         scales = self.sigma_fn(self.kernel_sigma)
         return torch.exp(-0.5 * dists / scales ** 2)
@@ -278,6 +301,8 @@ class KernelCNP(nn.Module):
         Returns:
             tuple[tensor]: Means and standard deviations of shape (batch_out, channels_out).
         """
+        n_out = x_out.shape[1]
+
         # Determine the grid on which to evaluate functional representation.
         x_min = min(torch.min(x).cpu().numpy(),
                     torch.min(x_out).cpu().numpy(), -2.) - 0.1
@@ -300,11 +325,19 @@ class KernelCNP(nn.Module):
         if h.shape[1] != x_grid.shape[1]:
             raise RuntimeError('Shape changed.')
 
-        # Produce means and standard deviations.
+        # Produce mean
         mean = self.mean_layer(x_grid, h, x_out)
-        basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, x_out))
+        
+        # Produce Covariance
+        if self.param_root:
+            basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, torch.cat([x_out, x_grid], dim=1)))
+            root_cov = self.rbf_kernel(basis_emb, x_out)
+            full_cov = torch.matmul(torch.transpose(root_cov, dim0=-2, dim1=-1), root_cov) 
+            cov = full_cov[:, :n_out, :n_out]
+        else:
+            basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, x_out))
+            cov = self.rbf_kernel(basis_emb, x_out)
 
-        cov = self.rbf_kernel(basis_emb, x_out)
         eps = self.noise_fn(self.noise_value) * torch.eye(cov.shape[1])[None, ...]
 
         return mean, cov + eps
