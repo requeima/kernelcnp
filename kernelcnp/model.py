@@ -117,7 +117,7 @@ class ConvDeepSet(nn.Module):
 
         # Concatenate the channel.
         if self.noise_std is not None:
-            noise_samples = self.sample_noise(batch_size, n_in)
+            noise_samples = self.sample_noise(batch_size, n_in).to(device)
             y_out = torch.cat([density, y, noise_samples], dim=2)
         else:
             # Shape: (batch, n_in, in_channels + 1).
@@ -338,7 +338,7 @@ class KernelCNP(nn.Module):
             basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, x_out))
             cov = self.rbf_kernel(basis_emb, x_out)
 
-        eps = self.noise_fn(self.noise_value) * torch.eye(cov.shape[1])[None, ...]
+        eps = self.noise_fn(self.noise_value) * torch.eye(cov.shape[1])[None, ...].to(device)
 
         return mean, cov + eps
 
