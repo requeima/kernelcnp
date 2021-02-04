@@ -84,7 +84,7 @@ class ConvDeepSet(nn.Module):
 
     def sample_noise(self, batch_size, n_in):
         m = torch.distributions.Normal(torch.tensor([0.0]), torch.tensor([1.0])) 
-        return m.sample((batch_size, n_in, self.num_noise_samples)).view((batch_size, n_in, self.num_noise_samples)) * self.noise_fn(self.noise_std)
+        return m.sample((batch_size, n_in, self.num_noise_samples)).view((batch_size, n_in, self.num_noise_samples)) * self.noise_fn(self.noise_std).to(device)
 
     def forward(self, x, y, t):
         """Forward pass through the layer with evaluations at locations t.
@@ -117,7 +117,7 @@ class ConvDeepSet(nn.Module):
 
         # Concatenate the channel.
         if self.noise_std is not None:
-            noise_samples = self.sample_noise(batch_size, n_in).to(device)
+            noise_samples = self.sample_noise(batch_size, n_in)
             y_out = torch.cat([density, y, noise_samples], dim=2)
         else:
             # Shape: (batch, n_in, in_channels + 1).
