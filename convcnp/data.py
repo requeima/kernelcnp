@@ -69,12 +69,14 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  num_tasks=256,
                  x_range=(-2, 2),
                  max_train_points=50,
-                 max_test_points=50):
+                 max_test_points=50, 
+                 include_context_in_target=False):
         self.batch_size = batch_size
         self.num_tasks = num_tasks
         self.x_range = x_range
         self.max_train_points = max(max_train_points, 3)
         self.max_test_points = max(max_test_points, 3)
+        self.include_context_in_target = include_context_in_target
 
     @abc.abstractmethod
     def sample(self, x):
@@ -114,7 +116,10 @@ class DataGenerator(metaclass=abc.ABCMeta):
             # Determine indices for train and test set.
             inds = np.random.permutation(x.shape[0])
             inds_train = sorted(inds[:num_train_points])
-            inds_test = sorted(inds[num_train_points:num_points])
+            if self.include_context_in_target:
+                inds_test = sorted(inds[:num_points])
+            else:
+                inds_test = sorted(inds[num_train_points:num_points])
 
             # Record to task.
             task['x'].append(sorted(x))

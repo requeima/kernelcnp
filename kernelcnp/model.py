@@ -119,7 +119,7 @@ class ConvDeepSet(nn.Module):
         density = torch.ones(batch_size, n_in, 1).to(device)
 
         # Concatenate the channel.
-        if self.noise_std is not None:
+        if self.num_noise_samples > 0:
             noise_samples = self.sample_noise(batch_size, n_in)
             y_out = torch.cat([density, y, noise_samples], dim=2)
         else:
@@ -249,15 +249,14 @@ class KernelCNP(nn.Module):
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
         self.add_dists_in_kernel = add_dists_in_kernel
-        self.param_root = True
+        self.param_root = False
 
         # Compute initialisation.
         self.points_per_unit = points_per_unit
         init_length_scale = 2.0 / self.points_per_unit
-        init_noise_scale = 0.0
+        init_noise_scale = 5.0
         init_weight_scale = 0.0
-        init_noise_scale = 0.0
-        num_noise_samples = 3
+        num_noise_samples = 0
         
         # Instantiate encoder
         self.encoder = ConvDeepSet(out_channels=self.rho.in_channels,
@@ -339,9 +338,10 @@ class KernelCNP(nn.Module):
             cov = full_cov[:, :n_out, :n_out]
         else:
             basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, x_out))
-            cov = self.rbf_kernel(basis_emb, x_out)
+            cov = torch.arctan(self.rbf_kernel(basis_emb, x_out))
 
         eps = self.noise_fn(self.noise_value) * torch.eye(cov.shape[1])[None, ...].to(device)
+        # eps = 100 * torch.eye(cov.shape[1])[None, ...].to(device)
 
         return mean, cov + eps
 
