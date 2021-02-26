@@ -64,14 +64,21 @@ def plot_model_task(model, task, idx, legend):
     # Plot the task and the model predictions.
     x_context, y_context = to_numpy(task['x_context'][idx]), to_numpy(task['y_context'][idx])
     x_target, y_target = to_numpy(task['x_target'][idx]), to_numpy(task['y_target'][idx])
+    dist = torch.distributions.multivariate_normal.MultivariateNormal(loc=y_mean[idx, :, 0], covariance_matrix=y_cov[idx, :, :])
+    sample1, sample2 = to_numpy(dist.sample()), to_numpy(dist.sample())
     y_mean, y_std = to_numpy(y_mean[idx]), to_numpy(y_std[idx])
-    
+
+    # Plot Samples
+    plt.plot(to_numpy(x_test[0]), sample1, label='Sample', color='green', alpha=0.5)
+    plt.plot(to_numpy(x_test[0]), sample2, label='Sample', color='orange', alpha=0.5)
+
     # Plot context and target sets.
     plt.scatter(x_context, y_context, label='Context Set', color='black')
     plt.scatter(x_target, y_target, label='Target Set', color='red')
     
     # Plot model predictions.
     plt.plot(to_numpy(x_test[0]), y_mean, label='Model Output', color='blue')
+
     plt.fill_between(to_numpy(x_test[0]),
                      y_mean + 2 * y_std,
                      y_mean - 2 * y_std,
@@ -91,7 +98,7 @@ PLOT_FREQ = 10
 opt = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 kernel = stheno.Matern52().stretch(0.25)
-gen = convcnp.data.GPGenerator(kernel=kernel, batch_size=8, include_context_in_target=True)
+gen = convcnp.data.GPGenerator(kernel=kernel, batch_size=8, include_context_in_target=False)
 
 # x_test = np.linspace(-2, 2, 300)
 # gp = stheno.GP(kernel)
@@ -121,3 +128,4 @@ for epoch in range(NUM_EPOCHS):
             plt.subplot(1, 3, i + 1)
             plot_model_task(model, task, idx=i, legend=i==2)
         plt.savefig('model epoch: ' + str(epoch))
+        print(model.correction_term)

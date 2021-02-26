@@ -242,7 +242,7 @@ class KernelCNP(nn.Module):
             Used to discretize function.
     """
 
-    def __init__(self, rho, points_per_unit, sigma_channels=1000, add_dists_in_kernel=False):
+    def __init__(self, rho, points_per_unit, sigma_channels=1024, add_dists_in_kernel=False):
         super(KernelCNP, self).__init__()
         self.activation = nn.Sigmoid()
         self.sigma_fn = nn.Softplus()
@@ -290,6 +290,30 @@ class KernelCNP(nn.Module):
         scales = self.sigma_fn(self.kernel_sigma)
         return torch.exp(-0.5 * dists / scales ** 2)
     
+    def check_eig(self, cov):
+        correction_term = 1e-6
+
+        pos_eigs = False
+        while not pos_eigs:
+            eigs = torch.symeig(cov).eigenvalues
+            if torch.sum(eigs < 0) > 0:
+                cov = cov + correction_term * torch.eye(cov.shape[1])[None, ...].to(device)
+                correction_term = correction_term * 10
+            else:
+                pos_eigs = True    
+        return cov
+
+    def check_det(self, cov):
+        correction_term = 1e-6
+        pos_det = False
+        while not pos_det:
+            if any(torch.det(cov)<= 1e-2):
+                cov = cov + correction_term * torch.eye(cov.shape[1])[None, ...].to(device)
+                correction_term = correction_term * 10
+            else:
+                pos_det = True
+        self.correction_term = correction_term
+        return cov
 
     def forward(self, x, y, x_out):
         """Run the model forward.
@@ -346,8 +370,9 @@ class KernelCNP(nn.Module):
         elif self.param_cov == "inner product":
             basis_emb = self.sigma_layer(x_grid, h, x_out)
             cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1)) / basis_emb.shape[-1]
-            eps = self.noise_value * torch.eye(cov.shape[1])[None, ...].to(device)
-            cov = cov + eps
+            # eps = self.noise_value * torch.eye(cov.shape[1])[None, ...].to(device)
+            # cov = cov + eps
+            cov = self.check_det(cov)
         elif self.param_cov == "inner product with diag":
             basis_emb = self.sigma_layer(x_grid, h, x_out)
             var_weights =  torch.exp(basis_emb[:, :, -1:])
