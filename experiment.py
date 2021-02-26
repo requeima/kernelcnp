@@ -128,4 +128,4 @@ for epoch in range(NUM_EPOCHS):
             plt.subplot(1, 3, i + 1)
             plot_model_task(model, task, idx=i, legend=i==2)
         plt.savefig('model epoch: ' + str(epoch))
-        print(model.correction_term)
+        print('corr correction: ' + model.correction_term)

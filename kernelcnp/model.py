@@ -249,14 +249,16 @@ class KernelCNP(nn.Module):
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
         self.add_dists_in_kernel = add_dists_in_kernel
-        self.param_cov = "inner product" #options: "root", "kernel", "inner_product"
+        self.param_cov = "inner product" #options: "root", "kernel", "inner_product", "inner product with diag"
+        self.correction_term = None
 
         # Compute initialisation.
         self.points_per_unit = points_per_unit
         init_length_scale = 2.0 / self.points_per_unit
-        init_noise_scale = 5.0
         init_weight_scale = 0.0
         num_noise_samples = 0
+        init_noise_scale = 5.0
+
         
         # Instantiate encoder
         self.encoder = ConvDeepSet(out_channels=self.rho.in_channels,
@@ -277,8 +279,8 @@ class KernelCNP(nn.Module):
         self.kernel_fn = torch.exp
 
         # Noise Parameters
-        self.noise_value = 1e-4
-
+        # self.noise_value = 1e-4
+        self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
     def rbf_kernel(self, basis_emb, x_out):
         if self.add_dists_in_kernel:
             x_dists = torch.cdist(x_out, x_out)
@@ -304,14 +306,17 @@ class KernelCNP(nn.Module):
         return cov
 
     def check_det(self, cov):
-        correction_term = 1e-6
+        correction_term = 1e-10
         pos_det = False
         while not pos_det:
-            if any(torch.det(cov)<= 1e-2):
-                cov = cov + correction_term * torch.eye(cov.shape[1])[None, ...].to(device)
+            if any(torch.det(cov)<= 1e-10):
                 correction_term = correction_term * 10
+                cov = cov + correction_term * torch.eye(cov.shape[1])[None, ...].to(device)
+                # print(correction_term)
+                # print(torch.det(cov))
             else:
                 pos_det = True
+
         self.correction_term = correction_term
         return cov
 
@@ -370,16 +375,18 @@ class KernelCNP(nn.Module):
         elif self.param_cov == "inner product":
             basis_emb = self.sigma_layer(x_grid, h, x_out)
             cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1)) / basis_emb.shape[-1]
-            # eps = self.noise_value * torch.eye(cov.shape[1])[None, ...].to(device)
-            # cov = cov + eps
-            cov = self.check_det(cov)
+            eps = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
+            # print(torch.exp(self.noise_scale))
+            cov = cov + eps
+            # cov = self.check_det(cov)
         elif self.param_cov == "inner product with diag":
             basis_emb = self.sigma_layer(x_grid, h, x_out)
             var_weights =  torch.exp(basis_emb[:, :, -1:])
             basis_emb = basis_emb[:, :, :-1]
             cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1))
-            idx = np.aranage(cov.shape[-1])
+            idx = np.arange(cov.shape[-1])
             cov[:, idx, idx] = cov[:, idx, idx] + var_weights[:, :, 0]
+            cov = self.check_det(cov)
 
         return mean, cov
 
