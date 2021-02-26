@@ -242,14 +242,14 @@ class KernelCNP(nn.Module):
             Used to discretize function.
     """
 
-    def __init__(self, rho, points_per_unit, sigma_channels=1, add_dists_in_kernel=False):
+    def __init__(self, rho, points_per_unit, sigma_channels=1000, add_dists_in_kernel=False):
         super(KernelCNP, self).__init__()
         self.activation = nn.Sigmoid()
         self.sigma_fn = nn.Softplus()
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
         self.add_dists_in_kernel = add_dists_in_kernel
-        self.param_root = False
+        self.param_cov = "inner product" #options: "root", "kernel", "inner_product"
 
         # Compute initialisation.
         self.points_per_unit = points_per_unit
@@ -277,8 +277,7 @@ class KernelCNP(nn.Module):
         self.kernel_fn = torch.exp
 
         # Noise Parameters
-        self.noise_value = nn.Parameter(init_noise_scale * torch.ones(1), requires_grad=True)
-        self.noise_fn = torch.exp        
+        self.noise_value = 1e-4
 
     def rbf_kernel(self, basis_emb, x_out):
         if self.add_dists_in_kernel:
@@ -331,19 +330,33 @@ class KernelCNP(nn.Module):
         mean = self.mean_layer(x_grid, h, x_out)
         
         # Produce Covariance
-        if self.param_root:
-            basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, torch.cat([x_out, x_grid], dim=1)))
+        if self.param_cov == "root":
+            basis_emb = self.sigma_layer(x_grid, h, torch.cat([x_out, x_grid], dim=1))
             root_cov = self.rbf_kernel(basis_emb, x_out)
             full_cov = torch.matmul(torch.transpose(root_cov, dim0=-2, dim1=-1), root_cov) 
             cov = full_cov[:, :n_out, :n_out]
-        else:
-            basis_emb = self.sigma_fn(self.sigma_layer(x_grid, h, x_out))
-            cov = torch.arctan(self.rbf_kernel(basis_emb, x_out))
+            eps = self.noise_value * torch.eye(cov.shape[1])[None, ...].to(device)
+        elif self.param_cov == "kernel":
+            basis_emb = self.sigma_layer(x_grid, h, x_out)
+            var_weights =  torch.exp(basis_emb[:, :, -1:])
+            basis_emb = basis_emb[:, :, :-1]
+            var_weights = torch.matmul(var_weights, torch.transpose(var_weights, dim0=-2, dim1=-1)) 
+            cov = self.rbf_kernel(basis_emb, x_out)
+            cov = cov * var_weights
+        elif self.param_cov == "inner product":
+            basis_emb = self.sigma_layer(x_grid, h, x_out)
+            cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1)) / basis_emb.shape[-1]
+            eps = self.noise_value * torch.eye(cov.shape[1])[None, ...].to(device)
+            cov = cov + eps
+        elif self.param_cov == "inner product with diag":
+            basis_emb = self.sigma_layer(x_grid, h, x_out)
+            var_weights =  torch.exp(basis_emb[:, :, -1:])
+            basis_emb = basis_emb[:, :, :-1]
+            cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1))
+            idx = np.aranage(cov.shape[-1])
+            cov[:, idx, idx] = cov[:, idx, idx] + var_weights[:, :, 0]
 
-        eps = self.noise_fn(self.noise_value) * torch.eye(cov.shape[1])[None, ...].to(device)
-        # eps = 100 * torch.eye(cov.shape[1])[None, ...].to(device)
-
-        return mean, cov + eps
+        return mean, cov
 
     @property
     def num_params(self):

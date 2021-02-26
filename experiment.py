@@ -46,7 +46,6 @@ def train(data, model, opt):
         y_mean, y_cov = model(task['x_context'], task['y_context'], task['x_target'])
         dist = torch.distributions.multivariate_normal.MultivariateNormal(loc=y_mean[:, :, 0], covariance_matrix=y_cov)
         obj = torch.mean(-dist.log_prob(task['y_target'][:, :, 0]))
-        
         obj.backward()
         opt.step()
         opt.zero_grad()
@@ -80,7 +79,7 @@ def plot_model_task(model, task, idx, legend):
     if legend:
         plt.legend()
 
-model = KernelCNP(rho=UNet(), points_per_unit=64, sigma_channels=5)
+model = KernelCNP(rho=UNet(), points_per_unit=64)
 model.to(device)
 
 # Some training hyper-parameters:
