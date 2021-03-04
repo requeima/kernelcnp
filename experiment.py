@@ -53,13 +53,13 @@ def train(data, model, opt):
         ravg.update(obj.item() / data.batch_size, data.batch_size)
     return ravg.avg
 
-def plot_model_task(model, task, idx, legend):
+def plot_model_task(model, task, idx, legend, noiseless=False):
     num_functions = task['x_context'].shape[0]
     
     # Make predictions with the model.
     model.eval()
     with torch.no_grad():
-        y_mean, y_cov = model(task['x_context'], task['y_context'], x_test.repeat(num_functions, 1, 1))
+        y_mean, y_cov = model(task['x_context'], task['y_context'], x_test.repeat(num_functions, 1, 1), noiseless=noiseless)
     
     y_std = torch.diagonal(y_cov, 0, dim1=-2, dim2=-1)[:, :, None]
     # Plot the task and the model predictions.
@@ -84,6 +84,8 @@ def plot_model_task(model, task, idx, legend):
                      y_mean + 2 * y_std,
                      y_mean - 2 * y_std,
                      color='tab:blue', alpha=0.2)
+    
+    plt.title('Noiseless samples: ' + str(noiseless))
     if legend:
         plt.legend()
 
@@ -122,12 +124,15 @@ for epoch in range(NUM_EPOCHS):
     train_obj = train(gen, model, opt)
 
     # Plot model behaviour every now and again.
+    noiseless = False
     if epoch % PLOT_FREQ == 0:
         print('Epoch %s: NLL %.3f' % (epoch, train_obj))
         task = gen.generate_task()
         fig = plt.figure(figsize=(24, 5))
+        if epoch > NUM_EPOCHS/2:
+            noiseless=True
         for i in range(3):
             plt.subplot(1, 3, i + 1)
-            plot_model_task(model, task, idx=i, legend=i==2)
+            plot_model_task(model, task, idx=i, legend=i==2, noiseless=noiseless)
         plt.savefig('model epoch: ' + str(epoch))
         print('Elapsed: ' + str(time.time() - t))

@@ -244,7 +244,7 @@ class KernelCNP(ABC, nn.Module):
         # Noise Parameters
         self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
 
-    def forward(self, x, y, x_out):
+    def forward(self, x, y, x_out, noiseless=False):
         """Run the model forward.
 
         Args:
@@ -286,7 +286,10 @@ class KernelCNP(ABC, nn.Module):
         cov_layer_output = self.cov_layer(x_grid, h, x_out)
         cov, cov_plus_noise = self.cov(cov_layer_output)
 
-        return mean, cov_plus_noise
+        if noiseless:
+            return mean, cov
+        else:
+            return mean, cov_plus_noise
 
     @abstractmethod
     def cov(self, cov_layer_output):
