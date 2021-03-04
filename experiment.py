@@ -10,6 +10,7 @@ from convcnp.experiment import report_loss, RunningAverage
 from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple
 from convcnp.architectures import SimpleConv, UNet
 from kernelcnp.model import InnerProductHomoscedasticKernelCNP
+import time
 #import lab as B
 
 #B.epsilon = 1e-6
@@ -113,6 +114,7 @@ gen = convcnp.data.GPGenerator(kernel=kernel, batch_size=8, include_context_in_t
 # Create a fixed set of outputs to predict at when plotting.
 x_test = torch.linspace(-2., 2., 200)[None, :, None].to(device)
 
+t = time.time()
 # Run the training loop.
 for epoch in range(NUM_EPOCHS):
 
@@ -128,3 +130,4 @@ for epoch in range(NUM_EPOCHS):
             plt.subplot(1, 3, i + 1)
             plot_model_task(model, task, idx=i, legend=i==2)
         plt.savefig('model epoch: ' + str(epoch))
+        print('Elapsed: ' + str(time.time() - t))
