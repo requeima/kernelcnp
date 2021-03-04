@@ -9,6 +9,7 @@ import convcnp.data
 from convcnp.experiment import report_loss, RunningAverage
 from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple
 from convcnp.architectures import SimpleConv, UNet
+from abc import ABC, abstractmethod
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -38,7 +39,7 @@ class ConvDeepSet(nn.Module):
         init_length_scale (float): Initial value for the length scale.
     """
 
-    def __init__(self, out_channels, init_length_scale, init_noise_std=None, num_noise_samples=0):
+    def __init__(self, out_channels, init_length_scale):
         super(ConvDeepSet, self).__init__()
         self.out_channels = out_channels
         self.in_channels = 2 + num_noise_samples
@@ -47,11 +48,6 @@ class ConvDeepSet(nn.Module):
         self.sigma = nn.Parameter(np.log(init_length_scale) *
                                   torch.ones(self.in_channels), requires_grad=True)
         self.sigma_fn = torch.exp
-        if init_noise_std is not None:
-            self.noise_std = nn.Parameter(init_noise_std * torch.ones(1), requires_grad=True)
-        else:
-            self.noise_std =  None
-        self.noise_fn = torch.exp
 
     def build_weight_model(self):
         """Returns a function point-wise function that transforms the
@@ -81,13 +77,6 @@ class ConvDeepSet(nn.Module):
         scales = self.sigma_fn(self.sigma)[None, None, None, :]
         a, b, c = dists.shape
         return torch.exp(-0.5 * dists.view(a, b, c, -1) / scales ** 2)
-
-    def sample_noise(self, batch_size, n_in):
-        m = torch.distributions.Normal(torch.tensor([0.0]), torch.tensor([1.0])) 
-        samples = m.sample((batch_size, n_in, self.num_noise_samples)).to(device)
-        samples = samples.view((batch_size, n_in, self.num_noise_samples))
-        samples = samples * self.noise_fn(self.noise_std)
-        return samples
 
     def forward(self, x, y, t):
         """Forward pass through the layer with evaluations at locations t.
@@ -119,12 +108,7 @@ class ConvDeepSet(nn.Module):
         density = torch.ones(batch_size, n_in, 1).to(device)
 
         # Concatenate the channel.
-        if self.num_noise_samples > 0:
-            noise_samples = self.sample_noise(batch_size, n_in)
-            y_out = torch.cat([density, y, noise_samples], dim=2)
-        else:
-            # Shape: (batch, n_in, in_channels + 1).
-            y_out = torch.cat([density, y], dim=2)
+        y_out = torch.cat([density, y], dim=2)
 
         # Perform the weighting.
         # Shape: (batch, n_in, n_out, in_channels + 1).
@@ -233,7 +217,7 @@ class FinalLayer(nn.Module):
 
         return y_out
 
-class KernelCNP(nn.Module):
+class KernelCNP(ABC, nn.Module):
     """One-dimensional KernelCNP model.
 
     Args:
@@ -242,15 +226,15 @@ class KernelCNP(nn.Module):
             Used to discretize function.
     """
 
-    def __init__(self, rho, points_per_unit, sigma_channels=1024, add_dists_in_kernel=False):
+    def __init__(self, rho, points_per_unit, cov_layer_out_channels, add_dists_in_kernel=False):
         super(KernelCNP, self).__init__()
         self.activation = nn.Sigmoid()
         self.sigma_fn = nn.Softplus()
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
         self.add_dists_in_kernel = add_dists_in_kernel
-        self.param_cov = "inner product" #options: "root", "kernel", "inner_product", "inner product with diag"
         self.correction_term = None
+        self.num_basis_dim = None
 
         # Compute initialisation.
         self.points_per_unit = points_per_unit
@@ -269,9 +253,9 @@ class KernelCNP(nn.Module):
         # Instantiate mean and standard deviation layers
         self.mean_layer = FinalLayer(in_channels=self.rho.out_channels,
                                      init_length_scale=init_length_scale)
-        self.sigma_layer = FinalLayer(in_channels=self.rho.out_channels,
+        self.cov_layer = FinalLayer(in_channels=self.rho.out_channels,
                                       init_length_scale=init_length_scale,
-                                      out_channels=sigma_channels)
+                                      out_channels=cov_layer_out_channels)
 
         # Kernel Parameters
         self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
@@ -281,44 +265,6 @@ class KernelCNP(nn.Module):
         # Noise Parameters
         # self.noise_value = 1e-4
         self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
-    def rbf_kernel(self, basis_emb, x_out):
-        if self.add_dists_in_kernel:
-            x_dists = torch.cdist(x_out, x_out)
-            emb_dists = torch.cdist(basis_emb, basis_emb) 
-            dists = emb_dists + self.kernel_fn(self.kernel_weight) * x_dists
-        else:
-            dists = torch.cdist(basis_emb, basis_emb) 
-        # Compute the RBF kernel, broadcasting appropriately.
-        scales = self.sigma_fn(self.kernel_sigma)
-        return torch.exp(-0.5 * dists / scales ** 2)
-    
-    def check_eig(self, cov):
-        correction_term = 1e-6
-
-        pos_eigs = False
-        while not pos_eigs:
-            eigs = torch.symeig(cov).eigenvalues
-            if torch.sum(eigs < 0) > 0:
-                cov = cov + correction_term * torch.eye(cov.shape[1])[None, ...].to(device)
-                correction_term = correction_term * 10
-            else:
-                pos_eigs = True    
-        return cov
-
-    def check_det(self, cov):
-        correction_term = 1e-10
-        pos_det = False
-        while not pos_det:
-            if any(torch.det(cov)<= 1e-10):
-                correction_term = correction_term * 10
-                cov = cov + correction_term * torch.eye(cov.shape[1])[None, ...].to(device)
-                # print(correction_term)
-                # print(torch.det(cov))
-            else:
-                pos_det = True
-
-        self.correction_term = correction_term
-        return cov
 
     def forward(self, x, y, x_out):
         """Run the model forward.
@@ -357,43 +303,133 @@ class KernelCNP(nn.Module):
 
         # Produce mean
         mean = self.mean_layer(x_grid, h, x_out)
-        
-        # Produce Covariance
-        if self.param_cov == "root":
-            basis_emb = self.sigma_layer(x_grid, h, torch.cat([x_out, x_grid], dim=1))
-            root_cov = self.rbf_kernel(basis_emb, x_out)
-            full_cov = torch.matmul(torch.transpose(root_cov, dim0=-2, dim1=-1), root_cov) 
-            cov = full_cov[:, :n_out, :n_out]
-            eps = self.noise_value * torch.eye(cov.shape[1])[None, ...].to(device)
-        elif self.param_cov == "kernel":
-            basis_emb = self.sigma_layer(x_grid, h, x_out)
-            var_weights =  torch.exp(basis_emb[:, :, -1:])
-            basis_emb = basis_emb[:, :, :-1]
-            var_weights = torch.matmul(var_weights, torch.transpose(var_weights, dim0=-2, dim1=-1)) 
-            cov = self.rbf_kernel(basis_emb, x_out)
-            cov = cov * var_weights
-        elif self.param_cov == "inner product":
-            basis_emb = self.sigma_layer(x_grid, h, x_out)
-            cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1)) / basis_emb.shape[-1]
-            eps = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
-            # print(torch.exp(self.noise_scale))
-            cov = cov + eps
-            # cov = self.check_det(cov)
-        elif self.param_cov == "inner product with diag":
-            basis_emb = self.sigma_layer(x_grid, h, x_out)
-            var_weights =  torch.exp(basis_emb[:, :, -1:])
-            basis_emb = basis_emb[:, :, :-1]
-            cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1))
-            idx = np.arange(cov.shape[-1])
-            cov[:, idx, idx] = cov[:, idx, idx] + var_weights[:, :, 0]
-            cov = self.check_det(cov)
 
-        return mean, cov
+        # Produce cov
+        cov_layer_output = self.cov_layer(x_grid, h, x_out)
+        cov, cov_plus_noise = self.cov(cov_layer_output)
+
+        return mean, cov_plus_noise
+
+    @abstractmethod
+    def cov(self, cov_layer_output):
+        pass
+
+    def _rbf_kernel(self, basis_emb):
+            
+        # Pariwise Euclidean distances between embedding vectors
+        dists = torch.cdist(basis_emb, basis_emb)
+
+        # Compute the RBF kernel, broadcasting appropriately
+        scales = self.sigma_fn(self.kernel_sigma)
+
+        return torch.exp(-0.5 * dists / scales ** 2)
+
+    def _inner_prod_cov(self, cov_layer_output):
+        cov = torch.matmul(cov_layer_output, torch.transpose(cov_layer_output, dim0=-2, dim1=-1)) / cov_layer_output.shape[-1]
+        
+        return cov
+
+    def _kvv_cov(self, cov_layer_output):
+        basis_emb = cov_layer_output[:, :, :self.num_basis_dim]
+        v = cov_layer_output[:, :, self.num_basis_dim: self.num_basis_dim + 1]
+        vv = torch.matmul(v, torch.transpose(v, dim0=-2, dim1=-1)) 
+        cov = self._rbf_kernel(basis_emb)
+        cov = cov * vv
+
+        return cov
+    
+    def _add_hetero_noise(self, cov, cov_layer_output):
+        hetero_noise_var = torch.exp(cov_layer_output[:, :, -1:])
+        idx = np.arange(cov.shape[-1])
+        cov_plus_noise = cov.clone()
+        cov_plus_noise[:, idx, idx] = cov_plus_noise[:, idx, idx] + hetero_noise_var[:, :, 0]
+        homo_noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
+        cov_plus_noise = cov_plus_noise + homo_noise_var
+
+        return cov_plus_noise
+
+    def _add_homo_noise(self, cov, cov_layer_output):
+        noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
+        cov_plus_noise = cov + noise_var
+        
+        return cov_plus_noise
 
     @property
     def num_params(self):
         """Number of parameters in model."""
         return np.sum([torch.tensor(param.shape).prod()
                        for param in self.parameters()])
-    
 
+
+
+class InnerProductHomoscedasticKernelCNP(KernelCNP):
+    
+    def __init__(self,
+                 rho,
+                 points_per_unit,
+                 num_basis_dim):
+
+        self.num_basis_dim = num_basis_dim
+
+        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim)
+
+
+    def cov(self, cov_layer_output):
+        cov = self._inner_prod_cov(cov_layer_output)
+        cov_plus_noise = self._add_homo_noise(cov, cov_layer_output)
+        return cov, cov_plus_noise
+
+
+
+class InnerProductHeteroscedasticKernelCNP(KernelCNP):
+    
+    def __init__(self,
+                 rho,
+                 points_per_unit,
+                 num_basis_dim):
+
+        self.num_basis_dim = num_basis_dim
+
+        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim + 1)
+
+
+    def cov(self, cov_layer_output):
+        cov = self._inner_prod_cov(cov_layer_output)
+        cov_plus_noise = self._add_hetero_noise( cov, cov_layer_output)
+        return cov, cov_plus_noise
+
+
+class KvvHomoscedasticKernelCNP(KernelCNP):
+    
+    def __init__(self,
+                 rho,
+                 points_per_unit,
+                 num_basis_dim):
+        
+        self.num_basis_dim = num_basis_dim
+
+        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim + 1)
+
+
+    def cov(self, cov_layer_output):
+        cov = self._kvv_cov(cov_layer_output)
+        cov_plus_noise = self._add_homo_noise(cov, cov_layer_output)
+        return cov, cov_plus_noise
+
+
+class KvvHeteroscedasticKernelCNP(KernelCNP):
+    
+    def __init__(self,
+                 rho,
+                 points_per_unit,
+                 num_basis_dim):
+
+        self.num_basis_dim = num_basis_dim
+
+        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim + 2)
+
+
+    def cov(self, cov_layer_output):
+        cov = self._kvv_cov(cov_layer_output)
+        cov_plus_noise = self._add_hetero_noise(cov, cov_layer_output)
+        return cov, cov_plus_noise
