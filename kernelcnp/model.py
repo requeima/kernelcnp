@@ -226,14 +226,13 @@ class KernelCNP(ABC, nn.Module):
             Used to discretize function.
     """
 
-    def __init__(self, rho, points_per_unit, cov_layer_out_channels, add_dists_in_kernel=False):
+    def __init__(self, rho, points_per_unit, cov_layer_out_channels):
         super(KernelCNP, self).__init__()
         self.activation = nn.Sigmoid()
         self.sigma_fn = nn.Softplus()
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
         self.add_dists_in_kernel = add_dists_in_kernel
-        self.correction_term = None
         self.num_basis_dim = None
 
         # Compute initialisation.
@@ -246,16 +245,15 @@ class KernelCNP(ABC, nn.Module):
         
         # Instantiate encoder
         self.encoder = ConvDeepSet(out_channels=self.rho.in_channels,
-                                   init_length_scale=init_length_scale, 
-                                   init_noise_std=init_noise_scale,
-                                   num_noise_samples=num_noise_samples)
+                                   init_length_scale=init_length_scale)
         
         # Instantiate mean and standard deviation layers
         self.mean_layer = FinalLayer(in_channels=self.rho.out_channels,
-                                     init_length_scale=init_length_scale)
+                                     init_length_scale=init_length_scale,
+                                     out_channels=1)
         self.cov_layer = FinalLayer(in_channels=self.rho.out_channels,
-                                      init_length_scale=init_length_scale,
-                                      out_channels=cov_layer_out_channels)
+                                    init_length_scale=init_length_scale,
+                                    out_channels=cov_layer_out_channels)
 
         # Kernel Parameters
         self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
@@ -263,7 +261,6 @@ class KernelCNP(ABC, nn.Module):
         self.kernel_fn = torch.exp
 
         # Noise Parameters
-        # self.noise_value = 1e-4
         self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
 
     def forward(self, x, y, x_out):
@@ -325,33 +322,42 @@ class KernelCNP(ABC, nn.Module):
         return torch.exp(-0.5 * dists / scales ** 2)
 
     def _inner_prod_cov(self, cov_layer_output):
+        # Compute the covariance by taking innerproducts between embeddings
         cov = torch.matmul(cov_layer_output, torch.transpose(cov_layer_output, dim0=-2, dim1=-1)) / cov_layer_output.shape[-1]
         
         return cov
 
     def _kvv_cov(self, cov_layer_output):
+        # Extract the embeddings and v function
         basis_emb = cov_layer_output[:, :, :self.num_basis_dim]
         v = cov_layer_output[:, :, self.num_basis_dim: self.num_basis_dim + 1]
+
+        #compute the covariance
         vv = torch.matmul(v, torch.transpose(v, dim0=-2, dim1=-1)) 
         cov = self._rbf_kernel(basis_emb)
         cov = cov * vv
 
         return cov
     
-    def _add_hetero_noise(self, cov, cov_layer_output):
-        hetero_noise_var = torch.exp(cov_layer_output[:, :, -1:])
-        idx = np.arange(cov.shape[-1])
-        cov_plus_noise = cov.clone()
-        cov_plus_noise[:, idx, idx] = cov_plus_noise[:, idx, idx] + hetero_noise_var[:, :, 0]
-        homo_noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
-        cov_plus_noise = cov_plus_noise + homo_noise_var
-
-        return cov_plus_noise
-
     def _add_homo_noise(self, cov, cov_layer_output):
+        # Add homoskedastic noise to the covariance
         noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
         cov_plus_noise = cov + noise_var
         
+        return cov_plus_noise
+
+    def _add_hetero_noise(self, cov, cov_layer_output):
+        # Extract the heteroskedastic noise function from the cov_layer_output
+        hetero_noise_var = torch.exp(cov_layer_output[:, :, -1:])
+
+        # Add the heteroskedastic noise to the covariance
+        idx = np.arange(cov.shape[-1])
+        cov_plus_noise = cov.clone()
+        cov_plus_noise[:, idx, idx] = cov_plus_noise[:, idx, idx] + hetero_noise_var[:, :, 0]
+
+        # Add homoskedastic noise to the covariance. This is for numerical stability of the initialization.
+        cov_plus_noise = self._add_homo_noise(cov_plus_noise)
+
         return cov_plus_noise
 
     @property
