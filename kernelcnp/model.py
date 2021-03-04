@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
 class ConvDeepSet(nn.Module):
     """One-dimensional ConvDeepSet module. Uses an RBF kernel for psi(x, x').
 
@@ -24,8 +25,7 @@ class ConvDeepSet(nn.Module):
     def __init__(self, out_channels, init_length_scale):
         super(ConvDeepSet, self).__init__()
         self.out_channels = out_channels
-        self.in_channels = 2 + num_noise_samples
-        self.num_noise_samples = num_noise_samples
+        self.in_channels = 2
         self.g = self.build_weight_model()
         self.sigma = nn.Parameter(np.log(init_length_scale) *
                                   torch.ones(self.in_channels), requires_grad=True)
@@ -214,7 +214,6 @@ class KernelCNP(ABC, nn.Module):
         self.sigma_fn = nn.Softplus()
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
-        self.add_dists_in_kernel = add_dists_in_kernel
         self.num_basis_dim = None
 
         # Compute initialisation.
@@ -359,7 +358,9 @@ class InnerProductHomoscedasticKernelCNP(KernelCNP):
 
         self.num_basis_dim = num_basis_dim
 
-        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim)
+        super().__init__(rho=rho,
+                         points_per_unit=points_per_unit, 
+                         cov_layer_out_channels=num_basis_dim)
 
 
     def cov(self, cov_layer_output):
@@ -378,7 +379,9 @@ class InnerProductHeteroscedasticKernelCNP(KernelCNP):
 
         self.num_basis_dim = num_basis_dim
 
-        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim + 1)
+        super().__init__(rho=rho,
+                         points_per_unit=points_per_unit, 
+                         cov_layer_out_channels=num_basis_dim + 1)
 
 
     def cov(self, cov_layer_output):
@@ -396,7 +399,9 @@ class KvvHomoscedasticKernelCNP(KernelCNP):
         
         self.num_basis_dim = num_basis_dim
 
-        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim + 1)
+        super().__init__(rho=rho,
+                         points_per_unit=points_per_unit,  
+                         cov_layer_out_channels=num_basis_dim + 1)
 
 
     def cov(self, cov_layer_output):
@@ -414,7 +419,9 @@ class KvvHeteroscedasticKernelCNP(KernelCNP):
 
         self.num_basis_dim = num_basis_dim
 
-        super().__init__(self, rho, points_per_unit, sigma_channels=num_basis_dim + 2)
+        super().__init__(rho=rho,
+                         points_per_unit=points_per_unit, 
+                         cov_layer_out_channels=num_basis_dim + 2)
 
 
     def cov(self, cov_layer_output):

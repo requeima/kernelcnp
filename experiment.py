@@ -9,7 +9,7 @@ import convcnp.data
 from convcnp.experiment import report_loss, RunningAverage
 from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple
 from convcnp.architectures import SimpleConv, UNet
-from kernelcnp.model import KernelCNP
+from kernelcnp.model import InnerProductHomoscedasticKernelCNP
 #import lab as B
 
 #B.epsilon = 1e-6
@@ -86,7 +86,7 @@ def plot_model_task(model, task, idx, legend):
     if legend:
         plt.legend()
 
-model = KernelCNP(rho=UNet(), points_per_unit=64)
+model = InnerProductHomoscedasticKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 model.to(device)
 
 # Some training hyper-parameters:
@@ -128,4 +128,3 @@ for epoch in range(NUM_EPOCHS):
             plt.subplot(1, 3, i + 1)
             plot_model_task(model, task, idx=i, legend=i==2)
         plt.savefig('model epoch: ' + str(epoch))
-        print('corr correction: ' + model.correction_term)
