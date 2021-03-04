@@ -7,29 +7,11 @@ import stheno.torch as stheno
 
 import convcnp.data
 from convcnp.experiment import report_loss, RunningAverage
-from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple
+from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple, compute_dists
 from convcnp.architectures import SimpleConv, UNet
 from abc import ABC, abstractmethod
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-def to_numpy(x):
-    """Convert a PyTorch tensor to NumPy."""
-    return x.squeeze().detach().cpu().numpy()
-
-def compute_dists(x, y):
-    """Fast computation of pair-wise distances for the 1d case.
-
-    Args:
-        x (tensor): Inputs of shape (batch, n, 1).
-        y (tensor): Inputs of shape (batch, m, 1).
-
-    Returns:
-        tensor: Pair-wise distances of shape (batch, n, m).
-    """
-    return (x - y.permute(0, 2, 1)) ** 2
-
 
 class ConvDeepSet(nn.Module):
     """One-dimensional ConvDeepSet module. Uses an RBF kernel for psi(x, x').
