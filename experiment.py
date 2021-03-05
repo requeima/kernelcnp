@@ -9,7 +9,7 @@ import convcnp.data
 from convcnp.experiment import report_loss, RunningAverage
 from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple
 from convcnp.architectures import SimpleConv, UNet
-from kernelcnp.model import InnerProductHomoscedasticKernelCNP
+from kernelcnp.model import InnerProdHomoNoiseKernelCNP, InnerProdHeteroNoiseKernelCNP, KvvHomoNoiseKernelCNP, KvvHeteroNoiseKernelCNP
 import time
 #import lab as B
 
@@ -89,7 +89,11 @@ def plot_model_task(model, task, idx, legend, noiseless=False):
     if legend:
         plt.legend()
 
-model = InnerProductHomoscedasticKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+# model = InnerProductHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+# model = InnerProductHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+model = KvvHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+# model = KvvHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+
 model.to(device)
 
 # Some training hyper-parameters:
@@ -129,8 +133,8 @@ for epoch in range(NUM_EPOCHS):
         print('Epoch %s: NLL %.3f' % (epoch, train_obj))
         task = gen.generate_task()
         fig = plt.figure(figsize=(24, 5))
-        if epoch > NUM_EPOCHS/2:
-            noiseless=True
+        # if epoch > NUM_EPOCHS/2:
+        #     noiseless=True
         for i in range(3):
             plt.subplot(1, 3, i + 1)
             plot_model_task(model, task, idx=i, legend=i==2, noiseless=noiseless)

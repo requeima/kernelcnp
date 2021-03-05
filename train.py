@@ -69,7 +69,14 @@ parser.add_argument('data',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
 parser.add_argument('model',
-                    choices=['convcnp', 'convcnpxl', 'cnp', 'anp'],
+                    choices=['convcnp', 
+                             'convcnpxl', 
+                             'cnp', 
+                             'anp',
+                             'InnerProdHomoNoiseKernelCNP', 
+                             'InnerProdHeteroNoiseKernelCNP', 
+                             'KvvHomoNoiseKernelCNP', 
+                             'KvvHeteroNoiseKernelCNP'],
                     help='Choice of model. ')
 parser.add_argument('--root',
                     help='Experiment root, which is the directory from which '
@@ -137,6 +144,14 @@ elif args.model == 'cnp':
     model = CNP(latent_dim=128)
 elif args.model == 'anp':
     model = ANP(latent_dim=128)
+elif args.model == 'InnerProdHomoNoiseKernelCNP':
+    model = InnerProductHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+elif args.model == 'InnerProdHeteroNoiseKernelCNP':
+    model = InnerProductHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+elif args.model == 'KvvHomoNoiseKernelCNP':
+    model = KvvHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+elif args.model == 'KvvHeteroNoiseKernelCNP':
+    model = KvvHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 else:
     raise ValueError(f'Unknown model {args.model}.')
 

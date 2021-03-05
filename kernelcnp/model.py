@@ -208,13 +208,13 @@ class KernelCNP(ABC, nn.Module):
             Used to discretize function.
     """
 
-    def __init__(self, rho, points_per_unit, cov_layer_out_channels):
+    def __init__(self, rho, points_per_unit, cov_layer_out_channels, num_basis_dim):
         super(KernelCNP, self).__init__()
         self.activation = nn.Sigmoid()
         self.sigma_fn = nn.Softplus()
         self.rho = rho
         self.multiplier = 2 ** self.rho.num_halving_layers
-        self.num_basis_dim = None
+        self.num_basis_dim = num_basis_dim
 
         # Compute initialisation.
         self.points_per_unit = points_per_unit
@@ -295,10 +295,16 @@ class KernelCNP(ABC, nn.Module):
     def cov(self, cov_layer_output):
         pass
 
+    def _cdist(self, x):
+        norms = torch.sum(x ** 2, axis=2)
+        x_t = torch.transpose(x, dim0=1, dim1=2)
+        inner_products = torch.matmul(x, x_t)
+        return norms[:, :, None] + norms[:, None, :] - 2 * inner_products
+
     def _rbf_kernel(self, basis_emb):
             
-        # Pariwise Euclidean distances between embedding vectors
-        dists = torch.cdist(basis_emb, basis_emb)
+        # Pariwise squared Euclidean distances between embedding vectors
+        dists = self._cdist(basis_emb)
 
         # Compute the RBF kernel, broadcasting appropriately
         scales = self.sigma_fn(self.kernel_sigma)
@@ -325,7 +331,7 @@ class KernelCNP(ABC, nn.Module):
     
     def _add_homo_noise(self, cov, cov_layer_output):
         # Add homoskedastic noise to the covariance
-        noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...].to(device)
+        noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...]
         cov_plus_noise = cov + noise_var
         
         return cov_plus_noise
@@ -340,7 +346,7 @@ class KernelCNP(ABC, nn.Module):
         cov_plus_noise[:, idx, idx] = cov_plus_noise[:, idx, idx] + hetero_noise_var[:, :, 0]
 
         # Add homoskedastic noise to the covariance. This is for numerical stability of the initialization.
-        cov_plus_noise = self._add_homo_noise(cov_plus_noise)
+        cov_plus_noise = self._add_homo_noise(cov_plus_noise, cov_layer_output)
 
         return cov_plus_noise
 
@@ -352,7 +358,7 @@ class KernelCNP(ABC, nn.Module):
 
 
 
-class InnerProductHomoscedasticKernelCNP(KernelCNP):
+class InnerProdHomoNoiseKernelCNP(KernelCNP):
     
     def __init__(self,
                  rho,
@@ -363,7 +369,8 @@ class InnerProductHomoscedasticKernelCNP(KernelCNP):
 
         super().__init__(rho=rho,
                          points_per_unit=points_per_unit, 
-                         cov_layer_out_channels=num_basis_dim)
+                         cov_layer_out_channels=num_basis_dim,
+                         num_basis_dim=num_basis_dim)
 
 
     def cov(self, cov_layer_output):
@@ -373,7 +380,7 @@ class InnerProductHomoscedasticKernelCNP(KernelCNP):
 
 
 
-class InnerProductHeteroscedasticKernelCNP(KernelCNP):
+class InnerProdHeteroNoiseKernelCNP(KernelCNP):
     
     def __init__(self,
                  rho,
@@ -384,7 +391,8 @@ class InnerProductHeteroscedasticKernelCNP(KernelCNP):
 
         super().__init__(rho=rho,
                          points_per_unit=points_per_unit, 
-                         cov_layer_out_channels=num_basis_dim + 1)
+                         cov_layer_out_channels=num_basis_dim + 1,
+                         num_basis_dim=num_basis_dim)
 
 
     def cov(self, cov_layer_output):
@@ -393,7 +401,7 @@ class InnerProductHeteroscedasticKernelCNP(KernelCNP):
         return cov, cov_plus_noise
 
 
-class KvvHomoscedasticKernelCNP(KernelCNP):
+class KvvHomoNoiseKernelCNP(KernelCNP):
     
     def __init__(self,
                  rho,
@@ -404,16 +412,19 @@ class KvvHomoscedasticKernelCNP(KernelCNP):
 
         super().__init__(rho=rho,
                          points_per_unit=points_per_unit,  
-                         cov_layer_out_channels=num_basis_dim + 1)
+                         cov_layer_out_channels=num_basis_dim + 1,
+                         num_basis_dim=num_basis_dim)
+
 
 
     def cov(self, cov_layer_output):
         cov = self._kvv_cov(cov_layer_output)
         cov_plus_noise = self._add_homo_noise(cov, cov_layer_output)
+
         return cov, cov_plus_noise
 
 
-class KvvHeteroscedasticKernelCNP(KernelCNP):
+class KvvHeteroNoiseKernelCNP(KernelCNP):
     
     def __init__(self,
                  rho,
@@ -424,8 +435,8 @@ class KvvHeteroscedasticKernelCNP(KernelCNP):
 
         super().__init__(rho=rho,
                          points_per_unit=points_per_unit, 
-                         cov_layer_out_channels=num_basis_dim + 2)
-
+                         cov_layer_out_channels=num_basis_dim + 2,
+                         num_basis_dim=num_basis_dim)
 
     def cov(self, cov_layer_output):
         cov = self._kvv_cov(cov_layer_output)
