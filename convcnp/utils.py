@@ -159,16 +159,29 @@ def gaussian_logpdf(inputs, mean, sigma, reduction=None):
     Returns:
         tensor: Log-density.
     """
-    dist = Normal(loc=mean, scale=sigma)
-    logp = dist.log_prob(inputs)
 
-    if not reduction:
-        return logp
-    elif reduction == 'sum':
-        return torch.sum(logp)
-    elif reduction == 'mean':
-        return torch.mean(logp)
-    elif reduction == 'batched_mean':
-        return torch.mean(torch.sum(logp, 1))
+    # Check if multivariate normal
+    if sigma.shape[-1] > 1:
+        dist = torch.distributions.multivariate_normal.MultivariateNormal(loc=mean[:, :, 0], covariance_matrix=sigma)
+        logp = dist.log_prob(inputs[:, :, 0])
+
+        if not reduction:
+            return logp
+        elif reduction == 'batched_mean':
+            return torch.mean(logp)
+        else:
+            raise RuntimeError(f'Unknown reduction "{reduction}" for Multivariate Normal.')
     else:
-        raise RuntimeError(f'Unknown reduction "{reduction}".')
+        dist = Normal(loc=mean, scale=sigma)
+        logp = dist.log_prob(inputs)
+
+        if not reduction:
+            return logp
+        elif reduction == 'sum':
+            return torch.sum(logp)
+        elif reduction == 'mean':
+            return torch.mean(logp)
+        elif reduction == 'batched_mean':
+            return torch.mean(torch.sum(logp, 1))
+        else:
+            raise RuntimeError(f'Unknown reduction "{reduction}".')

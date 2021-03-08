@@ -14,6 +14,13 @@ from convcnp.experiment import (
     WorkingDirectory,
     save_checkpoint
 )
+from kernelcnp.model import (
+    InnerProdHomoNoiseKernelCNP, 
+    InnerProdHeteroNoiseKernelCNP, 
+    KvvHomoNoiseKernelCNP, 
+    KvvHeteroNoiseKernelCNP
+)
+
 from convcnp.set_conv import ConvCNP
 from convcnp.utils import device, gaussian_logpdf
 
@@ -45,6 +52,8 @@ def train(data, model, opt, report_freq):
     for step, task in enumerate(data):
         y_mean, y_std = model(task['x_context'], task['y_context'],
                               task['x_target'])
+        
+        
         obj = -gaussian_logpdf(task['y_target'], y_mean, y_std, 'batched_mean')
 
         # Optimization
@@ -145,9 +154,9 @@ elif args.model == 'cnp':
 elif args.model == 'anp':
     model = ANP(latent_dim=128)
 elif args.model == 'InnerProdHomoNoiseKernelCNP':
-    model = InnerProductHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+    model = InnerProdHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 elif args.model == 'InnerProdHeteroNoiseKernelCNP':
-    model = InnerProductHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+    model = InnerProdHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 elif args.model == 'KvvHomoNoiseKernelCNP':
     model = KvvHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 elif args.model == 'KvvHeteroNoiseKernelCNP':

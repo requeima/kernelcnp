@@ -99,7 +99,7 @@ model.to(device)
 # Some training hyper-parameters:
 LEARNING_RATE = 1e-3
 NUM_EPOCHS = 100
-PLOT_FREQ = 10
+PLOT_FREQ = 1
 
 # Initialize optimizer
 opt = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)

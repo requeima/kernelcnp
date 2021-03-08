@@ -130,6 +130,8 @@ dmypy.json
 
 # VS Code
 .vscode/*
+.DS_Store*
 
-# Experiment images
+# Experiments
 *.png
+_experiments/*
