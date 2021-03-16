@@ -160,7 +160,8 @@ def gaussian_logpdf(inputs, mean, sigma, reduction=None):
         tensor: Log-density.
     """
 
-    # Check if multivariate normal
+    # Check if multivariate norma
+    # TODO: change the check to look at mean comp to cov
     if sigma.shape[-1] > 1:
         dist = torch.distributions.multivariate_normal.MultivariateNormal(loc=mean[:, :, 0], covariance_matrix=sigma)
         logp = dist.log_prob(inputs[:, :, 0])
