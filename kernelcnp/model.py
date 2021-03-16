@@ -331,8 +331,8 @@ class KernelCNP(ABC, nn.Module):
     
     def _add_homo_noise(self, cov, cov_layer_output):
         # Add homoskedastic noise to the covariance
-        noise_var = torch.exp(self.noise_scale) * torch.eye(cov.shape[1])[None, ...]
-        cov_plus_noise = cov + noise_var
+        noise_var =  torch.eye(cov.shape[1])[None, ...].to(device)
+        cov_plus_noise = cov + torch.exp(self.noise_scale) * noise_var
         
         return cov_plus_noise
 
