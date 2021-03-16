@@ -84,6 +84,7 @@ def plot_task(task, model):
 
         # Get the marginals if we are predicting the full covariance
         if y_std.shape[-1] > 1:
+            dist = torch.distributions.multivariate_normal.MultivariateNormal(loc=y_mean[0,:, 0], covariance_matrix=y_std[0, :, :])
             y_std = torch.diagonal(y_std, 0, dim1=-2, dim2=-1)[:, :, None]
 
         # Plot context set
@@ -92,18 +93,28 @@ def plot_task(task, model):
         # Plot model predictions
         plt.plot(to_numpy(x_all), to_numpy(y_mean), label='Model Output', color='blue')
         plt.fill_between(to_numpy(x_all),
-                         to_numpy(y_mean + 2 * y_std),
-                         to_numpy(y_mean - 2 * y_std),
+                         to_numpy(y_mean +  y_std),
+                         to_numpy(y_mean -  y_std),
                          color='tab:blue', alpha=0.2)
+
+        
+        # Plot Samples
+        # sample1, sample2 = to_numpy(dist.sample()), to_numpy(dist.sample())        
+        # plt.plot(to_numpy(x_all), sample1, label='Sample', color='green', alpha=0.5)
+        # plt.plot(to_numpy(x_all), sample2, label='Sample', color='orange', alpha=0.5)
 
         # Make predictions with oracle GP (if GP dataset)
         if args.data != 'sawtooth':
-            post = gp | (gp(to_numpy(x_context).astype(np.float64)), to_numpy(y_context).astype(np.float64))
-            gp_mean, gp_lower, gp_upper = post(to_numpy(x_all)).marginals()
+            post = gp.measure | (gp(to_numpy(x_context).astype(np.float64)), to_numpy(y_context).astype(np.float64))
+            gp_mean, gp_lower, gp_upper = post(gp(to_numpy(x_all))).marginals()
 
             plt.plot(to_numpy(x_all), gp_mean, color='black', label='Oracle GP')
-            plt.plot(to_numpy(x_all), gp_lower, color='black', alpha=0.8)
-            plt.plot(to_numpy(x_all), gp_upper, color='black', alpha=0.8)
+            # plt.plot(to_numpy(x_all), gp_lower, color='black', alpha=0.8)
+            # plt.plot(to_numpy(x_all), gp_upper, color='black', alpha=0.8)
+            plt.fill_between(to_numpy(x_all),
+                             gp_lower,
+                             gp_upper,
+                             color='black', alpha=0.2)
 
     plt.ylim(-3., 3)
     plt.axis('off')
@@ -177,7 +188,7 @@ else:
         kernel = stheno.EQ().stretch(0.5) * stheno.EQ().periodic(period=0.25)
     else:
         raise ValueError(f'Unknown data "{args.data}".')
-
+    gp = stheno.GP(kernel)
     gen = convcnp.data.GPGenerator(kernel=kernel)
     gen_val = convcnp.data.GPGenerator(kernel=kernel, num_tasks=60)
     gen_test = convcnp.data.GPGenerator(kernel=kernel, num_tasks=2048)
@@ -241,7 +252,10 @@ if args.train:
 
 else:
     # Load saved model.
-    load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
+    if device.type == 'cpu':
+        load_dict = torch.load(wd.file('model_best.pth.tar', exists=True), map_location=torch.device('cpu'))
+    else:
+        load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
     model.load_state_dict(load_dict['state_dict'])
 
 # Test model on ~2000 tasks.
@@ -254,5 +268,5 @@ with open(wd.file('test_log_likelihood.txt'), 'w') as f:
 for task_num, task in enumerate(gen_plot):
     fig = plt.figure(figsize=(24, 8))
     plot_task(task, model)
-    plt.savefig(wd.file('./%s/tmp_plot_%s' % (args.root, task_num), bbox_inches='tight'))
+    plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
     plt.close()
