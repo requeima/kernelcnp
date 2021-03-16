@@ -26,7 +26,7 @@ from convcnp.set_conv import ConvCNP
 from convcnp.utils import device, gaussian_logpdf
 
 
-def validate(data, model, report_freq=None):
+def validate(data, model, report_freq=None, std_error=False):
     """Compute the validation loss."""
     model.eval()
     likelihoods = []
@@ -42,8 +42,13 @@ def validate(data, model, report_freq=None):
             if report_freq:
                 avg_ll = np.array(likelihoods).mean()
                 report_loss('Validation', avg_ll, step, report_freq)
-    avg_ll = np.array(likelihoods).mean()
-    return avg_ll
+    likelihoods = np.array(likelihoods)
+    avg_ll = likelihoods.mean()
+    if std_error:
+        std_error = likelihoods.std()/np.sqrt(len(likelihoods))
+        return avg_ll, std_error
+    else:
+        return avg_ll
 
 
 def train(data, model, opt, report_freq):
@@ -259,10 +264,12 @@ else:
     model.load_state_dict(load_dict['state_dict'])
 
 # Test model on ~2000 tasks.
-test_obj = validate(gen_test, model)
-print('Model averages a log-likelihood of %s on unseen tasks.' % test_obj)
+test_obj, test_obj_std_error = validate(gen_test, model, std_error=True)
+print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
 with open(wd.file('test_log_likelihood.txt'), 'w') as f:
     f.write(str(test_obj))
+with open(wd.file('test_log_likelihood_standard_error.txt'), 'w') as f:
+    f.write(str(test_obj_std_error))
 
 # Plot the models
 for task_num, task in enumerate(gen_plot):
