@@ -98,8 +98,8 @@ def plot_task(task, model):
         # Plot model predictions
         plt.plot(to_numpy(x_all), to_numpy(y_mean), label='Model Output', color='blue')
         plt.fill_between(to_numpy(x_all),
-                         to_numpy(y_mean +  y_std),
-                         to_numpy(y_mean -  y_std),
+                         to_numpy(y_mean +  1.96 * y_std),
+                         to_numpy(y_mean -  1.96 * y_std),
                          color='tab:blue', alpha=0.2)
 
         
@@ -153,6 +153,12 @@ parser.add_argument('--train',
                     help='Perform training. If this is not specified, '
                          'the model will be attempted to be loaded from the '
                          'experiment root.')
+parser.add_argument('--test',
+                    action='store_true',
+                    help='Test the model and record the values in the experimental root.')
+parser.add_argument('--plot',
+                    action='store_true',
+                    help='Plot and save to the experimental root.')
 parser.add_argument('--epochs',
                     default=100,
                     type=int,
@@ -263,17 +269,19 @@ else:
         load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
     model.load_state_dict(load_dict['state_dict'])
 
-# Test model on ~2000 tasks.
-test_obj, test_obj_std_error = validate(gen_test, model, std_error=True)
-print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
-with open(wd.file('test_log_likelihood.txt'), 'w') as f:
-    f.write(str(test_obj))
-with open(wd.file('test_log_likelihood_standard_error.txt'), 'w') as f:
-    f.write(str(test_obj_std_error))
+if args.test:
+    # Test model on ~2000 tasks.
+    test_obj, test_obj_std_error = validate(gen_test, model, std_error=True)
+    print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
+    with open(wd.file('test_log_likelihood.txt'), 'w') as f:
+        f.write(str(test_obj))
+    with open(wd.file('test_log_likelihood_standard_error.txt'), 'w') as f:
+        f.write(str(test_obj_std_error))
 
-# Plot the models
-for task_num, task in enumerate(gen_plot):
-    fig = plt.figure(figsize=(24, 8))
-    plot_task(task, model)
-    plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
-    plt.close()
+if args.plot:
+    # Plot the models
+    for task_num, task in enumerate(gen_plot):
+        fig = plt.figure(figsize=(24, 8))
+        plot_task(task, model)
+        plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
+        plt.close()

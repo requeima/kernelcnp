@@ -11,6 +11,6 @@ for data in "${kernels[@]}"; do
     python train.py $data cnp --root _experiments/cnp-$data --learning_rate 3e-4
     python train.py $data anp  --root _experiments/anp-$data --learning_rate 3e-4
     python train.py $data convcnp --root _experiments/convcnp-$data --learning_rate 3e-4
-    python train.py $data convcnpxl --train --root _experiments/convcnpxl-$data --learning_rate 1e-3
+    python train.py $data convcnpxl --root _experiments/convcnpxl-$data --learning_rate 1e-3
 
 done
