@@ -57,7 +57,7 @@ class FullyConnectedNetwork(nn.Module):
 
     
 # =============================================================================
-# ConditionalNeuralProcess
+# Gaussian Neural Process
 # =============================================================================
     
     
@@ -146,3 +146,56 @@ class GaussianNeuralProcess(nn.Module):
         loss = loss / (num_samples * inputs.shape[1])
         
         return loss
+
+
+    
+# =============================================================================
+# Translation Equivariant Gaussian Neural Process
+# =============================================================================
+
+    
+class TranslationEquivariantGaussianNeuralProcess(GaussianNeuralProcess):
+    
+    def __init__(self,
+                 encoder,
+                 decoder,
+                 log_noise):
+        
+        
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         log_noise=log_noise)
+        
+        
+    def forward(self,
+                ctx_in,
+                ctx_out,
+                trg_in):
+        
+        D = ctx_out.shape[-1]
+        
+        # Context and target inputs
+        ctx_in = ctx_in[:, None, :, :]
+        trg_in = trg_in[:, :, None, :]
+        
+        diff = ctx_in - trg_in
+        
+        ctx_out = ctx_out[:, None, :, :]
+        ctx_out = ctx_out.repeat(1, diff.shape[1], 1, 1)
+        
+        ctx = torch.cat([diff, ctx_out], dim=-1)
+        
+        theta = self.encoder(ctx)
+        theta = torch.mean(theta, dim=2) # (B, T, R)
+        
+        tensor = torch.cat([trg_in[:, :, 0, :], theta], dim=-1)
+        tensor = self.decoder(tensor)
+        
+        mean = tensor[:, :, :1]
+        cov_root = tensor[:, :, 1:]
+        cov = torch.einsum('bni, bmi -> bnm', cov_root, cov_root) / cov_root.shape[-1]
+        
+        diag_noise = torch.exp(self.log_noise) * torch.eye(cov.shape[1])[None, :, :]
+        cov_plus_noise = cov + diag_noise
+                
+        return mean, cov, cov_plus_noise
