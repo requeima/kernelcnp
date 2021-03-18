@@ -11,24 +11,20 @@ models = ['convcnp',
           'KvvHomoNoiseKernelCNP',
           'KvvHeteroNoiseKernelCNP']
 
-experiments = ["eq",
-               "matern",
-               "noisy-mixture",
-               "weakly-periodic",
-               "sawtooth"]
+experiments = ["eq", "weakly-periodic", "sawtooth"]
 
-experiments_with_error = ["eq", "eq-error", 
-               "matern", "matern-errror", 
-               "noisy-mixture", "noisy-mixture-error", 
-               "weakly-periodic", "weakly-periodic-error", 
-               "sawtooth", "sawtooth-error"]
+experiments_with_error = []
+for e in experiments:
+    experiments_with_error.append(e)
+    experiments_with_error.append(e + "-error")    
 
 # Create an empty 
 df = pd.DataFrame(index=models, columns=experiments_with_error)
 
 # Fill the dataframe
 for m in models:
-    for e, err in zip(experiments, experiments_with_error):
+    for e in experiments:
+        err = e + "-error"
         root = '_experiments/%s-%s' % (m,e)
         wd = WorkingDirectory(root=root)
         mean = np.loadtxt(wd.file('test_log_likelihood.txt', exists=True))

@@ -259,7 +259,8 @@ if args.train:
                          'state_dict': model.state_dict(),
                          'best_acc_top1': best_obj,
                          'optimizer': opt.state_dict()},
-                        is_best=is_best)
+                        is_best=is_best,
+                        epoch=epoch)
 
 else:
     # Load saved model.

@@ -25,7 +25,7 @@ def generate_root(name):
     return os.path.join('_experiments', f'{now}_{slugify.slugify(name)}')
 
 
-def save_checkpoint(wd, state, is_best):
+def save_checkpoint(wd, state, is_best, epoch=None):
     """Save a checkpoint.
 
     Args:
@@ -38,6 +38,13 @@ def save_checkpoint(wd, state, is_best):
     if is_best:
         fn_best = wd.file('model_best.pth.tar')
         shutil.copyfile(fn, fn_best)
+
+    if epoch is not None:
+        epoch_file = wd.file('last_epoch.txt')
+        with open(epoch_file, 'w') as epoch_file_write:
+            epoch_file_write.write(str(epoch + 1))
+
+
 
 
 class WorkingDirectory:
