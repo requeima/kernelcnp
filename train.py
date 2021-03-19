@@ -22,6 +22,17 @@ from kernelcnp.model import (
     KvvHeteroNoiseKernelCNP
 )
 
+from kernelcnp.no_conv_model import (
+    InnerProdHomoNoiseNoConvKernelCNP,
+    InnerProdHeteroNoiseNoConvKernelCNP,
+    KvvHomoNoiseNoConvKernelCNP,
+    KvvHeteroNoiseNoConvKernelCNP,
+    InnerProdHomoNoiseNoConvKernelANP,
+    InnerProdHeteroNoiseNoConvKernelANP,
+    KvvHomoNoiseNoConvKernelANP,
+    KvvHeteroNoiseNoConvKernelANP
+)
+
 from convcnp.set_conv import ConvCNP
 from convcnp.utils import device, gaussian_logpdf
 
@@ -142,7 +153,8 @@ parser.add_argument('model',
                              'InnerProdHomoNoiseKernelCNP', 
                              'InnerProdHeteroNoiseKernelCNP', 
                              'KvvHomoNoiseKernelCNP', 
-                             'KvvHeteroNoiseKernelCNP'],
+                             'KvvHeteroNoiseKernelCNP',
+                             'KvvHeteroNoiseNoConvKernelANP'],
                     help='Choice of model. ')
 parser.add_argument('--root',
                     help='Experiment root, which is the directory from which '
@@ -218,6 +230,8 @@ elif args.model == 'cnp':
     model = CNP(latent_dim=128)
 elif args.model == 'anp':
     model = ANP(latent_dim=128)
+
+# convCNP kernel models
 elif args.model == 'InnerProdHomoNoiseKernelCNP':
     model = InnerProdHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 elif args.model == 'InnerProdHeteroNoiseKernelCNP':
@@ -225,7 +239,28 @@ elif args.model == 'InnerProdHeteroNoiseKernelCNP':
 elif args.model == 'KvvHomoNoiseKernelCNP':
     model = KvvHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
 elif args.model == 'KvvHeteroNoiseKernelCNP':
+
+# (no conv) CNP kernel models
     model = KvvHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+elif args.model == 'InnerProdHomoNoiseNoConvKernelCNP':
+    model = InnerProdHomoNoiseNoConvKernelCNP(latent_dim=128, num_basis_dim=1024)
+elif args.model == 'InnerProdHeteroNoiseNoConvKernelCNP':
+    model = InnerProdHeteroNoiseNoConvKernelCNP(latent_dim=128, num_basis_dim=1024)
+elif args.model == 'KvvHomoNoiseNoConvKernelCNP':
+    model = KvvHomoNoiseNoConvKernelCNP(latent_dim=128, num_basis_dim=1024)
+elif args.model == 'KvvHeteroNoiseNoConvKernelCNP':
+    model = KvvHeteroNoiseNoConvKernelCNP(latent_dim=128, num_basis_dim=1024)
+
+# (no conv) ANP kernel models
+    model = KvvHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
+elif args.model == 'InnerProdHomoNoiseNoConvKernelANP':
+    model = InnerProdHomoNoiseNoConvKernelANP(latent_dim=128, num_basis_dim=1024)
+elif args.model == 'InnerProdHeteroNoiseNoConvKernelANP':
+    model = InnerProdHeteroNoiseNoConvKernelANP(latent_dim=128, num_basis_dim=1024)
+elif args.model == 'KvvHomoNoiseNoConvKernelANP':
+    model = KvvHomoNoiseNoConvKernelANP(latent_dim=128, num_basis_dim=1024)
+elif args.model == 'KvvHeteroNoiseNoConvKernelANP':
+    model = KvvHeteroNoiseNoConvKernelANP(latent_dim=128, num_basis_dim=1024)
 else:
     raise ValueError(f'Unknown model {args.model}.')
 

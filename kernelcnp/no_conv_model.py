@@ -9,7 +9,7 @@ import convcnp.data
 from convcnp.experiment import report_loss, RunningAverage
 from convcnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple, compute_dists
 from convcnp.architectures import SimpleConv, UNet
-from convcnp.cnp import RegressionANP, RegressionCNP
+from convcnp.cnp import ConditionalNeuralProcess, StandardEncoder
 from abc import ABC, abstractmethod
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -20,15 +20,27 @@ class NoConvKernelCNP(ConditionalNeuralProcess):
                  num_basis_dim,
                  num_output_dim,
                  use_attention=False):
+    
+        super().__init__(input_dim=1,
+                         latent_dim=latent_dim,
+                         num_channels=num_output_dim,
+                         use_attention=use_attention)
         
         self.num_basis_dim = num_basis_dim
 
+        # Overwrite the encoder with the correct input dimension 
+        self.encoder = StandardEncoder(input_dim=2,
+                                       latent_dim=self.latent_dim,
+                                       use_attention=use_attention)
+
         # Noise Parameters
         self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
+    
+        # Kernel Parameters
+        init_length_scale = 0.5
+        self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
+        self.sigma_fn = torch.exp
 
-        super().__init__(latent_dim,
-                         num_output_dim,
-                         use_attention)
 
     def forward(self, x, y, x_out, noiseless=False):
         cnp_out, _ = super().forward(x, y, x_out)
@@ -203,7 +215,6 @@ class InnerProdHomoNoiseNoConvKernelANP(InnerProdHomoNoiseNoConvKernelCNP):
 
         super().__init__(latent_dim=latent_dim,
                          num_basis_dim=num_basis_dim,
-                         num_output_dim=num_basis_dim + 1, 
                          use_attention=True)
 
 
@@ -216,7 +227,6 @@ class InnerProdHeteroNoiseNoConvKernelANP(InnerProdHeteroNoiseNoConvKernelCNP):
 
         super().__init__(latent_dim=latent_dim,
                          num_basis_dim=num_basis_dim,
-                         num_output_dim=num_basis_dim + 2,
                          use_attention=True)
 
 
@@ -229,7 +239,6 @@ class KvvHomoNoiseNoConvKernelANP(KvvHomoNoiseNoConvKernelCNP):
 
         super().__init__(latent_dim=latent_dim,
                          num_basis_dim=num_basis_dim,
-                         num_output_dim=num_basis_dim + 2,
                          use_attention=True)
 
 
@@ -241,5 +250,4 @@ class KvvHeteroNoiseNoConvKernelANP(KvvHeteroNoiseNoConvKernelCNP):
 
         super().__init__(latent_dim=latent_dim,
                          num_basis_dim=num_basis_dim,
-                         num_output_dim=num_basis_dim + 3,
                          use_attention=True)
