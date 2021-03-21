@@ -33,7 +33,7 @@ class InnerProdCov(nn.Module):
         super().__init__()
         # Extra dimension to add to the output
         self.extra_cov_dim = 0
-        self.num_basis_dim
+        self.num_basis_dim = num_basis_dim
     
     def forward(self, embeddings):
         # Compute the covariance by taking innerproducts between embeddings
@@ -61,7 +61,7 @@ class KvvCov(nn.Module):
 
         #compute the covariance
         vv = torch.matmul(v, torch.transpose(v, dim0=-2, dim1=-1)) 
-        scales = self.sigma_fn(self.kernel_sigma)
+        scales = self.kernel_fn(self.kernel_sigma)
         cov = rbf_kernel(basis_emb, scales)
         cov = cov * vv
         return cov

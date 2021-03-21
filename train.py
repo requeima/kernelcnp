@@ -4,20 +4,21 @@ import numpy as np
 import stheno.torch as stheno
 import torch
 import matplotlib.pyplot as plt
+import os
 
-import convcnp.data
-from convcnp.architectures import SimpleConv, UNet
+import gnp.data
+from gnp.architectures import SimpleConv, UNet
 
-from convcnp.experiment import (
+from gnp.experiment import (
     report_loss,
     generate_root,
     WorkingDirectory,
     save_checkpoint
 )
 
-from kernelcnp.gnp import GNP, AGNP
-from kernelcnp.convgnp import ConvGNP
-from kernelcnp.cov import (
+from gnp.gnp import GNP, AGNP
+from gnp.convgnp import ConvGNP
+from gnp.cov import (
     InnerProdCov,
     KvvCov,
     MeanFieldCov,
@@ -26,7 +27,7 @@ from kernelcnp.cov import (
     AddNoNoise
 )
 
-from convcnp.utils import device, gaussian_logpdf
+from gnp.utils import device, gaussian_logpdf
 
 
 def validate(data, model, report_freq=None, std_error=False):
@@ -139,15 +140,15 @@ args = parser.parse_args()
 if args.root:
     wd = WorkingDirectory(root=args.root)
 else:
-    experiment_name = os.path.join('_experiments', f'{args.data}', f'{args.model}', f'{args.cov}-{args.noise}')
+    experiment_name = os.path.join('_experiments', f'{args.data}', f'{args.model}', f'{args.covtype}-{args.noise}')
     wd = WorkingDirectory(root=experiment_name)
 
 # Load data generator.
 if args.data == 'sawtooth':
-    gen = convcnp.data.SawtoothGenerator()
-    gen_val = convcnp.data.SawtoothGenerator(num_tasks=60)
-    gen_test = convcnp.data.SawtoothGenerator(num_tasks=args.test_context_num)
-    gen_plot = convcnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
+    gen = gnp.data.SawtoothGenerator()
+    gen_val = gnp.data.SawtoothGenerator(num_tasks=60)
+    gen_test = gnp.data.SawtoothGenerator(num_tasks=args.test_context_num)
+    gen_plot = gnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
 else:
     if args.data == 'eq':
         kernel = stheno.EQ().stretch(0.25)
@@ -162,10 +163,10 @@ else:
     else:
         raise ValueError(f'Unknown data "{args.data}".')
     gp = stheno.GP(kernel)
-    gen = convcnp.data.GPGenerator(kernel=kernel)
-    gen_val = convcnp.data.GPGenerator(kernel=kernel, num_tasks=60)
-    gen_test = convcnp.data.GPGenerator(kernel=kernel, num_tasks=args.test_context_num)
-    gen_plot = convcnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
+    gen = gnp.data.GPGenerator(kernel=kernel)
+    gen_val = gnp.data.GPGenerator(kernel=kernel, num_tasks=60)
+    gen_test = gnp.data.GPGenerator(kernel=kernel, num_tasks=args.test_context_num)
+    gen_plot = gnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
 
 # Covariance method
 if args.covtype == 'innerprod':
@@ -175,7 +176,7 @@ elif args.covtype == 'kvv':
 elif args.covtype == 'meanfield':
     if args.noise != 'none':
         raise ValueError(f'Meanfield covariance only compatible with \"none\" noise type.')
-    cov = MeanFieldCov(args.num_basis_dim)
+    cov = MeanFieldCov(num_basis_dim=1)
 else:
     raise ValueError(f'Unknown covariance method {args.covtype}.')
 

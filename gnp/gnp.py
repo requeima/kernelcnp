@@ -11,9 +11,8 @@ __all__ = ['MeanPooling',
            'CrossAttention',
            'StandardDecoder',
            'StandardEncoder',
-           'ConditionalNeuralProcess',
-           'RegressionANP',
-           'RegressionCNP']
+           'GNP',
+           'AGNP']
 
 
 class MeanPooling(nn.Module):
@@ -410,7 +409,7 @@ class GNP(nn.Module):
         input_dim = 1
         output_dim = 1
 
-        super(ConditionalNeuralProcess, self).__init__()
+        super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.latent_dim = latent_dim
@@ -427,7 +426,7 @@ class GNP(nn.Module):
                                        latent_dim=self.latent_dim,
                                        output_dim=self.num_channels)
 
-    def forward(self, x_context, y_context, x_target):
+    def forward(self, x_context, y_context, x_target, noiseless=False):
         """Forward pass through CNP.
 
         Args:
@@ -443,12 +442,12 @@ class GNP(nn.Module):
         """
         n = x_context.shape[0]
         r = self.encode(x_context, y_context, x_target)
-        
+        z = self.decode(x_target, r, n)
         # Produce mean
-        mean = r[..., 0:1]
+        mean = z[..., 0:1]
         
         # Produce cov
-        embedding = r[..., 1:]
+        embedding = z[..., 1:]
         cov = self.cov(embedding)
         cov_plus_noise = self.noise(cov, embedding)
 
