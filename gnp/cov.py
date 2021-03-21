@@ -82,7 +82,7 @@ class MeanFieldCov(nn.Module):
         batch = embeddings.shape[0]
         dim = embeddings.shape[1]
 
-        cov = torch.zeros(batch, dim, dim)
+        cov = torch.zeros(batch, dim, dim).to(device)
         idx = np.arange(dim)
         cov[:, idx, idx] = torch.exp(embeddings[:, :, 0])
 

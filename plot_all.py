@@ -89,6 +89,10 @@ parser.add_argument('data',
                              'weakly-periodic',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
+parser.add_argument('--num_basis_dim',
+                    default=1024,
+                    type=int,
+                    help='Maximum number of context points for test set.')                
 args = parser.parse_args()
 
 # Load data generator.
@@ -118,67 +122,61 @@ else:
 
 # Model list
 models = ["GNP", "AGNP", "convGNP"]
-covs = ["innerprod", "kvv", "meanfield"]
-noises = ["homo", "hetero", "none"]
+covs = ["innerprod-homo", "innerprod-hetero", "kvv-homo", "kvv-hetero", "meanfield"]
 
 
 for task_num, task in enumerate(gen_plot):
     for m in models:
         for c in covs:
-            for n in noises:
-                if (c == 'meanfield') and (n == 'homo' or n == 'none'):
-                    pass
-                else:
-                    experiment_name = os.path.join('_experiments', 
-                                                   f'{args.data}', 
-                                                   f'{m}', 
-                                                   f'{c}-{n}')
-                    wd = WorkingDirectory(root=experiment_name)
+            experiment_name = os.path.join('_experiments', 
+                                            f'{args.data}', 
+                                            f'{m}', 
+                                            f'{c}')
+            wd = WorkingDirectory(root=experiment_name)
 
-                    # Covariance method
-                    if c == 'innerprod':
-                        cov = InnerProdCov(args.num_basis_dim)
-                    elif c == 'kvv':
-                        cov = KvvCov(args.num_basis_dim)
-                    elif c == 'meanfield':
-                        if args.noise != 'none':
-                            raise ValueError(f'Meanfield covariance only compatible with \"none\" noise type.')
-                        cov = MeanFieldCov(num_basis_dim=1)
-                    
-                    # Noise method
-                    if n == 'homo':
-                        noise = AddHomoNoise()
-                    elif n == 'hetero':
-                        noise = AddHeteroNoise()
-                    elif args.noise == 'none':
-                        n = AddNoNoise()
-                    
-                    # Load model.
-                    if m == 'GNP':
-                        model = GNP(latent_dim=128,
-                                    cov=cov,
-                                    noise=noise)
-                    elif m == 'AGNP':
-                        model = AGNP(latent_dim=128,
-                                    cov=cov,
-                                    noise=noise)
-                    elif m == 'convGNP':
-                        model = ConvGNP(rho=UNet(), 
-                                        points_per_unit=64,
-                                        cov=cov,
-                                        noise=noise)
-                    
-                    model.to(device)
-                    
-                    # Load saved model.
-                    if device.type == 'cpu':
-                        load_dict = torch.load(wd.file('model_best.pth.tar', exists=True), map_location=torch.device('cpu'))
-                    else:
-                        load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
-                    model.load_state_dict(load_dict['state_dict'])
+            # Covariance method
+            if c == 'innerprod-homo':
+                cov = InnerProdCov(args.num_basis_dim)
+                noise = AddHomoNoise()
+            elif c == 'innerprod-hetero':
+                cov = InnerProdCov(args.num_basis_dim)
+                noise = AddHeteroNoise()
+            elif c == 'kvv-homo':
+                cov = KvvCov(args.num_basis_dim)
+                noise = AddHomoNoise()
+            elif c == 'kvv-hetero':
+                cov = KvvCov(args.num_basis_dim)
+                noise = AddHomoNoise()
+            elif c == 'meanfield':
+                cov = MeanFieldCov(num_basis_dim=1)
+                noise = AddNoNoise()
+            
+            # Load model.
+            if m == 'GNP':
+                model = GNP(latent_dim=128,
+                            cov=cov,
+                            noise=noise)
+            elif m == 'AGNP':
+                model = AGNP(latent_dim=128,
+                            cov=cov,
+                            noise=noise)
+            elif m == 'convGNP':
+                model = ConvGNP(rho=UNet(), 
+                                points_per_unit=64,
+                                cov=cov,
+                                noise=noise)
+            
+            model.to(device)
+            
+            # Load saved model.
+            if device.type == 'cpu':
+                load_dict = torch.load(wd.file('model_best.pth.tar', exists=True), map_location=torch.device('cpu'))
+            else:
+                load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
+            model.load_state_dict(load_dict['state_dict'])
 
-                    
-                    fig = plt.figure(figsize=(24, 8))       
-                    plot_task(task, model)
-                    plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
-                    plt.close()
+            
+            fig = plt.figure(figsize=(24, 8))       
+            plot_task(task, model)
+            plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
+            plt.close()

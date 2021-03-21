@@ -1,10 +1,10 @@
 #!/bin/bash
 
 MODE="--train"
-EPOCHS="2"
+EPOCHS="1"
 kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
 models=("GNP" "AGNP" "convGNP")
-covs=("innerprod homo" "innerprod hetero" "kvv homo" "kvv hetero"  "meanfield none")
+covs=("innerprod-homo" "innerprod-hetero" "kvv-homo" "kvv-hetero"  "meanfield")
 
 for data in "${kernels[@]}"; do
     for model in "${models[@]}"; do

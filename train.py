@@ -93,15 +93,12 @@ parser.add_argument('model',
                              'convGNP'],
                     help='Choice of model. ')
 parser.add_argument('covtype',
-                    choices=['innerprod', 
-                             'kvv',
+                    choices=['innerprod-homo',
+                             'innerprod-hetero', 
+                             'kvv-homo',
+                             'kvv-hetero',
                              'meanfield'],
                     help='Choice of covariance method.')
-parser.add_argument('noise',
-                    choices=['homo', 
-                             'hetero',
-                             'none'],
-                    help='Choice of additive noise.')
 parser.add_argument('--root',
                     help='Experiment root, which is the directory from which '
                          'the experiment will run. If it is not given, '
@@ -140,7 +137,7 @@ args = parser.parse_args()
 if args.root:
     wd = WorkingDirectory(root=args.root)
 else:
-    experiment_name = os.path.join('_experiments', f'{args.data}', f'{args.model}', f'{args.covtype}-{args.noise}')
+    experiment_name = os.path.join('_experiments', f'{args.data}', f'{args.model}', f'{args.covtype}')
     wd = WorkingDirectory(root=experiment_name)
 
 # Load data generator.
@@ -169,27 +166,23 @@ else:
     gen_plot = gnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
 
 # Covariance method
-if args.covtype == 'innerprod':
+if args.covtype == 'innerprod-homo':
     cov = InnerProdCov(args.num_basis_dim)
-elif args.covtype == 'kvv':
-    cov = KvvCov(args.num_basis_dim)
-elif args.covtype == 'meanfield':
-    if args.noise != 'none':
-        raise ValueError(f'Meanfield covariance only compatible with \"none\" noise type.')
-    cov = MeanFieldCov(num_basis_dim=1)
-else:
-    raise ValueError(f'Unknown covariance method {args.covtype}.')
-
-# Noise method
-if args.noise == 'homo':
     noise = AddHomoNoise()
-elif args.noise == 'hetero':
+elif args.covtype == 'innerprod-hetero':
+    cov = InnerProdCov(args.num_basis_dim)
     noise = AddHeteroNoise()
-elif args.noise == 'none':
+elif args.covtype == 'kvv-homo':
+    cov = KvvCov(args.num_basis_dim)
+    noise = AddHomoNoise()
+elif args.covtype == 'kvv-hetero':
+    cov = KvvCov(args.num_basis_dim)
+    noise = AddHomoNoise()
+elif args.covtype == 'meanfield':
+    cov = MeanFieldCov(num_basis_dim=1)
     noise = AddNoNoise()
 else:
-    raise ValueError(f'Unknown noise method {args.noise}.')
-
+    raise ValueError(f'Unknown covariance method {args.covtype}.')
 # Load model.
 if args.model == 'GNP':
     model = GNP(latent_dim=128,
