@@ -4,26 +4,29 @@ import numpy as np
 import stheno.torch as stheno
 import torch
 import matplotlib.pyplot as plt
+import os
 
-import convcnp.data
-from convcnp.architectures import SimpleConv, UNet
-from convcnp.cnp import RegressionANP as ANP
-from convcnp.cnp import RegressionCNP as CNP
-from convcnp.experiment import (
+import gnp.data
+from gnp.architectures import SimpleConv, UNet
+from gnp.experiment import (
     report_loss,
     generate_root,
     WorkingDirectory,
     save_checkpoint
 )
-from kernelcnp.model import (
-    InnerProdHomoNoiseKernelCNP, 
-    InnerProdHeteroNoiseKernelCNP, 
-    KvvHomoNoiseKernelCNP, 
-    KvvHeteroNoiseKernelCNP
+from gnp.gnp import GNP, AGNP
+from gnp.convgnp import ConvGNP
+from gnp.cov import (
+    InnerProdCov,
+    KvvCov,
+    MeanFieldCov,
+    AddHomoNoise,
+    AddHeteroNoise,
+    AddNoNoise
 )
 
-from convcnp.set_conv import ConvCNP
-from convcnp.utils import device, gaussian_logpdf
+from gnp.set_conv import ConvCNP
+from gnp.utils import device, gaussian_logpdf
 
 # Move data to device
 to_numpy = lambda x: x.squeeze().cpu().numpy()
@@ -90,10 +93,10 @@ args = parser.parse_args()
 
 # Load data generator.
 if args.data == 'sawtooth':
-    gen = convcnp.data.SawtoothGenerator()
-    gen_val = convcnp.data.SawtoothGenerator(num_tasks=60)
-    gen_test = convcnp.data.SawtoothGenerator(num_tasks=2048)
-    gen_plot = convcnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
+    gen = gnp.data.SawtoothGenerator()
+    gen_val = gnp.data.SawtoothGenerator(num_tasks=60)
+    gen_test = gnp.data.SawtoothGenerator(num_tasks=2048)
+    gen_plot = gnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
 else:
     if args.data == 'eq':
         kernel = stheno.EQ().stretch(0.25)
@@ -108,62 +111,74 @@ else:
     else:
         raise ValueError(f'Unknown data "{args.data}".')
     gp = stheno.GP(kernel)
-    gen = convcnp.data.GPGenerator(kernel=kernel)
-    gen_val = convcnp.data.GPGenerator(kernel=kernel, num_tasks=60)
-    gen_test = convcnp.data.GPGenerator(kernel=kernel, num_tasks=2048)
-    gen_plot = convcnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
+    gen = gnp.data.GPGenerator(kernel=kernel)
+    gen_val = gnp.data.GPGenerator(kernel=kernel, num_tasks=60)
+    gen_test = gnp.data.GPGenerator(kernel=kernel, num_tasks=2048)
+    gen_plot = gnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
 
 # Model list
-models = ['convcnp', 
-          'convcnpxl', 
-          'cnp', 
-          'anp',
-          'InnerProdHomoNoiseKernelCNP', 
-          'InnerProdHeteroNoiseKernelCNP',
-          'KvvHomoNoiseKernelCNP',
-          'KvvHeteroNoiseKernelCNP']
+models = ["GNP", "AGNP", "convGNP"]
+covs = ["innerprod", "kvv", "meanfield"]
+noises = ["homo", "hetero", "none"]
+
 
 for task_num, task in enumerate(gen_plot):
     for m in models:
-        root = '_experiments/%s-%s' % (m, args.data)
-        wd = WorkingDirectory(root=root)
+        for c in covs:
+            for n in noises:
+                if (c == 'meanfield') and (n == 'homo' or n == 'none'):
+                    pass
+                else:
+                    experiment_name = os.path.join('_experiments', 
+                                                   f'{args.data}', 
+                                                   f'{m}', 
+                                                   f'{c}-{n}')
+                    wd = WorkingDirectory(root=experiment_name)
 
-        # Load model.
-        if m == 'convcnp':
-            model = ConvCNP(learn_length_scale=True,
-                            points_per_unit=64,
-                            architecture=SimpleConv())
-        elif m == 'convcnpxl':
-            model = ConvCNP(learn_length_scale=True,
-                            points_per_unit=64,
-                            architecture=UNet())
-        elif m == 'cnp':
-            model = CNP(latent_dim=128)
-        elif m == 'anp':
-            model = ANP(latent_dim=128)
-        elif m == 'InnerProdHomoNoiseKernelCNP':
-            model = InnerProdHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
-        elif m == 'InnerProdHeteroNoiseKernelCNP':
-            model = InnerProdHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
-        elif m == 'KvvHomoNoiseKernelCNP':
-            model = KvvHomoNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
-        elif m == 'KvvHeteroNoiseKernelCNP':
-            model = KvvHeteroNoiseKernelCNP(rho=UNet(), points_per_unit=64, num_basis_dim=1024)
-        else:
-            raise ValueError(f'Unknown model {args.model}.')
+                    # Covariance method
+                    if c == 'innerprod':
+                        cov = InnerProdCov(args.num_basis_dim)
+                    elif c == 'kvv':
+                        cov = KvvCov(args.num_basis_dim)
+                    elif c == 'meanfield':
+                        if args.noise != 'none':
+                            raise ValueError(f'Meanfield covariance only compatible with \"none\" noise type.')
+                        cov = MeanFieldCov(num_basis_dim=1)
+                    
+                    # Noise method
+                    if n == 'homo':
+                        noise = AddHomoNoise()
+                    elif n == 'hetero':
+                        noise = AddHeteroNoise()
+                    elif args.noise == 'none':
+                        n = AddNoNoise()
+                    
+                    # Load model.
+                    if m == 'GNP':
+                        model = GNP(latent_dim=128,
+                                    cov=cov,
+                                    noise=noise)
+                    elif m == 'AGNP':
+                        model = AGNP(latent_dim=128,
+                                    cov=cov,
+                                    noise=noise)
+                    elif m == 'convGNP':
+                        model = ConvGNP(rho=UNet(), 
+                                        points_per_unit=64,
+                                        cov=cov,
+                                        noise=noise)
+                    
+                    model.to(device)
+                    
+                    # Load saved model.
+                    if device.type == 'cpu':
+                        load_dict = torch.load(wd.file('model_best.pth.tar', exists=True), map_location=torch.device('cpu'))
+                    else:
+                        load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
+                    model.load_state_dict(load_dict['state_dict'])
 
-        model.to(device)
-
-        
-        # Load saved model.
-        if device.type == 'cpu':
-            load_dict = torch.load(wd.file('model_best.pth.tar', exists=True), map_location=torch.device('cpu'))
-        else:
-            load_dict = torch.load(wd.file('model_best.pth.tar', exists=True))
-        model.load_state_dict(load_dict['state_dict'])
-
-        
-        fig = plt.figure(figsize=(24, 8))       
-        plot_task(task, model)
-        plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
-        plt.close()
+                    
+                    fig = plt.figure(figsize=(24, 8))       
+                    plot_task(task, model)
+                    plt.savefig(wd.file('tmp_plot_%s' % task_num), bbox_inches='tight')
+                    plt.close()

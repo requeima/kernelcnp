@@ -2,11 +2,9 @@
 
 MODE="--train"
 EPOCHS="2"
-# kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
-kernels=("eq")
+kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
 models=("GNP" "AGNP" "convGNP")
-# covs=("innerprod homo" "innerprod hetero" "kvv homo" "kvv hetero"  "meanfield none")
-covs=("meanfield none")
+covs=("innerprod homo" "innerprod hetero" "kvv homo" "kvv hetero"  "meanfield none")
 
 for data in "${kernels[@]}"; do
     for model in "${models[@]}"; do
