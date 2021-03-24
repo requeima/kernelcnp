@@ -1,8 +1,5 @@
 from .gnp import GNP
-
 import torch
-
-__all__ = ['TEGNP']
 
 
 # =============================================================================
@@ -55,55 +52,55 @@ class FullyConnectedNetwork(nn.Module):
 
 
 # =============================================================================
-# Translation Equivariant GNP
+# Fully Connected DeepSet with mean aggregation
 # =============================================================================
-        
-        
-        
-class TEGNP(GNP):
-
+    
+    
+class FullyConnectedDeepSet(nn.Module):
+    
     def __init__(self,
-                 latent_dim,
-                 cov,
-                 noise
-                 use_attention):
+                 element_network,
+                 aggregation_dims,
+                 aggregate_network):
+        
+        assert type(aggregation_dims) == list
+        
+        self.element_network = element_network
+        self.aggregation_dims = aggregation_dims
+        self.aggregate_network = aggregate_network
+        
+    
+    def forward(self, tensor):
+        
+        tensor = self.element_network(tensor)
+        tensor = torch.mean(tensor, dim=aggregation_dims)
+        tensor = self.aggregate_network(tensor)
+        
+        return tensor
 
+
+    
+# =============================================================================
+# Fully Connected Translation Equivariant Encoder
+# =============================================================================
+
+
+class FullyConnectedTEEncoder(nn.Module):
+    
+    def __init__(self, deepset):
+        
         super().__init__()
         
-        input_dim = 1
-        output_dim = 1
-        
-        encoder_input_dim = input_dim + 2 * output_dim
-        encoder_output_dim = latent_dim
-        
-        decoder_input_dim = input_dim + latent_dim
-        decoder_output_dim = output_dim            + \
-                             cov.num_basis_dim     + \
-                             cov.extra_cov_dim     + \
-                             noise.extra_noise_dim
-        
-        hidden_dims = [latent_dim, latent_dim, latent_dim]
-        nonlinearity = 'ReLU'
-        
-        self.encoder = FullyConnectedNetwork(input_dim=encoder_input_dim,
-                                             output_dim=encoder_output_dim,
-                                             hidden_dims=hidden_dims,
-                                             nonlinearity=nonlinearity)
-        
-        self.decoder = FullyConnectedNetwork(input_dim=decoder_input_dim,
-                                             output_dim=decoder_output_dim,
-                                             hidden_dims=hidden_dims,
-                                             nonlinearity=nonlinearity)
-        self.cov = cov
-        self.noise = noise
-        
-        
-    def encode(x_ctx, y_ctx):
+        self.deepset = deepset
+    
+    
+    def forward(self, x_ctx, y_ctx, x_trg):
         
         assert len(x_ctx.shape) == 3
         assert len(y_ctx.shape) == 2
+        assert len(x_trg.shape) == 3
         
-        # Elementwise differences of context inputs
+        # Compute context input pairwise differences
         x_diff = x_ctx[:, None, :, :] - x_ctx[:, :, None, :]
         
         # Tile context outputs to concatenate with input differences
@@ -112,42 +109,126 @@ class TEGNP(GNP):
         
         # Concatenate input differences and outputs, to obtain complete context
         ctx = torch.cat([x_ctx_diff, y_ctx_tile1, y_ctx_tile2], dim=-1)
-        ctx = ctx.view(ctx.shape[0], ctx.shape[1] ** 2, ctx.shape[2])
         
         # Latent representation of context set -- resulting r has shape (B, R)
-        r = self.encoder(ctx)
-        r = torch.mean(r, dim=(1, 2))
+        r = self.deepset(ctx)
         
         return r
-    
-    
-    def decode(self, x_ctx, x_trg, r):
-        
-        # Elementwise differences of context and target inputs
-        x_diff = x_ctx[:, :, None :] - x_trg[:, None, :, :]
-        
-        x_diff = x_diff.view(x_diff[0], -1, x_diff[3])
-        
-        
-    def forward(self, x_ctx, y_ctx, x_trg, noiseless=False):
-        
-        r = self.encode(x_ctx, y_ctx)
-        z = self.decode(x_ctx, x_ctx, r)
-        
-        # Produce mean and covariance
-        mean = z[..., :1]
-        
-        cov = self.cov(z[..., 1:])
-        cov_plus_noise = self.noise(cov, z[..., 1:])
-        
-        if noiseless:
-            return mean, cov
-        
-        else:
-            return mean, cov_plus_noise
+     
         
 
-    @property
-    def num_params(self):
-        return np.sum([torch.tensor(param.shape).prod()
-                       for param in self.parameters()])
+# =============================================================================
+# Fully Connected Translation Equivariant Decoder
+# =============================================================================
+
+
+class FullyConnectedTEDecoder(nn.Module):
+    
+    def __init__(self, deepset):
+        
+        super().__init__()
+        
+        self.deepset = deepset
+    
+    
+    def forward(self, r, x_ctx, y_ctx, x_trg):
+        
+        # Compute context input pairwise differences
+        x_diff = x_ctx[:, :, None, :] - x_ctx[:, None, :, :]
+        
+        # Tile representation vector r
+        r = r[:, None, None, :].repeat(1, x_diff.shape[1], x_diff.shape[2], 1)
+        
+        # Concatenate input differences with tiled r's
+        z = self.deepset(torch.cat([x_diff, r], dim=-1))
+        
+        return z
+    
+
+# =============================================================================
+# Standard Translation Equivariant Encoder
+# =============================================================================
+
+
+class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
+    
+    def __init__(self,
+                 input_dim,
+                 output_dim,
+                 rep_dim):
+        
+        # Input dimension of encoder (Din + 2 * Dout)
+        encoder_input_dim = input_dim + 2 * output_dim
+        
+        # Sizes of hidden layers and nonlinearity type
+        # Used for both elementwise and aggregate networks
+        hidden_dims = [128, 128]
+        nonlinearity = 'ReLU'
+        
+        # Element network -- in (B, C, C, Din + 2 * Dout), out (B, C, C, R)
+        element_network = FullyConnectedNetwork(input_dim=encoder_input_dim,
+                                                output_dim=rep_dim,
+                                                hidden_dims=hidden_dims,
+                                                nonlinearity=nonlinearity)
+        
+        # Dimensions to mean over -- in (B, C, C, R), out (B, R)
+        aggregation_dims = [1, 2]
+        
+        # Aggregate network -- in (B, R), out (B, R)
+        aggregate_network = FullyConnectedNetwork(input_dim=rep_dim,
+                                                  output_dim=rep_dim,
+                                                  hidden_dims=hidden_dims,
+                                                  nonlinearity=nonlinearity)
+        
+        # Deepset architecture
+        deepset = FullyConnectedDeepSet(element_network,
+                                        aggregation_dims,
+                                        aggregate_network)
+        
+        super().__init__(deepset=deepset)
+        
+        
+
+# =============================================================================
+# Standard Translation Equivariant Decoder
+# =============================================================================
+
+
+class StandardFullyConnectedTEDecoder(FullyConnectedTEEncoder):
+    
+    def __init__(self,
+                 input_dim,
+                 rep_dim,
+                 embedding_dim):
+        
+        # Input dimension of encoder (Din + R)
+        decoder_input_dim = input_dim + rep_dim
+        
+        # Sizes of hidden layers and nonlinearity type
+        # Used for both elementwise and aggregate networks
+        hidden_dims = [128, 128]
+        nonlinearity = 'ReLU'
+        
+        # Element network -- in (B, C, T, Din + R), out (B, C, T, R)
+        element_network = FullyConnectedNetwork(input_dim=decoder_input_dim,
+                                                output_dim=rep_dim,
+                                                hidden_dims=hidden_dims,
+                                                nonlinearity=nonlinearity)
+        
+        # Dimensions to mean over -- in (B, C, T, R), out (B, T, R)
+        aggregation_dims = [1]
+        
+        # Aggregate network -- in (B, T, R), out (B, T, E)
+        aggregate_network = FullyConnectedNetwork(input_dim=rep_dim,
+                                                  output_dim=embedding_dim,
+                                                  hidden_dims=hidden_dims,
+                                                  nonlinearity=nonlinearity)
+        
+        # Deepset architecture
+        deepset = FullyConnectedDeepSet(element_network,
+                                        aggregation_dims,
+                                        aggregate_network)
+        
+        super().__init__(deepset=deepset)
+
+        
