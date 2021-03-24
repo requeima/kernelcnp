@@ -1,13 +1,23 @@
-
 import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.encoders import StandardEncoder, ConvEncoder
-from cnp.decoders import StandardDecoder, ConvDecoder
+from cnp.encoders import (
+    StandardEncoder,
+    ConvEncoder,
+    StandardFullyConnectedTEEncoder
+)
+
+from cnp.decoders import (
+    StandardDecoder,
+    ConvDecoder,
+    StandardFullyConnectedTEDecoder
+)
+
 from cnp.architectures import UNet
 
-class ConvditionalNeuralProcess(nn.Module):
+
+class GaussianNeuralProcess(nn.Module):
     """Conditional Neural Process Module.
 
     Args:
@@ -36,7 +46,7 @@ class ConvditionalNeuralProcess(nn.Module):
 
 
 
-class StandardGNP(ConvditionalNeuralProcess):
+class StandardGNP(GaussianNeuralProcess):
     def __init__(self, covariance, add_noise, use_attention=False):
         # Hard-coded options
         input_dim = 1
@@ -66,9 +76,37 @@ class StandardGNP(ConvditionalNeuralProcess):
 class StandardAGNP(StandardGNP):
     def __init__(self, covariance, add_noise):
         super().__init__(covariance, add_noise, use_attention=True)
+        
+        
+        
+class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
+    
+    def __init__(self, covariance, add_noise):
+        
+        input_dim = 1
+        output_dim = 1
+        rep_dim = 128
+        embedding_dim = output_dim +               \
+                        covariance.num_basis_dim + \
+                        covariance.extra_cov_dim + \
+                        add_noise.extra_noise_dim
+        
+        encoder = StandardFullyConnectedTEEncoder(input_dim=input_dim,
+                                                  output_dim=output_dim,
+                                                  rep_dim=rep_dim)
+        
+        decoder = StandardFullyConnectedTEDecoder(input_dim=input_dim,
+                                                  rep_dim=rep_dim,
+                                                  embedding_dim=embedding_dim)
+        
+        super().__init__(encoder=encoder, 
+                         decoder=decoder,
+                         covariance=covariance,
+                         add_noise=add_noise)
+        
 
 
-class ConvGNP(ConvditionalNeuralProcess):
+class StandardConvGNP(GaussianNeuralProcess):
     def __init__(self, covariance, add_noise):
         # Hard-coded options
         input_dim = 1

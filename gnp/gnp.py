@@ -506,3 +506,4 @@ class AGNP(GNP):
                          cov=cov,
                          noise=noise,
                          use_attention=True)
+        
