@@ -1,9 +1,9 @@
 #!/bin/bash
 
-MODE="--test"
-EPOCHS="1"
-# kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
-kernels=("eq" "matern" "noisy-mixture")
+MODE="--train"
+EPOCHS="100"
+kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
+# kernels=("eq")
 
 models=("GNP" "AGNP" "convGNP")
 covs=("innerprod-homo" "innerprod-hetero" "kvv-homo" "kvv-hetero"  "meanfield")

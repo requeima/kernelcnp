@@ -42,18 +42,18 @@ class StandardGNP(ConvditionalNeuralProcess):
         input_dim = 1
         output_dim = 1
         latent_dim = 128
-        num_out_channels = self.output_dim + covariance.num_basis_dim + covariance.extra_cov_dim + add_noise.extra_noise_dim
+        num_out_channels = output_dim + covariance.num_basis_dim + covariance.extra_cov_dim + add_noise.extra_noise_dim
 
         # Attention
 
         # Construct the standard encoder and decoder
         encoder = \
-            StandardEncoder(input_dim=self.input_dim + self.output_dim,
-                            latent_dim=self.latent_dim,
+            StandardEncoder(input_dim=input_dim + output_dim,
+                            latent_dim=latent_dim,
                             use_attention=use_attention)
-        decoder = StandardDecoder(input_dim=self.input_dim + self.latent_dim,
-                                  latent_dim=self.latent_dim,
-                                  output_dim=self.num_out_channels)
+        decoder = StandardDecoder(input_dim=input_dim + latent_dim,
+                                  latent_dim=latent_dim,
+                                  output_dim=num_out_channels)
 
         super().__init__(encoder, decoder, covariance, add_noise)
         self.use_attention = use_attention
