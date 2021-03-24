@@ -10,7 +10,8 @@ __all__ = ['device',
            'init_sequential_weights',
            'compute_dists',
            'pad_concat',
-           'gaussian_logpdf']
+           'gaussian_logpdf',
+           'stacked_batch_mlp']
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 """Device perform computations on."""
@@ -100,6 +101,15 @@ def init_sequential_weights(model, bias=0.0):
             nn.init.constant_(layer.bias, bias)
     return model
 
+def stacked_batch_mlp(input_features_dim, latent_features_dim, output_features_dim):
+    """
+    """
+    mlp = nn.Sequential(BatchLinear(input_features_dim, latent_features_dim),
+                        nn.ReLU(),
+                        BatchLinear(latent_features_dim, latent_features_dim),
+                        nn.ReLU(),
+                        BatchLinear(latent_features_dim, output_features_dim))
+    return mlp
 
 def compute_dists(x, y):
     """Fast computation of pair-wise distances for the 1d case.
@@ -200,3 +210,18 @@ def compute_dists(x, y):
     assert x.shape[2] == 1 and y.shape[2] == 1, \
         'The inputs x and y must be 1-dimensional observations.'
     return (x - y.permute(0, 2, 1)) ** 2
+
+
+def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
+    n_out = x_target.shape[1]
+
+    # Determine the grid on which to evaluate functional representation.
+    x_min = min(torch.min(x_context).cpu().numpy(),
+                torch.min(x_target).cpu().numpy(), -2.) - 0.1
+    x_max = max(torch.max(x_context).cpu().numpy(),
+                torch.max(x_target).cpu().numpy(), 2.) + 0.1
+    num_points = int(to_multiple(points_per_unit * (x_max - x_min),
+                                 grid_multiplier))
+    x_grid = torch.linspace(x_min, x_max, num_points).to(device)
+    x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
+    return x_grid, num_points

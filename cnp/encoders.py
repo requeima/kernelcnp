@@ -2,9 +2,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from gnp.utils import init_sequential_weights, BatchLinear
 from cnp.aggregation import CrossAttention, MeanPooling
-from gnp.utils import device, compute_dists, to_multiple
+from cnp.utils import (
+    init_sequential_weights, 
+    BatchLinear, 
+    device, 
+    compute_dists, 
+    to_multiple, 
+    stacked_batch_mlp,
+    build_grid
+)
 
 
 class StandardEncoder(nn.Module):
@@ -26,14 +33,9 @@ class StandardEncoder(nn.Module):
         self.input_dim = input_dim
         self.use_attention = use_attention
 
-        pre_pooling_fn = nn.Sequential(
-            BatchLinear(self.input_dim, self.latent_dim),
-            nn.ReLU(),
-            BatchLinear(self.latent_dim, self.latent_dim),
-            nn.ReLU(),
-            BatchLinear(self.latent_dim, self.latent_dim),
-        )
+        pre_pooling_fn = stacked_batch_mlp(self.input_dim, self.latent_dim, self.latent_dim)
         self.pre_pooling_fn = init_sequential_weights(pre_pooling_fn)
+        
         if self.use_attention:
             self.pooling_fn = CrossAttention()
         else:
@@ -73,16 +75,21 @@ class ConvEncoder(nn.Module):
         init_length_scale (float): Initial value for the length scale.
     """
 
-    def __init__(self, out_channels, init_length_scale, grid_multiplier):
+    def __init__(self, 
+                 out_channels, 
+                 init_length_scale, 
+                 points_per_unit, 
+                 grid_multiplier):
         super().__init__()
         self.activation = nn.Sigmoid()
         self.out_channels = out_channels
         self.in_channels = 2
-        self.g = self.build_weight_model()
+        self.linear_model = self.build_weight_model()
         self.sigma = nn.Parameter(np.log(init_length_scale) *
                                   torch.ones(self.in_channels), requires_grad=True)
         self.sigma_fn = torch.exp
         self.grid_multiplier = grid_multiplier
+        self.points_per_unit = points_per_unit
 
     def build_weight_model(self):
         """Returns a function point-wise function that transforms the
@@ -113,20 +120,6 @@ class ConvEncoder(nn.Module):
         a, b, c = dists.shape
         return torch.exp(-0.5 * dists.view(a, b, c, -1) / scales ** 2)
 
-    def build_grid(self, x_context, x_target):
-        n_out = x_target.shape[1]
-
-        # Determine the grid on which to evaluate functional representation.
-        x_min = min(torch.min(x_context).cpu().numpy(),
-                    torch.min(x_target).cpu().numpy(), -2.) - 0.1
-        x_max = max(torch.max(x_context).cpu().numpy(),
-                    torch.max(x_target).cpu().numpy(), 2.) + 0.1
-        num_points = int(to_multiple(self.points_per_unit * (x_max - x_min),
-                                     self.grid_multiplier))
-        x_grid = torch.linspace(x_min, x_max, num_points).to(device)
-        x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
-        return x_grid, num_points
-
     def forward(self, x_context, y_context, x_target):
         """Forward pass through the layer with evaluations at locations t.
 
@@ -139,16 +132,19 @@ class ConvEncoder(nn.Module):
             tensor: Outputs of evaluated function at z of shape
                 (m, out_channels).
         """
-        x_grid, num_points = self.build_grid(x_context, x_target)
+        x_grid, num_points = build_grid(x_context, 
+                                        x_target, 
+                                        self.points_per_unit, 
+                                        self.grid_multiplier)
 
         # Compute shapes.
         batch_size = x_context.shape[0]
         n_in = x_context.shape[1]
-        n_out = x_target.shape[1]
+        n_out = x_grid.shape[1]
 
         # Compute the pairwise distances.
         # Shape: (batch, n_in, n_out).
-        dists = compute_dists(x_context, x_target)
+        dists = compute_dists(x_context, x_grid)
 
         # Compute the weights.
         # Shape: (batch, n_in, n_out, in_channels).
@@ -177,7 +173,7 @@ class ConvEncoder(nn.Module):
         # Apply the point-wise function.
         # Shape: (batch, n_out, out_channels).
         y_out = y_out.view(batch_size * n_out, self.in_channels)
-        y_out = self.g(y_out)
+        y_out = self.linear_model(y_out)
         y_out = y_out.view(batch_size, n_out, self.out_channels)
 
         # Apply the activation layer. Take care to put the axis ranging

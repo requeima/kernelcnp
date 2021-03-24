@@ -40,7 +40,7 @@ def plot_task(task, model):
 
     # Make predictions with model
     with torch.no_grad():
-        y_mean, y_std = model(x_context, y_context, x_all[None, :, None].to(device))
+        y_mean, _,  y_std = model(x_context, y_context, x_all[None, :, None].to(device))
 
         # Get the marginals if we are predicting the full covariance
         if y_std.shape[-1] > 1:

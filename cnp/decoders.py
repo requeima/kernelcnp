@@ -2,9 +2,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from gnp.utils import init_sequential_weights, BatchLinear, compute_dists
+from cnp.utils import (
+    init_sequential_weights, 
+    BatchLinear, 
+    compute_dists, 
+    stacked_batch_mlp,
+    build_grid
+)
 from cnp.aggregation import CrossAttention, MeanPooling
-
 
 
 class StandardDecoder(nn.Module):
@@ -23,13 +28,7 @@ class StandardDecoder(nn.Module):
         self.latent_dim = latent_dim
         self.output_dim = output_dim
 
-        post_pooling_fn = nn.Sequential(
-            BatchLinear(self.input_dim, self.latent_dim),
-            nn.ReLU(),
-            BatchLinear(self.latent_dim, self.latent_dim),
-            nn.ReLU(),
-            BatchLinear(self.latent_dim, self.output_dim),
-        )
+        post_pooling_fn = stacked_batch_mlp(self.input_dim, self.latent_dim, self.output_dim)
         self.post_pooling_fn = init_sequential_weights(post_pooling_fn)
 
     def forward(self, r, x_context, y_context, x_target):
@@ -69,11 +68,20 @@ class ConvDecoder(nn.Module):
         init_length_scale (float): Initial value for the length scale.
     """
 
-    def __init__(self, conv_architecture, in_channels, init_length_scale, out_channels):
+    def __init__(self, 
+                 conv_architecture, 
+                 in_channels, 
+                 out_channels, 
+                 init_length_scale, 
+                 points_per_unit, 
+                 grid_multiplier):
+
         super().__init__()
         self.conv = conv_architecture
         self.out_channels = out_channels
         self.in_channels = in_channels
+        self.grid_multiplier = grid_multiplier
+        self.points_per_unit = points_per_unit
         self.linear_model = self.build_weight_model()
         self.sigma = nn.Parameter(np.log(init_length_scale) * torch.ones(self.in_channels), requires_grad=True)
         self.sigma_fn = torch.exp
@@ -123,14 +131,19 @@ class ConvDecoder(nn.Module):
         r = self.conv(r)
         r = r.reshape(r.shape[0], r.shape[1], -1).permute(0, 2, 1)
 
+        x_grid, num_points = build_grid(x_context, 
+                                x_target, 
+                                self.points_per_unit, 
+                                self.grid_multiplier)
         # Compute shapes.
-        batch_size = x_context.shape[0]
-        n_in = x_context.shape[1]
+        batch_size = x_grid.shape[0]
+        n_in = x_grid.shape[1]
         n_out = x_target.shape[1]
+
 
         # Compute the pairwise distances.
         # Shape: (batch, n_in, n_out).
-        dists = compute_dists(x_context, x_target)
+        dists = compute_dists(x_grid, x_target)
 
         # Compute the weights.
         # Shape: (batch, n_in, n_out, in_channels).

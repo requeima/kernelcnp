@@ -6,17 +6,19 @@ import torch
 import matplotlib.pyplot as plt
 import os
 
-import cnp.data
+import gnp.data
+from gnp.architectures import SimpleConv, UNet
 
-from cnp.experiment import (
+from gnp.experiment import (
     report_loss,
     generate_root,
     WorkingDirectory,
     save_checkpoint
 )
 
-from cnp.cnp import StandardGNP, StandardAGNP, ConvGNP
-from cnp.cov import (
+from gnp.gnp import GNP, AGNP
+from gnp.convgnp import ConvGNP
+from gnp.cov import (
     InnerProdCov,
     KvvCov,
     MeanFieldCov,
@@ -25,7 +27,7 @@ from cnp.cov import (
     AddNoNoise
 )
 
-from cnp.utils import device, gaussian_logpdf
+from gnp.utils import device, gaussian_logpdf
 
 
 def validate(data, model, report_freq=None, std_error=False):
@@ -35,7 +37,7 @@ def validate(data, model, report_freq=None, std_error=False):
     with torch.no_grad():
         for step, task in enumerate(data):
             num_target = task['y_target'].shape[1]
-            y_mean, _, y_std = \
+            y_mean, y_std = \
                 model(task['x_context'], task['y_context'], task['x_target'])
             obj = \
                  gaussian_logpdf(task['y_target'], y_mean, y_std,
@@ -58,7 +60,7 @@ def train(data, model, opt, report_freq):
     model.train()
     losses = []
     for step, task in enumerate(data):
-        y_mean, _, y_std = model(task['x_context'], task['y_context'],
+        y_mean, y_std = model(task['x_context'], task['y_context'],
                               task['x_target'])
         
         
@@ -140,10 +142,10 @@ else:
 
 # Load data generator.
 if args.data == 'sawtooth':
-    gen = cnp.data.SawtoothGenerator()
-    gen_val = cnp.data.SawtoothGenerator(num_tasks=60)
-    gen_test = cnp.data.SawtoothGenerator(num_tasks=args.test_context_num)
-    gen_plot = cnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
+    gen = gnp.data.SawtoothGenerator()
+    gen_val = gnp.data.SawtoothGenerator(num_tasks=60)
+    gen_test = gnp.data.SawtoothGenerator(num_tasks=args.test_context_num)
+    gen_plot = gnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
 else:
     if args.data == 'eq':
         kernel = stheno.EQ().stretch(0.25)
@@ -158,10 +160,10 @@ else:
     else:
         raise ValueError(f'Unknown data "{args.data}".')
     gp = stheno.GP(kernel)
-    gen = cnp.data.GPGenerator(kernel=kernel)
-    gen_val = cnp.data.GPGenerator(kernel=kernel, num_tasks=60)
-    gen_test = cnp.data.GPGenerator(kernel=kernel, num_tasks=args.test_context_num)
-    gen_plot = cnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
+    gen = gnp.data.GPGenerator(kernel=kernel)
+    gen_val = gnp.data.GPGenerator(kernel=kernel, num_tasks=60)
+    gen_test = gnp.data.GPGenerator(kernel=kernel, num_tasks=args.test_context_num)
+    gen_plot = gnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
 
 # Covariance method
 if args.covtype == 'innerprod-homo':
@@ -183,14 +185,18 @@ else:
     raise ValueError(f'Unknown covariance method {args.covtype}.')
 # Load model.
 if args.model == 'GNP':
-    model = StandardGNP(covariance=cov,
-                        add_noise=noise)
+    model = GNP(latent_dim=128,
+                cov=cov,
+                noise=noise)
 elif args.model == 'AGNP':
-    model = StandardAGNP(covariance=cov,
-                         add_noise=noise)
+    model = AGNP(latent_dim=128,
+                cov=cov,
+                noise=noise)
 elif args.model == 'convGNP':
-    model = ConvGNP(covariance=cov,
-                    add_noise=noise)
+    model = ConvGNP(rho=UNet(), 
+                    points_per_unit=64,
+                    cov=cov,
+                    noise=noise)
 else:
     raise ValueError(f'Unknown model {args.model}.')
 
