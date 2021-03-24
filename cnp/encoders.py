@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.aggregation import CrossAttention, MeanPooling
+from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
 from cnp.utils import (
     init_sequential_weights, 
     BatchLinear, 
@@ -183,3 +183,84 @@ class ConvEncoder(nn.Module):
         r = r.reshape(r.shape[0], r.shape[1], num_points)
 
         return r
+    
+    
+    
+# =============================================================================
+# Fully Connected Translation Equivariant Encoder
+# =============================================================================
+
+
+class FullyConnectedTEEncoder(nn.Module):
+    
+    def __init__(self, deepset):
+        
+        super().__init__()
+        
+        self.deepset = deepset
+    
+    
+    def forward(self, x_ctx, y_ctx, x_trg):
+        
+        assert len(x_ctx.shape) == 3
+        assert len(y_ctx.shape) == 2
+        assert len(x_trg.shape) == 3
+        
+        # Compute context input pairwise differences
+        x_diff = x_ctx[:, None, :, :] - x_ctx[:, :, None, :]
+        
+        # Tile context outputs to concatenate with input differences
+        y_ctx_tile1 = y_ctx[:, None, :, :].repeat(1, x_diff.shape[1], 1, 1)
+        y_ctx_tile2 = y_ctx[:, :, None, :].repeat(1, 1, x_diff.shape[1], 1)
+        
+        # Concatenate input differences and outputs, to obtain complete context
+        ctx = torch.cat([x_ctx_diff, y_ctx_tile1, y_ctx_tile2], dim=-1)
+        
+        # Latent representation of context set -- resulting r has shape (B, R)
+        r = self.deepset(ctx)
+        
+        return r
+    
+
+# =============================================================================
+# Standard Translation Equivariant Encoder
+# =============================================================================
+
+
+class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
+    
+    def __init__(self,
+                 input_dim,
+                 output_dim,
+                 rep_dim):
+        
+        # Input dimension of encoder (Din + 2 * Dout)
+        element_input_dim = input_dim + 2 * output_dim
+        
+        # Sizes of hidden layers and nonlinearity type
+        # Used for both elementwise and aggregate networks
+        hidden_dims = [128, 128]
+        nonlinearity = 'ReLU'
+        
+        # Element network -- in (B, C, C, Din + 2 * Dout), out (B, C, C, R)
+        element_network = FullyConnectedNetwork(input_dim=element_input_dim,
+                                                output_dim=rep_dim,
+                                                hidden_dims=hidden_dims,
+                                                nonlinearity=nonlinearity)
+        
+        # Dimensions to mean over -- in (B, C, C, R), out (B, R)
+        aggregation_dims = [1, 2]
+        
+        # Aggregate network -- in (B, R), out (B, R)
+        aggregate_network = FullyConnectedNetwork(input_dim=rep_dim,
+                                                  output_dim=rep_dim,
+                                                  hidden_dims=hidden_dims,
+                                                  nonlinearity=nonlinearity)
+        
+        # Deepset architecture
+        deepset = FullyConnectedDeepSet(element_network,
+                                        aggregation_dims,
+                                        aggregate_network)
+        
+        super().__init__(deepset=deepset)
+        

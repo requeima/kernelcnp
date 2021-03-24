@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from gnp.utils import init_sequential_weights, BatchLinear
-from cnp.architectures import BatchMLP
+from cnp.utils import init_sequential_weights, BatchLinear
+from cnp.architectures import BatchMLP, FullyConnectedNetwork
 
 class MeanPooling(nn.Module):
     """Helper class for performing mean pooling in CNPs.
@@ -212,3 +212,32 @@ class CrossAttention(nn.Module):
         attn = self._attention(keys, queries, h)
         out = self.ln1(attn + queries)
         return self.ln2(out + self.ff(out))
+    
+
+# =============================================================================
+# Fully Connected DeepSet with mean aggregation
+# =============================================================================
+    
+    
+class FullyConnectedDeepSet(nn.Module):
+    
+    def __init__(self,
+                 element_network,
+                 aggregation_dims,
+                 aggregate_network):
+        
+        assert type(aggregation_dims) == list
+        
+        self.element_network = element_network
+        self.aggregation_dims = aggregation_dims
+        self.aggregate_network = aggregate_network
+        
+    
+    def forward(self, tensor):
+        
+        tensor = self.element_network(tensor)
+        tensor = torch.mean(tensor, dim=aggregation_dims)
+        tensor = self.aggregate_network(tensor)
+        
+        return tensor
+    

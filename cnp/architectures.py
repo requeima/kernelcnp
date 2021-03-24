@@ -191,3 +191,53 @@ class BatchMLP(nn.Module):
         x = x.view(num_functions * num_points, -1)
         rep = self.net(x)
         return rep.view(num_functions, num_points, self.out_features)
+
+
+
+# =============================================================================
+# Fully Connected Neural Network
+# =============================================================================
+
+
+class FullyConnectedNetwork(nn.Module):
+    
+    def __init__(self,
+                 input_dim,
+                 output_dim,
+                 hidden_dims,
+                 nonlinearity):
+        
+        super().__init__()
+        
+        shapes = [input_dim] + hidden_dims + [output_dim]
+        shapes = [(s1, s2) for s1, s2 in zip(shapes[:-1], shapes[1:])]
+        
+        self.W = []
+        self.b = []
+        self.num_linear = len(hidden_dims) + 1
+        
+        for shape in shapes:
+
+            W = nn.Parameter(torch.randn(size=shape) / shape[0] ** 0.5)
+            b = nn.Parameter(torch.randn(size=shape[1:]))
+
+            self.W.append(W)
+            self.b.append(b)
+            
+        self.W = torch.nn.ParameterList(self.W)
+        self.b = torch.nn.ParameterList(self.b)
+        
+        self.nonlinearity = getattr(nn, nonlinearity)()
+        
+    
+    def forward(self, tensor):
+        
+        for i, (W, b) in enumerate(zip(self.W, self.b)):
+            
+            tensor = torch.einsum('...i, ij -> ...j', tensor, W)
+            tensor = tensor + b[None, None, :]
+            
+            if i < self.num_linear - 1:
+                tensor = self.nonlinearity(tensor)
+        
+        return tensor
