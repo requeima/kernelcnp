@@ -1,40 +1,45 @@
 import pandas as pd
 import numpy as np
-from convcnp.experiment import WorkingDirectory, generate_root
+from gnp.experiment import WorkingDirectory, generate_root
+import os
 
-models = ['convcnp', 
-          'convcnpxl', 
-          'cnp', 
-          'anp',
-          'InnerProdHomoNoiseKernelCNP', 
-          'InnerProdHeteroNoiseKernelCNP',
-          'KvvHomoNoiseKernelCNP',
-          'KvvHeteroNoiseKernelCNP']
+models = ["GNP", "AGNP", "convGNP"]
+covs = ["innerprod-homo", "innerprod-hetero", "kvv-homo", "kvv-hetero", "meanfield"]
 
-experiments = ["eq",
-               "matern",
-               "noisy-mixture",
-               "weakly-periodic",
-               "sawtooth"]
+fullmodels = []
 
-experiments_with_error = ["eq", "eq-error", 
-               "matern", "matern-errror", 
-               "noisy-mixture", "noisy-mixture-error", 
-               "weakly-periodic", "weakly-periodic-error", 
-               "sawtooth", "sawtooth-error"]
+for c in covs:
+    for m in models:
+        fullmodels.append(" ".join([c, m]))
 
-# Create an empty 
-df = pd.DataFrame(index=models, columns=experiments_with_error)
+experiments = ["eq", "matern", "noisy-mixture"]
+
+experiments_with_error = []
+for e in experiments:
+    experiments_with_error.append(e)
+    experiments_with_error.append(e + "-error")    
+
+# Create an empty dataframe
+df = pd.DataFrame(index=fullmodels, columns=experiments_with_error)
 
 # Fill the dataframe
-for m in models:
-    for e, err in zip(experiments, experiments_with_error):
-        root = '_experiments/%s-%s' % (m,e)
-        wd = WorkingDirectory(root=root)
-        mean = np.loadtxt(wd.file('test_log_likelihood.txt', exists=True))
-        error = np.loadtxt(wd.file('test_log_likelihood_standard_error.txt', exists=True))
-        df.at[m, e] = mean
-        df.at[m, err] = error
+for c in covs:
+    for m in models:
+        for e in experiments:            
+            experiment_name = os.path.join('_experiments', 
+                                            f'{e}', 
+                                            f'{m}', 
+                                            f'{c}')
+            wd = WorkingDirectory(root=experiment_name)
+            err = e + "-error"
+            mean = np.loadtxt(wd.file('test_log_likelihood.txt', 
+                                        exists=True))
+            error = np.loadtxt(wd.file('test_log_likelihood_standard_error.txt',
+                                        exists=True))
+            
+            idx = " ".join([c, m])
+            df.at[idx, e] = mean
+            df.at[idx, err] = error
 
 
 df.to_csv('_experiments/full_results.csv', float_format='%.3f')
