@@ -9,7 +9,7 @@ import gnp.data
 from gnp.experiment import report_loss, RunningAverage
 from gnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple, compute_dists
 from gnp.architectures import SimpleConv, UNet
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 
 from gnp.utils import device
 
@@ -27,14 +27,26 @@ def rbf_kernel(x, scales):
     return torch.exp(-0.5 * dists / scales ** 2)
 
 
-class InnerProdCov(nn.Module):
+class Covariance(nn.Module):
+    def __init__(self, num_basis_dim, extra_cov_dim):
+        super().__init__()
+        self.num_basis_dim = num_basis_dim
+        self.extra_cov_dim = extra_cov_dim
+
+
+class AddNoise(nn.Module):
+    def __init__(self, extra_noise_dim):
+        super().__init__()
+        self.extra_noise_dim = extra_noise_dim
+
+
+class InnerProdCov(Covariance):
     
     def __init__(self, num_basis_dim):
-        super().__init__()
         # Extra dimension to add to the output
-        self.extra_cov_dim = 0
-        self.num_basis_dim = num_basis_dim
-    
+        extra_cov_dim = 0
+        super().__init__(num_basis_dim, extra_cov_dim)
+        
     def forward(self, embeddings):
         # Compute the covariance by taking innerproducts between embeddings
         basis_emb = embeddings[:, :, :self.num_basis_dim]
@@ -42,12 +54,11 @@ class InnerProdCov(nn.Module):
         return cov
 
 
-class KvvCov(nn.Module):
+class KvvCov(Covariance):
     def __init__(self, num_basis_dim):
-        super().__init__()
         # Extra dimension to add to the output
-        self.extra_cov_dim = 1
-        self.num_basis_dim = num_basis_dim
+        extra_cov_dim = 1
+        super().__init__(num_basis_dim, extra_cov_dim)
         
         # Kernel Parameters
         init_length_scale = 0.5
@@ -67,14 +78,13 @@ class KvvCov(nn.Module):
         return cov
 
 
-class MeanFieldCov(nn.Module):
+class MeanFieldCov(Covariance):
     def __init__(self, num_basis_dim):
-        super().__init__()
         assert num_basis_dim == 1, \
         'Mean Feald embedding must be one-dimensional.'
         # Extra dimension to add to the output
-        self.extra_cov_dim = 0
-        self.num_basis_dim = num_basis_dim
+        extra_cov_dim = 0
+        super().__init__(num_basis_dim, extra_cov_dim)
         
     def forward(self, embeddings):
         assert embeddings.shape[-1] == 1, \
@@ -89,11 +99,12 @@ class MeanFieldCov(nn.Module):
         return cov
 
 
-class AddHomoNoise(nn.Module):
+class AddHomoNoise(AddNoise):
     def __init__(self):
-        super().__init__()
         # Extra dimension to add to the output
-        self.extra_noise_dim = 0
+        extra_noise_dim = 0
+        super().__init__(extra_noise_dim)
+
         # Noise Parameters
         self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
     
@@ -106,9 +117,10 @@ class AddHomoNoise(nn.Module):
 
 class AddHeteroNoise(nn.Module):
     def __init__(self):
-        super().__init__()
         # Extra dimension to add to the output
-        self.extra_noise_dim = 1
+        extra_noise_dim = 1
+        super().__init__(extra_noise_dim)
+
         # Noise Parameters
         self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
         
@@ -129,9 +141,9 @@ class AddHeteroNoise(nn.Module):
 
 class AddNoNoise(nn.Module):
     def __init__(self):
-        super().__init__()
         # Extra dimension to add to the output
-        self.extra_noise_dim = 0
-        
+        extra_noise_dim = 0
+        super().__init__(extra_noise_dim)
+    
     def forward(self, cov, embeddings):
         return cov
