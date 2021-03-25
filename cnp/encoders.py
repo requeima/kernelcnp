@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
+from cnp.architectures import FullyConnectedNetwork
 from cnp.utils import (
     init_sequential_weights, 
     BatchLinear, 
@@ -203,7 +204,7 @@ class FullyConnectedTEEncoder(nn.Module):
     def forward(self, x_ctx, y_ctx, x_trg):
         
         assert len(x_ctx.shape) == 3
-        assert len(y_ctx.shape) == 2
+        assert len(y_ctx.shape) == 3
         assert len(x_trg.shape) == 3
         
         # Compute context input pairwise differences
@@ -214,7 +215,7 @@ class FullyConnectedTEEncoder(nn.Module):
         y_ctx_tile2 = y_ctx[:, :, None, :].repeat(1, 1, x_diff.shape[1], 1)
         
         # Concatenate input differences and outputs, to obtain complete context
-        ctx = torch.cat([x_ctx_diff, y_ctx_tile1, y_ctx_tile2], dim=-1)
+        ctx = torch.cat([x_diff, y_ctx_tile1, y_ctx_tile2], dim=-1)
         
         # Latent representation of context set -- resulting r has shape (B, R)
         r = self.deepset(ctx)

@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 from gnp.utils import (
     init_sequential_weights,
@@ -235,7 +236,7 @@ class FullyConnectedNetwork(nn.Module):
         for i, (W, b) in enumerate(zip(self.W, self.b)):
             
             tensor = torch.einsum('...i, ij -> ...j', tensor, W)
-            tensor = tensor + b[None, None, :]
+            tensor = tensor + torch.reshape(b, (len(tensor.shape) -1) * [1] + [-1])
             
             if i < self.num_linear - 1:
                 tensor = self.nonlinearity(tensor)

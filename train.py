@@ -15,7 +15,7 @@ from cnp.experiment import (
     save_checkpoint
 )
 
-from cnp.cnp import StandardGNP, StandardAGNP, ConvGNP
+from cnp.cnp import StandardGNP, StandardAGNP, StandardConvGNP, StandardFullyConnectedTEGNP
 from cnp.cov import (
     InnerProdCov,
     KvvCov,
@@ -88,7 +88,8 @@ parser.add_argument('data',
 parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
-                             'convGNP'],
+                             'convGNP',
+                             'TEGNP'],
                     help='Choice of model. ')
 parser.add_argument('covtype',
                     choices=['innerprod-homo',
@@ -189,8 +190,11 @@ elif args.model == 'AGNP':
     model = StandardAGNP(covariance=cov,
                          add_noise=noise)
 elif args.model == 'convGNP':
-    model = ConvGNP(covariance=cov,
-                    add_noise=noise)
+    model = StandardConvGNP(covariance=cov,
+                            add_noise=noise)
+elif args.model == 'TEGNP':
+    model = StandardFullyConnectedTEGNP(covariance=cov,
+                                        add_noise=noise)
 else:
     raise ValueError(f'Unknown model {args.model}.')
 

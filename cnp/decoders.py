@@ -9,7 +9,8 @@ from cnp.utils import (
     stacked_batch_mlp,
     build_grid
 )
-from cnp.aggregation import CrossAttention, MeanPooling
+from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
+from cnp.architectures import FullyConnectedNetwork
 
 
 class StandardDecoder(nn.Module):
@@ -201,7 +202,7 @@ class FullyConnectedTEDecoder(nn.Module):
 # =============================================================================
 
 
-class StandardFullyConnectedTEDecoder(FullyConnectedTEEncoder):
+class StandardFullyConnectedTEDecoder(FullyConnectedTEDecoder):
     
     def __init__(self,
                  input_dim,

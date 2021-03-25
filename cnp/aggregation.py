@@ -225,6 +225,8 @@ class FullyConnectedDeepSet(nn.Module):
                  element_network,
                  aggregation_dims,
                  aggregate_network):
+
+        super().__init__()
         
         assert type(aggregation_dims) == list
         
@@ -236,7 +238,7 @@ class FullyConnectedDeepSet(nn.Module):
     def forward(self, tensor):
         
         tensor = self.element_network(tensor)
-        tensor = torch.mean(tensor, dim=aggregation_dims)
+        tensor = torch.mean(tensor, dim=self.aggregation_dims)
         tensor = self.aggregate_network(tensor)
         
         return tensor

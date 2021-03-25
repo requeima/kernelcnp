@@ -5,7 +5,7 @@ EPOCHS="100"
 kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
 # kernels=("eq")
 
-models=("GNP" "AGNP" "convGNP")
+models=("GNP" "AGNP" "convGNP" "TEGNP")
 covs=("innerprod-homo" "innerprod-hetero" "kvv-homo" "kvv-hetero"  "meanfield")
 
 for data in "${kernels[@]}"; do
