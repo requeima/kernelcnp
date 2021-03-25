@@ -115,7 +115,7 @@ class AddHomoNoise(AddNoise):
         return cov_plus_noise
 
 
-class AddHeteroNoise(nn.Module):
+class AddHeteroNoise(AddNoise):
     def __init__(self):
         # Extra dimension to add to the output
         extra_noise_dim = 1
@@ -139,7 +139,7 @@ class AddHeteroNoise(nn.Module):
         return cov_plus_noise
 
 
-class AddNoNoise(nn.Module):
+class AddNoNoise(AddNoise):
     def __init__(self):
         # Extra dimension to add to the output
         extra_noise_dim = 0
