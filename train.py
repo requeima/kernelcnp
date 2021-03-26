@@ -25,7 +25,8 @@ from cnp.cov import (
     AddNoNoise
 )
 
-from cnp.utils import device, gaussian_logpdf
+from cnp.utils import device
+from torch.distributions import MultivariateNormal
 
 
 def validate(data, model, report_freq=None, std_error=False):
@@ -34,16 +35,22 @@ def validate(data, model, report_freq=None, std_error=False):
     likelihoods = []
     with torch.no_grad():
         for step, task in enumerate(data):
-            num_target = task['y_target'].shape[1]
-            y_mean, _, y_std = \
-                model(task['x_context'], task['y_context'], task['x_target'])
-            obj = \
-                 gaussian_logpdf(task['y_target'], y_mean, y_std,
-                                 'batched_mean')
-            likelihoods.append(obj.item() / num_target)
+
+            y_mean, _, y_cov = model(task['x_context'],
+                                     task['y_context'],
+                                     task['x_target'])
+
+            dist = MultivariateNormal(loc=y_mean[:, :, 0],
+                                      covariance_matrix=y_cov)
+            obj = - dist.log_prob(task['y_target'][:, :, 0]).sum()
+
+            likelihoods.append(obj.item())
+
             if report_freq:
+
                 avg_ll = np.array(likelihoods).mean()
                 report_loss('Validation', avg_ll, step, report_freq)
+
     likelihoods = np.array(likelihoods)
     avg_ll = likelihoods.mean()
     if std_error:
@@ -58,11 +65,15 @@ def train(data, model, opt, report_freq):
     model.train()
     losses = []
     for step, task in enumerate(data):
-        y_mean, _, y_std = model(task['x_context'], task['y_context'],
-                              task['x_target'])
+
+        y_mean, _, y_cov = model(task['x_context'],
+                                 task['y_context'],
+                                 task['x_target'])
         
-        
-        obj = -gaussian_logpdf(task['y_target'], y_mean, y_std, 'batched_mean')
+
+        dist = MultivariateNormal(loc=y_mean[:, :, 0],
+                                  covariance_matrix=y_cov)
+        obj = - dist.log_prob(task['y_target'][:, :, 0]).sum()
 
         # Optimization
         obj.backward()
@@ -73,6 +84,7 @@ def train(data, model, opt, report_freq):
         losses.append(obj.item())
         avg_loss = np.array(losses).mean()
         report_loss('Training', avg_loss, step, report_freq)
+
     return avg_loss
 
 
