@@ -106,11 +106,9 @@ def report_loss(name, loss, step, freq=1):
     """
     if isinstance(step, int):
         if step == 0 or (step + 1) % freq == 0:
-            print('{name:15s} {step:5d}: {loss:.3e}'
-                  ''.format(name=name, step=step + 1, loss=loss))
+            print(f'{name:15s} {step:5d}: {loss:.3e}')
     else:
-        print('{name:15s} {step:>5s}: {loss:.3e}'
-              ''.format(name=name, step=step, loss=loss))
+        print(f'{name:15s} {step:>5s}: {loss:.3e}')
 
 
 class RunningAverage:

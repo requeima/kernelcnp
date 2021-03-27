@@ -4,7 +4,7 @@ import numpy as np
 import stheno
 import torch
 
-from gnp.utils import device
+from .utils import device
 
 __all__ = ['GPGenerator', 'SawtoothGenerator']
 

@@ -5,13 +5,9 @@ import torch
 import torch.nn as nn
 import stheno.torch as stheno
 
-import gnp.data
-from gnp.experiment import report_loss, RunningAverage
-from gnp.utils import gaussian_logpdf, init_sequential_weights, to_multiple, compute_dists
-from gnp.architectures import SimpleConv, UNet
 from abc import ABC, abstractmethod, abstractproperty
+from .utils import device
 
-from gnp.utils import device
 
 def cdist(x):
     norms = torch.sum(x ** 2, axis=2)
@@ -48,9 +44,10 @@ class InnerProdCov(Covariance):
         super().__init__(num_basis_dim, extra_cov_dim)
         
     def forward(self, embeddings):
-        # Compute the covariance by taking innerproducts between embeddings
+        # Compute the covariance by taking inner products between embeddings
         basis_emb = embeddings[:, :, :self.num_basis_dim]
-        cov = torch.matmul(basis_emb, torch.transpose(basis_emb, dim0=-2, dim1=-1)) / self.num_basis_dim
+        cov = torch.einsum('bni, bmi -> bnm', basis_emb, basis_emb) / self.num_basis_dim
+        
         return cov
 
 
@@ -106,10 +103,10 @@ class AddHomoNoise(AddNoise):
         super().__init__(extra_noise_dim)
 
         # Noise Parameters
-        self.noise_scale = nn.Parameter(np.log(1.0) * torch.ones(1), requires_grad=True)
+        self.noise_scale = nn.Parameter(torch.zeros(1), requires_grad=True)
     
     def forward(self, cov, embeddings):
-        noise_var =  torch.eye(cov.shape[1])[None, ...].to(device)
+        noise_var = torch.eye(cov.shape[1])[None, ...].to(device)
         cov_plus_noise = cov + torch.exp(self.noise_scale) * noise_var
         
         return cov_plus_noise

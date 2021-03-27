@@ -2,19 +2,19 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.encoders import (
+from .encoders import (
     StandardEncoder,
     ConvEncoder,
     StandardFullyConnectedTEEncoder
 )
 
-from cnp.decoders import (
+from .decoders import (
     StandardDecoder,
     ConvDecoder,
     StandardFullyConnectedTEDecoder
 )
 
-from cnp.architectures import UNet
+from .architectures import UNet
 
 
 class GaussianNeuralProcess(nn.Module):
@@ -41,7 +41,7 @@ class GaussianNeuralProcess(nn.Module):
         embedding = z[..., 1:]
         cov = self.covariance(embedding)
         cov_plus_noise = self.add_noise(cov, embedding)
-
+        
         return mean, cov, cov_plus_noise 
 
 
@@ -96,6 +96,7 @@ class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
                                                   rep_dim=rep_dim)
         
         decoder = StandardFullyConnectedTEDecoder(input_dim=input_dim,
+                                                  output_dim=output_dim,
                                                   rep_dim=rep_dim,
                                                   embedding_dim=embedding_dim)
         
