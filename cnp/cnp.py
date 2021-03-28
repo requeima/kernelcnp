@@ -40,9 +40,6 @@ class GaussianNeuralProcess(nn.Module):
     
     def forward(self, x_context, y_context, x_target):
         
-        assert len(y_context.shape) == 3 and y_context.shape[2] == 1
-        assert len(y_target.shape) == 3 and y_target.shape[2] == 1
-        
         r = self.encoder(x_context, y_context, x_target)
         z = self.decoder(r, x_context, y_context, x_target)
         

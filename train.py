@@ -9,7 +9,6 @@ import os
 import cnp.data
 
 from cnp.experiment import (
-    report_loss,
     generate_root,
     WorkingDirectory,
     save_checkpoint
@@ -36,63 +35,63 @@ from torch.distributions import MultivariateNormal
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def validate(data, model, report_freq=None, std_error=False):
-    """Compute the validation loss."""
-    model.eval()
-    likelihoods = []
+def validate(data, model, report_freq, std_error=False):
+    """ Compute the validation loss. """
+    
+    nll_list = []
+    
     with torch.no_grad():
-        for step, task in enumerate(data):
+        for step, batch in enumerate(data):
 
-            y_mean, _, y_cov = model(task['x_context'],
-                                     task['y_context'],
-                                     task['x_target'])
+            y_mean, _, y_cov = model(batch['x_context'],
+                                     batch['y_context'],
+                                     batch['x_target'])
 
             dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                       covariance_matrix=y_cov)
-            obj = - dist.log_prob(task['y_target'][:, :, 0]).sum()
+            
+            nll = - dist.log_prob(batch['y_target'][:, :, 0]).sum()
+            
+            nll_list.append(nll.item())
 
-            likelihoods.append(obj.item())
-
-            if report_freq:
-
-                avg_ll = np.array(likelihoods).mean()
-                report_loss('Validation', avg_ll, step, report_freq)
-
-    likelihoods = np.array(likelihoods)
-    avg_ll = likelihoods.mean()
-    if std_error:
-        std_error = likelihoods.std()/np.sqrt(len(likelihoods))
-        return avg_ll, std_error
-    else:
-        return avg_ll
+            if (step + 1) % report_freq == 0:
+                print(f"Validation neg. log-lik: "
+                      f"{np.mean(nll_list):.2f} +/- "
+                      f"{np.var(nll_list) ** 0.5:.3f}")
+                
+    mean_nll = np.mean(nll_list)
+    
+    return mean_nll
 
 
 def train(data, model, optimiser, report_freq):
-    """Perform a training epoch."""
-    model.train()
-    losses = []
-    for step, task in enumerate(data):
+    """ Perform a training epoch. """
 
-        y_mean, _, y_cov = model(task['x_context'],
-                                 task['y_context'],
-                                 task['x_target'])
+    nll = 0.
+    
+    for step, batch in enumerate(data):
+
+        y_mean, _, y_cov = model(batch['x_context'],
+                                 batch['y_context'],
+                                 batch['x_target'])
         
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)
-        obj = - dist.log_prob(task['y_target'][:, :, 0]).sum()
+        nll = nll - dist.log_prob(batch['y_target'][:, :, 0]).sum()
 
-        # Optimization
-        obj.backward()
-        optimiser.step()
-        optimiser.zero_grad()
+        if (step + 1) % report_freq == 0:
+            print(f"Training   neg. log-lik: {nll:.2f}")
+        
+    # Scale objective by number of iterations
+    nll = nll / (step + 1)
 
-        # Track training progress
-        losses.append(obj.item())
-        avg_loss = np.array(losses).mean()
-        report_loss('Training', avg_loss, step, report_freq)
+    # Compute gradients and apply them
+    nll.backward()
+    optimiser.step()
+    optimiser.zero_grad()
 
-    return avg_loss
+    return nll
 
 
 # Parse arguments given to the script.
@@ -126,22 +125,22 @@ parser.add_argument('--max_num_target',
                     type=int,
                     help='Maximum number of target points.')
 
-parser.add_argument('--num_train_iterations',
+parser.add_argument('--num_train_iters',
                     default=1,
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
 
-parser.add_argument('--num_valid_iterations',
-                    default=32,
+parser.add_argument('--num_valid_iters',
+                    default=100,
                     type=int,
                     help='Iterations (# batches sampled) for validation.')
 
-parser.add_argument('--num_test_iterations',
+parser.add_argument('--num_test_iters',
                     default=2048,
                     type=int,
                     help='Iterations (# batches sampled) for testing.')
 
-parser.add_argument('--xrange',
+parser.add_argument('--x_range',
                     default=[-3., 3.],
                     nargs='+',
                     type=float,
@@ -258,7 +257,7 @@ WP_PARAMS = [1., 0.25]
 # Generator parameters -- used for both Sawtooth and GP generators
 generator_parameters = {
     'batch_size'                : args.batch_size,
-    'x_range'                   : args.x_range,
+    'x_range'                    : args.x_range,
     'max_num_context'           : args.max_num_context,
     'max_num_target'            : args.max_num_target,
     'include_context_in_target' : False
@@ -274,15 +273,15 @@ train_sawtooth_parameters = {
                     
 if args.data == 'sawtooth':
     
-    gen_train = cnp.data.SawtoothGenerator(args.num_train_iterations,
+    gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
                                            **sawtooth_parameters,
                                            **generator_parameters)
     
-    gen_val = cnp.data.SawtoothGenerator(args.num_valid_iterations,
+    gen_val = cnp.data.SawtoothGenerator(args.num_valid_iters,
                                          **sawtooth_parameters,
                                          **generator_parameters)
     
-    gen_test = cnp.data.SawtoothGenerator(args.num_test_iterations,
+    gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
                                           **sawtooth_parameters,
                                           **generator_parameters)
     
@@ -306,15 +305,15 @@ else:
     else:
         raise ValueError(f'Unknown generator kind "{args.data}".')
         
-    gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iterations,
+    gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
                                      kernel=kernel,
                                      **generator_parameters)
         
-    gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iterations,
-                                     kernel=kernel,
-                                     **generator_parameters)
+    gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
+                                   kernel=kernel,
+                                   **generator_parameters)
         
-    gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iterations,
+    gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
                                     kernel=kernel,
                                     **generator_parameters)
     
@@ -377,6 +376,8 @@ model.to(device)
 # Train or test model
 # =============================================================================
 
+# Number of epochs between validations
+VALIDATE_EVERY = 10
 
 if args.train:
 
@@ -385,24 +386,24 @@ if args.train:
                                  args.learning_rate,
                                  weight_decay=args.weight_decay)
     
-    # Run the training loop, maintaining the best objective value.
-    best_obj = -np.inf
+    # Run the training loop, maintaining the best objective value
+    best_nll = np.inf
+    
     for epoch in range(args.epochs):
+        
         print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
-        # Compute training objective.
-        train_obj = train(gen, model, optimiser, report_freq=50)
-        report_loss('Training', train_obj, 'epoch')
+        # Compute training negative log-likelihood
+        train_nll = train(gen_train, model, optimiser, report_freq=1)
 
-        # Compute validation objective.
-        val_obj = validate(gen_val, model, report_freq=20)
-        report_loss('Validation', val_obj, 'epoch')
+        if epoch % VALIDATE_EVERY == 0:
+            
+            # Compute validation negative log-likelihood
+            val_nll = validate(gen_val, model, report_freq=20)
 
-        # Update the best objective value and checkpoint the model.
-        is_best = False
-        if val_obj > best_obj:
-            best_obj = val_obj
-            is_best = True
+            # Update the best objective value and checkpoint the model
+            is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
+                                (False, best_nll)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,
@@ -411,6 +412,8 @@ if args.train:
                          'optimizer'     : optimiser.state_dict()},
                         is_best=is_best,
                         epoch=epoch)
+        
+        
 
 elif args.test:
     

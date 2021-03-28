@@ -173,25 +173,25 @@ class SawtoothGenerator(DataGenerator):
     default numbers for `max_num_context` and `max_num_target` are 100.
 
     Args:
-        freq_dist (tuple[float], optional): Lower and upper bound for the
+        freq_range (tuple[float], optional): Lower and upper bound for the
             random frequency.
-        shift_dist (tuple[float], optional): Lower and upper bound for the
+        shift_range (tuple[float], optional): Lower and upper bound for the
             random shift.
-        trunc_dist (tuple[float], optional): Lower and upper bound for the
+        trunc_range (tuple[float], optional): Lower and upper bound for the
             random truncation.
     """
 
     def __init__(self,
-                 freq_dist,
-                 shift_dist,
-                 trunc_dist,
+                 freq_range,
+                 shift_range,
+                 trunc_range,
                  max_num_context,
                  max_num_target,
                  **kw_args):
         
-        self.freq_dist = freq_dist
-        self.shift_dist = shift_dist
-        self.trunc_dist = trunc_dist
+        self.freq_range = freq_range
+        self.shift_range = shift_range
+        self.trunc_range = trunc_range
         
         DataGenerator.__init__(self,
                                max_num_context=max_num_context,
@@ -201,9 +201,9 @@ class SawtoothGenerator(DataGenerator):
     def sample(self, x):
         # Sample parameters of sawtooth.
         amp = 1
-        freq = _rand(self.freq_dist)
-        shift = _rand(self.shift_dist)
-        trunc = np.random.randint(self.trunc_dist[0], self.trunc_dist[1] + 1)
+        freq = _rand(self.freq_range)
+        shift = _rand(self.shift_range)
+        trunc = np.random.randint(self.trunc_range[0], self.trunc_range[1] + 1)
 
         # Construct expansion.
         x = x[:, None] + shift
