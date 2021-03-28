@@ -165,9 +165,9 @@ class ConvDecoder(nn.Module):
         z = z.view(batch_size, n_out, self.out_channels)
 
         return z
-    
-    
-
+        
+        
+        
 # =============================================================================
 # Fully Connected Translation Equivariant Decoder
 # =============================================================================
@@ -202,7 +202,7 @@ class FullyConnectedTEDecoder(nn.Module):
         
         r = r[:, :, None, :].repeat(1, 1, diff.shape[2], 1)
         
-        ctx = torch.cat([diff, r, y_ctx], dim=-1) # (B, C, T, Din + R + Dout)
+        ctx = torch.cat([diff, r, y_ctx], dim=-1)
         
         tensor = self.deepset(ctx)
         
@@ -226,7 +226,7 @@ class StandardFullyConnectedTEDecoder(FullyConnectedTEDecoder):
         super().__init__()
         
         # Input dimension of encoder (Din + R)
-        element_input_dim = input_dim + rep_dim + output_dim
+        element_input_dim = input_dim + output_dim + rep_dim
         
         # Sizes of hidden layers and nonlinearity type
         # Used for both elementwise and aggregate networks
@@ -254,5 +254,3 @@ class StandardFullyConnectedTEDecoder(FullyConnectedTEDecoder):
                                         aggregate_network)
         
         self.deepset = deepset
-
-        

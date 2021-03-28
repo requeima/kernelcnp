@@ -64,7 +64,7 @@ def validate(data, model, report_freq, std_error=False):
     return mean_nll
 
 
-def train(data, model, optimiser, report_freq):
+def train(data, model, optimiser, log):
     """ Perform a training epoch. """
 
     nll = 0.
@@ -79,12 +79,12 @@ def train(data, model, optimiser, report_freq):
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)
         nll = nll - dist.log_prob(batch['y_target'][:, :, 0]).sum()
-
-        if (step + 1) % report_freq == 0:
-            print(f"Training   neg. log-lik: {nll:.2f}")
         
     # Scale objective by number of iterations
     nll = nll / (step + 1)
+    
+    if log:
+        print(f"Training   neg. log-lik: {nll/(step+1):.2f}")
 
     # Compute gradients and apply them
     nll.backward()
@@ -165,7 +165,7 @@ parser.add_argument('--trunc_range',
                     help='Range of truncations for sawtooth data.')
 
 parser.add_argument('--epochs',
-                    default=100,
+                    default=1000,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -195,7 +195,7 @@ parser.add_argument('--num_basis_dim',
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=1e-3,
+                    default=1e-4,
                     type=float,
                     help='Learning rate.')
 
@@ -377,6 +377,7 @@ model.to(device)
 # =============================================================================
 
 # Number of epochs between validations
+LOG_EVERY = 10
 VALIDATE_EVERY = 10
 
 if args.train:
@@ -391,15 +392,23 @@ if args.train:
     
     for epoch in range(args.epochs):
         
-        print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+        log = epoch % LOG_EVERY == 0
+        
+        if log:
+            print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
         # Compute training negative log-likelihood
-        train_nll = train(gen_train, model, optimiser, report_freq=1)
+        train_nll = train(gen_train,
+                          model,
+                          optimiser,
+                          log=log)
 
         if epoch % VALIDATE_EVERY == 0:
             
             # Compute validation negative log-likelihood
-            val_nll = validate(gen_val, model, report_freq=20)
+            val_nll = validate(gen_val,
+                               model,
+                               report_freq=args.num_valid_iters)
 
             # Update the best objective value and checkpoint the model
             is_best, best_obj = (True, val_nll) if val_nll < best_nll else \

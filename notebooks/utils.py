@@ -19,7 +19,7 @@ def eq_covariance(inputs1,
     return cov
 
 
-def sample_1d_datasets_from_gps(low,
+def sample_datasets_from_gps(low,
                              high,
                              num_batches,
                              batch_size,
@@ -30,7 +30,7 @@ def sample_1d_datasets_from_gps(low,
 
     x = np.random.uniform(low=low,
                           high=high,
-                          size=(num_batches, batch_size))[:, :, None]
+                          size=(num_batches, batch_size, 1))
 
     cov = eq_covariance(x, x, scale, cov_coeff, noise_coeff)
     cov = cov + noise_coeff ** 2 * np.eye(cov.shape[-1])[None, :, :]
@@ -42,10 +42,10 @@ def sample_1d_datasets_from_gps(low,
     
     chol = np.linalg.cholesky(cov)
 
-    y = np.einsum('bij, bj -> bi', chol, noise)
+    y = np.einsum('bij, bjd -> bid', chol, noise)
 
     x = torch.tensor(x).float()
-    y = torch.tensor(y).float()[:, :, None]
+    y = torch.tensor(y).float()
 
     return x, y
 
@@ -93,13 +93,14 @@ def plot_samples_and_predictions(gnp,
     plt.figure(figsize=(16, 3))
 
     # Sample three datasets
-    inputs, outputs = sample_1d_datasets_from_gps(xmin,
-                                                  xmax,
-                                                  num_batches,
-                                                  batch_size,
-                                                  scale,
-                                                  cov_coeff,
-                                                  noise_coeff)
+    inputs, outputs = sample_datasets_from_gps(xmin,
+                                               xmax,
+                                               num_batches,
+                                               batch_size,
+                                               scale,
+                                               cov_coeff,
+                                               noise_coeff,
+                                               True)
 
 
     for i in range(3):

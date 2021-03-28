@@ -184,9 +184,9 @@ class ConvEncoder(nn.Module):
         r = r.reshape(r.shape[0], r.shape[1], num_points)
 
         return r
-    
-    
-    
+        
+        
+        
 # =============================================================================
 # Fully Connected Translation Equivariant Encoder
 # =============================================================================
@@ -217,7 +217,7 @@ class FullyConnectedTEEncoder(nn.Module):
         # Concatenate input differences and outputs, to obtain complete context
         ctx = torch.cat([x_diff, y_ctx_tile1, y_ctx_tile2], dim=-1)
         
-        # Latent representation of context set -- resulting r has shape (B, C, R)
+        # Latent representation of context set -- r has shape (B, C, R)
         r = self.deepset(ctx)
         
         return r
@@ -240,7 +240,7 @@ class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
         
         # Sizes of hidden layers and nonlinearity type
         # Used for both elementwise and aggregate networks
-        hidden_dims = [128]
+        hidden_dims = [128, 128]
         nonlinearity = 'ReLU'
         
         # Element network -- in (B, C, C, Din + 2 * Dout), out (B, C, C, R)
@@ -264,3 +264,4 @@ class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
                                         aggregate_network)
         
         super().__init__(deepset=deepset)
+        
