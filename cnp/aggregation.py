@@ -213,7 +213,7 @@ class CrossAttention(nn.Module):
         out = self.ln1(attn + queries)
         return self.ln2(out + self.ff(out))
 
-
+        
 # =============================================================================
 # Fully Connected DeepSet with mean aggregation
 # =============================================================================
