@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from torch.distributions import MultivariateNormal
+
 from .encoders import (
     StandardEncoder,
     ConvEncoder,
@@ -17,14 +19,19 @@ from .decoders import (
 from .architectures import UNet
 
 
+
+# =============================================================================
+# General Gaussian Neural Process
+# =============================================================================
+
+
 class GaussianNeuralProcess(nn.Module):
-    """Conditional Neural Process Module.
-
-    Args:
-
-    """
+    
+    
     def __init__(self, encoder, decoder, covariance, add_noise):
+        
         super().__init__()
+        
         self.encoder = encoder
         self.decoder = decoder
         self.covariance = covariance
@@ -32,8 +39,13 @@ class GaussianNeuralProcess(nn.Module):
 
     
     def forward(self, x_context, y_context, x_target):
+        
+        assert len(y_context.shape) == 3 and y_context.shape[2] == 1
+        assert len(y_target.shape) == 3 and y_target.shape[2] == 1
+        
         r = self.encoder(x_context, y_context, x_target)
         z = self.decoder(r, x_context, y_context, x_target)
+        
         # Produce mean
         mean = z[..., 0:1]
         
@@ -42,41 +54,71 @@ class GaussianNeuralProcess(nn.Module):
         cov = self.covariance(embedding)
         cov_plus_noise = self.add_noise(cov, embedding)
         
-        return mean, cov, cov_plus_noise 
+        return mean, cov, cov_plus_noise
 
+
+
+# =============================================================================
+# Standard Gaussian Neural Process
+# =============================================================================
 
 
 class StandardGNP(GaussianNeuralProcess):
+    
     def __init__(self, covariance, add_noise, use_attention=False):
-        # Hard-coded options
+        
+        # Standard input/output dimensions and latent representation dimension
         input_dim = 1
         output_dim = 1
         latent_dim = 128
-        num_out_channels = output_dim + covariance.num_basis_dim + covariance.extra_cov_dim + add_noise.extra_noise_dim
+        
+        # Decoder output dimension
+        decoder_output_dim = output_dim +               \
+                             covariance.num_basis_dim + \
+                             covariance.extra_cov_dim + \
+                             add_noise.extra_noise_dim
 
-        # Attention
-
-        # Construct the standard encoder and decoder
-        encoder = \
-            StandardEncoder(input_dim=input_dim + output_dim,
-                            latent_dim=latent_dim,
-                            use_attention=use_attention)
+        # Construct the standard encoder
+        encoder = StandardEncoder(input_dim=input_dim + output_dim,
+                                  latent_dim=latent_dim,
+                                  use_attention=use_attention)
+        
+        # Construct the standard decoder
         decoder = StandardDecoder(input_dim=input_dim + latent_dim,
                                   latent_dim=latent_dim,
-                                  output_dim=num_out_channels)
+                                  output_dim=decoder_output_dim)
 
-        super().__init__(encoder, decoder, covariance, add_noise)
-        self.use_attention = use_attention
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         covariance=covariance,
+                         add_noise=add_noise)
+        
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.latent_dim = latent_dim
-        self.num_out_channels = num_out_channels
+        self.num_out_channels = decoder_output_dim
+        self.use_attention = use_attention
+
+
+
+# =============================================================================
+# Standard Attentive Gaussian Neural Process
+# =============================================================================
 
 
 class StandardAGNP(StandardGNP):
+    
     def __init__(self, covariance, add_noise):
-        super().__init__(covariance, add_noise, use_attention=True)
         
+        super().__init__(covariance=covariance,
+                         add_noise=add_noise,
+                         use_attention=True)
+
+
+
+# =============================================================================
+# Standard Fully Connected Translation Equivariant Gaussian Neural Process
+# =============================================================================
         
         
 class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
@@ -86,6 +128,7 @@ class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
         input_dim = 1
         output_dim = 1
         rep_dim = 128
+        
         embedding_dim = output_dim +               \
                         covariance.num_basis_dim + \
                         covariance.extra_cov_dim + \
@@ -104,28 +147,41 @@ class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
                          decoder=decoder,
                          covariance=covariance,
                          add_noise=add_noise)
+
+
+
+# =============================================================================
+# Standard Convolutional Translation Equivariant Gaussian Neural Process
+# =============================================================================
         
 
-
 class StandardConvGNP(GaussianNeuralProcess):
+    
     def __init__(self, covariance, add_noise):
-        # Hard-coded options
+        
+        # Standard input/output dimensions and discretisation density
         input_dim = 1
         output_dim = 1
-        conv_architecture = UNet()
         points_per_unit = 64
+        
+        # Standard convolutional architecture
+        conv_architecture = UNet()
 
         # Construct the convolutional encoder
         grid_multiplyer =  2 ** conv_architecture.num_halving_layers
         init_length_scale = 2.0 / points_per_unit
+        
         encoder = ConvEncoder(out_channels=conv_architecture.in_channels,
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
-                              grid_multiplier=grid_multiplyer
-                              )
+                              grid_multiplier=grid_multiplyer)
         
         # Construct the convolutional decoder
-        num_out_channels = output_dim + covariance.num_basis_dim + covariance.extra_cov_dim + add_noise.extra_noise_dim
+        num_out_channels = output_dim +               \
+                           covariance.num_basis_dim + \
+                           covariance.extra_cov_dim + \
+                           add_noise.extra_noise_dim
+        
         decoder = ConvDecoder(conv_architecture=conv_architecture,
                               in_channels=conv_architecture.out_channels,
                               out_channels=num_out_channels,
@@ -133,7 +189,11 @@ class StandardConvGNP(GaussianNeuralProcess):
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer)
 
-        super().__init__(encoder, decoder, covariance, add_noise)
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         covariance=covariance,
+                         add_noise=add_noise)
+        
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.conv_architecture = conv_architecture

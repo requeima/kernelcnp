@@ -19,7 +19,7 @@ def eq_covariance(inputs1,
     return cov
 
 
-def sample_datasets_from_gps(low,
+def sample_1d_datasets_from_gps(low,
                              high,
                              num_batches,
                              batch_size,
@@ -38,9 +38,8 @@ def sample_datasets_from_gps(low,
     zeros = np.zeros((cov.shape[1],))
     ones = np.diag(np.ones_like(zeros))
 
-    noise = np.random.multivariate_normal(zeros,
-                                          ones,
-                                          size=(num_batches,))
+    noise = np.random.normal(size=(num_batches, batch_size, 1))
+    
     chol = np.linalg.cholesky(cov)
 
     y = np.einsum('bij, bj -> bi', chol, noise)
@@ -94,14 +93,13 @@ def plot_samples_and_predictions(gnp,
     plt.figure(figsize=(16, 3))
 
     # Sample three datasets
-    inputs, outputs = sample_datasets_from_gps(xmin,
-                                               xmax,
-                                               num_batches,
-                                               batch_size,
-                                               scale,
-                                               cov_coeff,
-                                               noise_coeff,
-                                               True)
+    inputs, outputs = sample_1d_datasets_from_gps(xmin,
+                                                  xmax,
+                                                  num_batches,
+                                                  batch_size,
+                                                  scale,
+                                                  cov_coeff,
+                                                  noise_coeff)
 
 
     for i in range(3):

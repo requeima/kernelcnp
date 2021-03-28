@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
+import numpy as np
+
 __all__ = ['device',
            'to_multiple',
            'BatchLinear',
@@ -183,3 +185,81 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
     x_grid = torch.linspace(x_min, x_max, num_points).to(device)
     x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
     return x_grid, num_points
+
+
+
+# =============================================================================
+# Exponentiated Quadratic Covariance
+# =============================================================================
+
+
+def eq_covariance(scale, cov_sigma, noise_sigma):
+    
+    def _eq_covariance(x1, x2, use_noise):
+
+        diff = x1[:, :, None, :] - x2[:, None, :, :]
+        quad = torch.sum(- 0.5 * (diff / scale) ** 2, dim=-1)
+        cov = cov_sigma ** 2 * torch.exp(quad)
+        
+        if use_noise:
+            
+            noise = noise_sigma ** 2 * torch.eye(diff.shape[1])
+            cov = cov + noise[None, :, :]
+        
+        return cov
+    
+    return _eq_covariance
+
+
+
+# =============================================================================
+# Gaussian Process dataset sampler
+# =============================================================================
+
+
+def sample_1d_datasets_from_gps(covariance,
+                                xmin,
+                                xmax,
+                                num_batches,
+                                batch_size):
+
+    # Sample input locations uniformly at random from range
+    x = torch.Tensor(num_batches, batch_size, 1).uniform_(xmin, xmax)
+
+    # Covariance of GP outputs
+    cov = covariance(x, x, use_noise=True)
+
+    # Sample standard noise
+    noise = torch.Tensor(num_batches, batch_size, 1).normal_(0., 1.)
+    
+    # Compute cholesky factors of covariance matrices for each batch
+    chol = np.linalg.cholesky(cov)
+
+    # Multiply cholesky by noise to obtain GP samples
+    y = np.einsum('bij, bjd -> bid', chol, noise)
+
+    return x, y
+
+
+
+# =============================================================================
+# Gaussian Process predictive posterior
+# =============================================================================
+
+
+def gp_post_pred(train_inputs,
+                 train_outputs,
+                 pred_inputs,
+                 covariance):
+    
+    K = covariance(train_inputs, train_inputs, use_noise=True)
+    k = eq_covariance(pred_inputs, train_inputs, use_noise=False)
+
+    # GP predictive mean
+    mean = np.dot(k_star, np.linalg.solve(K, train_outputs[0, :, 0]))
+
+    # GP predictive standard deviation
+    iKk = np.linalg.solve(K, k.T)
+    std = (cov_coeff - np.diag(np.einsum('ij, jk -> ik', k, iKk))) ** 0.5
+
+    return mean, std

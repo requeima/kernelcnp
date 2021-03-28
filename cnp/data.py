@@ -30,6 +30,7 @@ class LambdaIterator:
 
     Args:
         generator (function): Function that generates an element.
+        
         num_elements (int): Number of elements to generate.
     """
 
@@ -53,31 +54,37 @@ class DataGenerator(metaclass=abc.ABCMeta):
     """Data generator for GP samples.
 
     Args:
-        batch_size (int, optional): Batch size. Defaults to 16.
-        num_tasks (int, optional): Number of tasks to generate per epoch.
-            Defaults to 256.
-        x_range (tuple[float], optional): Range of the inputs. Defaults to
-            [-2, 2].
-        max_train_points (int, optional): Number of training points. Must be at
-            least 3. Defaults to 50.
-        max_test_points (int, optional): Number of testing points. Must be at
-            least 3. Defaults to 50.
+        
+        iterations_per_epoch int: Number of iterations per epoch.
+            One iteration corresponds to sampling one batch of tasks.
+            
+        batch_size int: Number of tasks in each batch sampled.
+        
+        x_range tuple[float]: Range of the inputs.
+        
+        max_num_context int: Number of training points. Must be at least 3.
+        
+        max_num_target int: Number of testing points. Must be at least 3.
     """
 
     def __init__(self,
-                 batch_size=16,
-                 num_tasks=256,
-                 x_range=(-2, 2),
-                 max_train_points=50,
-                 max_test_points=50, 
-                 include_context_in_target=False):
+                 iterations_per_epoch,
+                 batch_size,
+                 x_range,
+                 max_num_context,
+                 max_num_target, 
+                 include_context_in_target):
+        
+        assert max_num_context >= 3 and max_num_target >= 3
+        
+        self.iterations_per_epoch = iterations_per_epoch
         self.batch_size = batch_size
-        self.num_tasks = num_tasks
         self.x_range = x_range
-        self.max_train_points = max(max_train_points, 3)
-        self.max_test_points = max(max_test_points, 3)
+        self.max_num_context = max_num_context
+        self.max_num_target = max_num_target
         self.include_context_in_target = include_context_in_target
 
+        
     @abc.abstractmethod
     def sample(self, x):
         """Sample at inputs `x`.
@@ -89,6 +96,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
             vector: Sample at inputs `x`.
         """
 
+        
     def generate_task(self):
         """Generate a task.
 
@@ -96,16 +104,16 @@ class DataGenerator(metaclass=abc.ABCMeta):
             dict: A task, which is a dictionary with keys `x`, `y`, `x_context`,
                 `y_context`, `x_target`, and `y_target.
         """
-        task = {'x': [],
-                'y': [],
-                'x_context': [],
-                'y_context': [],
-                'x_target': [],
-                'y_target': []}
+        task = {'x'         : [],
+                'y'         : [],
+                'x_context' : [],
+                'y_context' : [],
+                'x_target'  : [],
+                'y_target'  : []}
 
         # Determine number of test and train points.
-        num_train_points = np.random.randint(3, self.max_train_points + 1)
-        num_test_points = np.random.randint(3, self.max_test_points + 1)
+        num_train_points = np.random.randint(3, self.max_num_context + 1)
+        num_test_points = np.random.randint(3, self.max_num_target + 1)
         num_points = num_train_points + num_test_points
 
         for i in range(self.batch_size):
@@ -137,7 +145,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
         return task
 
     def __iter__(self):
-        return LambdaIterator(lambda: self.generate_task(), self.num_tasks)
+        return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
 
 
 class GPGenerator(DataGenerator):
@@ -150,7 +158,7 @@ class GPGenerator(DataGenerator):
             Defaults to an EQ kernel.
     """
 
-    def __init__(self, kernel=stheno.EQ(), **kw_args):
+    def __init__(self, kernel, **kw_args):
         self.gp = stheno.GP(kernel)
         DataGenerator.__init__(self, **kw_args)
 
@@ -162,30 +170,32 @@ class SawtoothGenerator(DataGenerator):
     """Generate samples from a random sawtooth.
 
     Further takes in keyword arguments for :class:`.data.DataGenerator`. The
-    default numbers for `max_train_points` and `max_test_points` are 100.
+    default numbers for `max_num_context` and `max_num_target` are 100.
 
     Args:
         freq_dist (tuple[float], optional): Lower and upper bound for the
-            random frequency. Defaults to [3, 5].
+            random frequency.
         shift_dist (tuple[float], optional): Lower and upper bound for the
-            random shift. Defaults to [-5, 5].
+            random shift.
         trunc_dist (tuple[float], optional): Lower and upper bound for the
-            random truncation. Defaults to [10, 20].
+            random truncation.
     """
 
     def __init__(self,
-                 freq_dist=(3, 5),
-                 shift_dist=(-5, 5),
-                 trunc_dist=(10, 20),
-                 max_train_points=100,
-                 max_test_points=100,
+                 freq_dist,
+                 shift_dist,
+                 trunc_dist,
+                 max_num_context,
+                 max_num_target,
                  **kw_args):
+        
         self.freq_dist = freq_dist
         self.shift_dist = shift_dist
         self.trunc_dist = trunc_dist
+        
         DataGenerator.__init__(self,
-                               max_train_points=max_train_points,
-                               max_test_points=max_test_points,
+                               max_num_context=max_num_context,
+                               max_num_target=max_num_target,
                                **kw_args)
 
     def sample(self, x):
