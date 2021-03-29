@@ -61,7 +61,7 @@ def validate(data, model, report_freq, std_error=False):
             if (step + 1) % report_freq == 0:
                 print(f"Validation neg. log-lik: "
                       f"{np.mean(nll_list):.2f} +/- "
-                      f"{np.var(nll_list) ** 0.5:.3f}")
+                      f"{np.var(nll_list) ** 0.5:.2f}")
                 
     mean_nll = np.mean(nll_list)
     
@@ -88,7 +88,7 @@ def train(data, model, optimiser, log):
     nll = nll / (step + 1)
     
     if log:
-        print(f"Training   neg. log-lik: {nll/(step+1):.2f}")
+        print(f"Training   neg. log-lik: {nll:.2f}")
 
     # Compute gradients and apply them
     nll.backward()
@@ -395,7 +395,7 @@ model.to(device)
 
 # Number of epochs between validations
 LOG_EVERY = 10
-VALIDATE_EVERY = 50
+VALIDATE_EVERY = 100
 
 if args.train:
 

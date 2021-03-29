@@ -212,11 +212,20 @@ def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
     xmin = xmin - 0.5 * xrange
     xmax = xmax + 0.5 * xrange
     plot_inputs = torch.linspace(xmin, xmax, 100)[None, :, None]
-    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1)
+    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(device)
 
     # Make predictions 
     tensors = model(ctx_in, ctx_out, plot_inputs)
     mean, cov, cov_plus_noise = [tensor.detach() for tensor in tensors]
+
+    # Convert from cuda to cpu if necessary
+    mean = mean.cpu()
+    cov = cov.cpu()
+    plot_inputs = plot_inputs.cpu()
+    ctx_in = ctx_in.cpu()
+    ctx_out = ctx_out.cpu()
+    trg_in = trg_in.cpu()
+    trg_out = trg_out.cpu()
 
     plt.figure(figsize=(16, 3))
 
@@ -227,13 +236,18 @@ def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
         # Plot samples from predictive distribution
         # Try samlping and plotting with jitter -- if error is raised, plot marginals
         try:
-            cov_plus_jitter = cov[i, :, :] + 1e-6 * torch.eye(cov.shape[-1])
-            dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0],
+            cov_ = cov[i, :, :].double()
+            cov_plus_jitter = cov_ + 1e-4 * torch.eye(cov.shape[-1]).double()
+            dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
                                                           covariance_matrix=cov_plus_jitter)
 
             for j in range(100):
                 sample = dist.sample()
-                plt.plot(plot_inputs[i, :, 0], sample, color='blue', alpha=0.05, zorder=2)
+                plt.plot(plot_inputs[i, :, 0],
+                         sample,
+                         color='blue',
+                         alpha=0.05,
+                         zorder=2)
 
         except:
             plt.fill_between(plot_inputs[i, :, 0],
