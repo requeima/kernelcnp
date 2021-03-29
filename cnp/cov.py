@@ -106,7 +106,7 @@ class AddHomoNoise(AddNoise):
         self.noise_scale = nn.Parameter(torch.zeros(1), requires_grad=True)
     
     def forward(self, cov, embeddings):
-        noise_var = torch.eye(cov.shape[1])[None, ...]
+        noise_var = torch.eye(cov.shape[1])[None, ...].to(device)
         cov_plus_noise = cov + torch.exp(self.noise_scale) * noise_var
         
         return cov_plus_noise
