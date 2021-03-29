@@ -2,9 +2,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
-from cnp.architectures import FullyConnectedNetwork
-from cnp.utils import (
+from .aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
+from .architectures import FullyConnectedNetwork
+from .utils import (
     init_sequential_weights, 
     BatchLinear, 
     device, 
@@ -184,9 +184,9 @@ class ConvEncoder(nn.Module):
         r = r.reshape(r.shape[0], r.shape[1], num_points)
 
         return r
-    
-    
-    
+        
+        
+        
 # =============================================================================
 # Fully Connected Translation Equivariant Encoder
 # =============================================================================
@@ -212,12 +212,12 @@ class FullyConnectedTEEncoder(nn.Module):
         
         # Tile context outputs to concatenate with input differences
         y_ctx_tile1 = y_ctx[:, None, :, :].repeat(1, x_diff.shape[1], 1, 1)
-        y_ctx_tile2 = y_ctx[:, :, None, :].repeat(1, 1, x_diff.shape[1], 1)
+        y_ctx_tile2 = y_ctx[:, :, None, :].repeat(1, 1, x_diff.shape[2], 1)
         
         # Concatenate input differences and outputs, to obtain complete context
         ctx = torch.cat([x_diff, y_ctx_tile1, y_ctx_tile2], dim=-1)
         
-        # Latent representation of context set -- resulting r has shape (B, R)
+        # Latent representation of context set -- r has shape (B, C, R)
         r = self.deepset(ctx)
         
         return r
@@ -240,8 +240,8 @@ class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
         
         # Sizes of hidden layers and nonlinearity type
         # Used for both elementwise and aggregate networks
-        hidden_dims = [128, 128]
-        nonlinearity = 'ReLU'
+        hidden_dims = [128]
+        nonlinearity = 'Tanh'
         
         # Element network -- in (B, C, C, Din + 2 * Dout), out (B, C, C, R)
         element_network = FullyConnectedNetwork(input_dim=element_input_dim,
@@ -250,7 +250,7 @@ class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
                                                 nonlinearity=nonlinearity)
         
         # Dimensions to mean over -- in (B, C, C, R), out (B, R)
-        aggregation_dims = [1, 2]
+        aggregation_dims = [2]
         
         # Aggregate network -- in (B, R), out (B, R)
         aggregate_network = FullyConnectedNetwork(input_dim=rep_dim,

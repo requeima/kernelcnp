@@ -8,7 +8,6 @@ import torch
 __all__ = ['generate_root',
            'save_checkpoint',
            'WorkingDirectory',
-           'report_loss',
            'RunningAverage']
 
 
@@ -91,26 +90,6 @@ class WorkingDirectory:
             os.makedirs(path_dir, exist_ok=True)
 
         return path
-
-
-def report_loss(name, loss, step, freq=1):
-    """Print loss.
-
-    Args:
-        name (str): Name of loss.
-        loss (float): Loss value.
-        step (int or str): Step or name of step.
-        freq (int, optional): If `step` is an integer, this specifies the
-            frequency at which the loss should be printed. If `step` is a
-            string, the loss is always printed.
-    """
-    if isinstance(step, int):
-        if step == 0 or (step + 1) % freq == 0:
-            print('{name:15s} {step:5d}: {loss:.3e}'
-                  ''.format(name=name, step=step + 1, loss=loss))
-    else:
-        print('{name:15s} {step:>5s}: {loss:.3e}'
-              ''.format(name=name, step=step, loss=loss))
 
 
 class RunningAverage:

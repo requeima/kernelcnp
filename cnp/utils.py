@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
 __all__ = ['device',
            'to_multiple',
            'BatchLinear',
@@ -183,3 +187,103 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
     x_grid = torch.linspace(x_min, x_max, num_points).to(device)
     x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
     return x_grid, num_points
+
+
+
+# =============================================================================
+# Plotting util
+# =============================================================================
+
+
+def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
+
+    # Sample datasets from generator
+    data = list(gen_plot)[0]
+
+    # Split context and target sets out
+    ctx_in = data['x_context']
+    ctx_out = data['y_context']
+
+    trg_in = data['x_target']
+    trg_out = data['y_target']
+
+    # Locations to query predictions at
+    xrange = xmax - xmin
+    xmin = xmin - 0.5 * xrange
+    xmax = xmax + 0.5 * xrange
+    plot_inputs = torch.linspace(xmin, xmax, 100)[None, :, None]
+    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(device)
+
+    # Make predictions 
+    tensors = model(ctx_in, ctx_out, plot_inputs)
+    mean, cov, cov_plus_noise = [tensor.detach() for tensor in tensors]
+
+    # Convert from cuda to cpu if necessary
+    mean = mean.cpu()
+    cov = cov.cpu()
+    plot_inputs = plot_inputs.cpu()
+    ctx_in = ctx_in.cpu()
+    ctx_out = ctx_out.cpu()
+    trg_in = trg_in.cpu()
+    trg_out = trg_out.cpu()
+
+    plt.figure(figsize=(16, 3))
+
+    for i in range(3):
+
+        plt.subplot(1, 3, i + 1)
+
+        # Plot samples from predictive distribution
+        # Try samlping and plotting with jitter -- if error is raised, plot marginals
+        try:
+            cov_ = cov[i, :, :].double()
+            cov_plus_jitter = cov_ + 1e-4 * torch.eye(cov.shape[-1]).double()
+            dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
+                                                          covariance_matrix=cov_plus_jitter)
+
+            for j in range(100):
+                sample = dist.sample()
+                plt.plot(plot_inputs[i, :, 0],
+                         sample,
+                         color='blue',
+                         alpha=0.05,
+                         zorder=2)
+
+        except:
+            plt.fill_between(plot_inputs[i, :, 0],
+                             mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
+                             mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
+                             color='blue',
+                             alpha=0.3,
+                             zorder=1)
+
+
+        plt.plot(plot_inputs[i, :, 0],
+                 mean[i, :, 0],
+                 '--',
+                 color='k')
+
+        plt.scatter(ctx_in[i, :, 0],
+                    ctx_out[i, :, 0],
+                    s=100,
+                    marker='+',
+                    color='black',
+                    label='Context',
+                    zorder=3)
+
+        plt.scatter(trg_in[i, :, 0],
+                    trg_out[i, :, 0],
+                    s=100,
+                    marker='+',
+                    color='red',
+                    label='Target',
+                    zorder=3)
+        
+        plt.xlim([xmin, xmax])
+
+    plt.tight_layout()
+    
+    if not os.path.exists(f'{root}/plots'): os.mkdir(f'{root}/plots')
+        
+    plt.savefig(f'{root}/plots/{str(epoch).zfill(6)}.png')
+    plt.close()

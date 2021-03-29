@@ -2,15 +2,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.utils import (
+from .utils import (
     init_sequential_weights, 
     BatchLinear, 
     compute_dists, 
     stacked_batch_mlp,
     build_grid
 )
-from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
-from cnp.architectures import FullyConnectedNetwork
+from .aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
+from .architectures import FullyConnectedNetwork
 
 
 class StandardDecoder(nn.Module):
@@ -165,9 +165,9 @@ class ConvDecoder(nn.Module):
         z = z.view(batch_size, n_out, self.out_channels)
 
         return z
-    
-    
-
+        
+        
+        
 # =============================================================================
 # Fully Connected Translation Equivariant Decoder
 # =============================================================================
@@ -175,25 +175,38 @@ class ConvDecoder(nn.Module):
 
 class FullyConnectedTEDecoder(nn.Module):
     
-    def __init__(self, deepset):
+    def __init__(self):
         
         super().__init__()
-        
-        self.deepset = deepset
     
     
     def forward(self, r, x_ctx, y_ctx, x_trg):
         
-        # Compute context input pairwise differences
-        x_diff = x_ctx[:, :, None, :] - x_trg[:, None, :, :]
+        """
+        r     : (B, C, R)
+        x_ctx : (B, C, Din)
+        y_ctx : (B, C, Dout)
+        x_ctx : (B, T, Din)
+        """
+
+        D = y_ctx.shape[-1]
         
-        # Tile representation vector r
-        r = r[:, None, None, :].repeat(1, x_diff.shape[1], x_diff.shape[2], 1)
+        # Context and target inputs
+        x_ctx = x_ctx[:, :, None, :]
+        x_trg = x_trg[:, None, :, :]
         
-        # Concatenate input differences with tiled r's
-        z = self.deepset(torch.cat([x_diff, r], dim=-1))
+        diff = x_ctx - x_trg
         
-        return z
+        y_ctx = y_ctx[:, :, None, :]
+        y_ctx = y_ctx.repeat(1, 1, diff.shape[2], 1)
+        
+        r = r[:, :, None, :].repeat(1, 1, diff.shape[2], 1)
+        
+        ctx = torch.cat([diff, r, y_ctx], dim=-1)
+        
+        tensor = self.deepset(ctx)
+        
+        return tensor
         
         
 
@@ -206,16 +219,19 @@ class StandardFullyConnectedTEDecoder(FullyConnectedTEDecoder):
     
     def __init__(self,
                  input_dim,
+                 output_dim,
                  rep_dim,
                  embedding_dim):
         
+        super().__init__()
+        
         # Input dimension of encoder (Din + R)
-        element_input_dim = input_dim + rep_dim
+        element_input_dim = input_dim + output_dim + rep_dim
         
         # Sizes of hidden layers and nonlinearity type
         # Used for both elementwise and aggregate networks
         hidden_dims = [128, 128]
-        nonlinearity = 'ReLU'
+        nonlinearity = 'Tanh'
         
         # Element network -- in (B, C, T, Din + R), out (B, C, T, R)
         element_network = FullyConnectedNetwork(input_dim=element_input_dim,
@@ -237,6 +253,4 @@ class StandardFullyConnectedTEDecoder(FullyConnectedTEDecoder):
                                         aggregation_dims,
                                         aggregate_network)
         
-        super().__init__(deepset=deepset)
-
-        
+        self.deepset = deepset

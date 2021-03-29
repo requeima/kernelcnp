@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.utils import init_sequential_weights, BatchLinear
-from cnp.architectures import BatchMLP, FullyConnectedNetwork
+from .utils import init_sequential_weights, BatchLinear
+from .architectures import BatchMLP, FullyConnectedNetwork
 
 class MeanPooling(nn.Module):
     """Helper class for performing mean pooling in CNPs.
@@ -213,7 +213,7 @@ class CrossAttention(nn.Module):
         out = self.ln1(attn + queries)
         return self.ln2(out + self.ff(out))
 
-
+        
 # =============================================================================
 # Fully Connected DeepSet with mean aggregation
 # =============================================================================
