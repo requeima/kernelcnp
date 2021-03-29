@@ -189,77 +189,94 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
 
 
 # =============================================================================
-# Exponentiated Quadratic Covariance
+# Plotting util
 # =============================================================================
 
 
-def eq_covariance(scale, cov_sigma, noise_sigma):
+def plot_samples_and_data(model,
+                          gen_plot,
+                          xmin,
+                          xmax,
+                          batch_size,
+                          scale,
+                          cov_coeff,
+                          noise_coeff,
+                          step):
+
     
-    def _eq_covariance(x1, x2, use_noise):
+    # Sample datasets from generator
+    _, data = list(gen_plot)
 
-        diff = x1[:, :, None, :] - x2[:, None, :, :]
-        quad = torch.sum(- 0.5 * (diff / scale) ** 2, dim=-1)
-        cov = cov_sigma ** 2 * torch.exp(quad)
-        
-        if use_noise:
-            
-            noise = noise_sigma ** 2 * torch.eye(diff.shape[1])
-            cov = cov + noise[None, :, :]
-        
-        return cov
-    
-    return _eq_covariance
+    # Split context and target sets out
+    ctx_in = data['x_context']
+    ctx_out = data['y_context']
 
+    trg_in = data['x_target']
+    trg_out = data['y_target']
 
+    # Locations to query predictions at
+    xrange = xmax - xmin
+    xmin = xmin - 0.5 * xrange
+    xmax = xmax + 0.5 * xrange
+    plot_inputs = torch.linspace(xmin, xmax, 100)[None, :, None]
+    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1)
 
-# =============================================================================
-# Gaussian Process dataset sampler
-# =============================================================================
+    # Make predictions 
+    tensors = model(ctx_in, ctx_out, plot_inputs)
+    mean, cov, cov_plus_noise = [tensor.detach() for tensor in tensors]
 
+    plt.figure(figsize=(16, 3))
 
-def sample_1d_datasets_from_gps(covariance,
-                                xmin,
-                                xmax,
-                                num_batches,
-                                batch_size):
+    for i in range(3):
 
-    # Sample input locations uniformly at random from range
-    x = torch.Tensor(num_batches, batch_size, 1).uniform_(xmin, xmax)
+        plt.subplot(1, 3, i + 1)
 
-    # Covariance of GP outputs
-    cov = covariance(x, x, use_noise=True)
+        # Plot samples from predictive distribution
+        # Try samlping and plotting with jitter -- if error is raised, plot marginals
+        try:
+            cov_plus_jitter = cov[i, :, :] + 1e-6 * torch.eye(cov.shape[-1])
+            dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0],
+                                                          covariance_matrix=cov_plus_jitter)
 
-    # Sample standard noise
-    noise = torch.Tensor(num_batches, batch_size, 1).normal_(0., 1.)
-    
-    # Compute cholesky factors of covariance matrices for each batch
-    chol = np.linalg.cholesky(cov)
+            for j in range(100):
+                sample = dist.sample()
+                plt.plot(plot_inputs[i, :, 0], sample, color='blue', alpha=0.05, zorder=2)
 
-    # Multiply cholesky by noise to obtain GP samples
-    y = np.einsum('bij, bjd -> bid', chol, noise)
-
-    return x, y
-
-
-
-# =============================================================================
-# Gaussian Process predictive posterior
-# =============================================================================
+        except:
+            plt.fill_between(plot_inputs[i, :, 0],
+                             mean[i, :, 0] - torch.diag(cov[i, :, :]),
+                             mean[i, :, 0] + torch.diag(cov[i, :, :]),
+                             color='blue',
+                             alpha=0.3,
+                             zorder=1)
 
 
-def gp_post_pred(train_inputs,
-                 train_outputs,
-                 pred_inputs,
-                 covariance):
-    
-    K = covariance(train_inputs, train_inputs, use_noise=True)
-    k = eq_covariance(pred_inputs, train_inputs, use_noise=False)
+        plt.plot(plot_inputs[i, :, 0],
+                 mean[i, :, 0],
+                 '--',
+                 color='k')
 
-    # GP predictive mean
-    mean = np.dot(k_star, np.linalg.solve(K, train_outputs[0, :, 0]))
+        plt.fill_between(plot_inputs[i, :, 0],
+                         gp_means - gp_stds,
+                         gp_means + gp_stds,
+                         color='gray',
+                         alpha=0.3,
+                         zorder=1)
 
-    # GP predictive standard deviation
-    iKk = np.linalg.solve(K, k.T)
-    std = (cov_coeff - np.diag(np.einsum('ij, jk -> ik', k, iKk))) ** 0.5
+        plt.scatter(ctx_in[i, :, 0],
+                    ctx_out[i, :, 0],
+                    s=100,
+                    marker='+',
+                    color='black',
+                    label='Context',
+                    zorder=3)
 
-    return mean, std
+        plt.scatter(trg_in[i, :, 0],
+                    trg_out[i, :, 0],
+                    s=100,
+                    marker='+',
+                    color='red',
+                    label='Target',
+                    zorder=3)
+
+    plt.show()
