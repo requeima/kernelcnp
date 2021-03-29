@@ -231,7 +231,7 @@ class StandardFullyConnectedTEDecoder(FullyConnectedTEDecoder):
         # Sizes of hidden layers and nonlinearity type
         # Used for both elementwise and aggregate networks
         hidden_dims = [128, 128]
-        nonlinearity = 'ReLU'
+        nonlinearity = 'Tanh'
         
         # Element network -- in (B, C, T, Din + R), out (B, C, T, R)
         element_network = FullyConnectedNetwork(input_dim=element_input_dim,

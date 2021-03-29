@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
 import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 __all__ = ['device',
            'to_multiple',
@@ -193,19 +195,10 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
 # =============================================================================
 
 
-def plot_samples_and_data(model,
-                          gen_plot,
-                          xmin,
-                          xmax,
-                          batch_size,
-                          scale,
-                          cov_coeff,
-                          noise_coeff,
-                          step):
+def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
 
-    
     # Sample datasets from generator
-    _, data = list(gen_plot)
+    data = list(gen_plot)[0]
 
     # Split context and target sets out
     ctx_in = data['x_context']
@@ -244,8 +237,8 @@ def plot_samples_and_data(model,
 
         except:
             plt.fill_between(plot_inputs[i, :, 0],
-                             mean[i, :, 0] - torch.diag(cov[i, :, :]),
-                             mean[i, :, 0] + torch.diag(cov[i, :, :]),
+                             mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
+                             mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
                              color='blue',
                              alpha=0.3,
                              zorder=1)
@@ -255,13 +248,6 @@ def plot_samples_and_data(model,
                  mean[i, :, 0],
                  '--',
                  color='k')
-
-        plt.fill_between(plot_inputs[i, :, 0],
-                         gp_means - gp_stds,
-                         gp_means + gp_stds,
-                         color='gray',
-                         alpha=0.3,
-                         zorder=1)
 
         plt.scatter(ctx_in[i, :, 0],
                     ctx_out[i, :, 0],
@@ -278,5 +264,12 @@ def plot_samples_and_data(model,
                     color='red',
                     label='Target',
                     zorder=3)
+        
+        plt.xlim([xmin, xmax])
 
-    plt.show()
+    plt.tight_layout()
+    
+    if not os.path.exists(f'{root}/plots'): os.mkdir(f'{root}/plots')
+        
+    plt.savefig(f'{root}/plots/{str(epoch).zfill(6)}.png')
+    plt.close()

@@ -8,6 +8,8 @@ import os
 
 import cnp.data
 
+from copy import deepcopy
+
 from cnp.experiment import (
     generate_root,
     WorkingDirectory,
@@ -29,6 +31,8 @@ from cnp.cov import (
     AddHeteroNoise,
     AddNoNoise
 )
+
+from cnp.utils import plot_samples_and_data
 
 from torch.distributions import MultivariateNormal
 
@@ -165,7 +169,7 @@ parser.add_argument('--trunc_range',
                     help='Range of truncations for sawtooth data.')
 
 parser.add_argument('--epochs',
-                    default=1000,
+                    default=10000,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -190,7 +194,7 @@ parser.add_argument('covtype',
                     help='Choice of covariance method.')
 
 parser.add_argument('--num_basis_dim',
-                    default=1024,
+                    default=512,
                     type=int,
                     help='Number of embedding basis dimensions.')
 
@@ -254,17 +258,23 @@ MIXTURE_PARAMS = [1., 0.25]
 WP_PARAMS = [1., 0.25]
 
 
-# Generator parameters -- used for both Sawtooth and GP generators
-generator_parameters = {
+# Training data generator parameters -- used for both Sawtooth and GP
+gen_params = {
     'batch_size'                : args.batch_size,
-    'x_range'                    : args.x_range,
+    'x_range'                   : args.x_range,
     'max_num_context'           : args.max_num_context,
     'max_num_target'            : args.max_num_target,
     'include_context_in_target' : False
 }
 
-# Generator parameters -- specific to sawtooth
-train_sawtooth_parameters = {
+# Plotting data generator parameters -- used for both Sawtooth and GP
+gen_plot_params = deepcopy(gen_params)
+gen_plot_params['iterations_per_epoch'] = 1
+gen_plot_params['batch_size'] = 3
+gen_plot_params['max_num_context'] = 16
+
+# Training data generator parameters -- specific to Sawtooth
+gen_train_sawtooth_params = {
     'freq_range'  : args.freq_range,
     'shift_range' : args.shift_range,
     'trunc_range' : args.trunc_range
@@ -275,15 +285,18 @@ if args.data == 'sawtooth':
     
     gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
                                            **sawtooth_parameters,
-                                           **generator_parameters)
+                                           **gen_params)
     
     gen_val = cnp.data.SawtoothGenerator(args.num_valid_iters,
                                          **sawtooth_parameters,
-                                         **generator_parameters)
+                                         **gen_params)
     
     gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
                                           **sawtooth_parameters,
-                                          **generator_parameters)
+                                          **gen_params)
+    
+    gen_plot = cnp.data.SawtoothGenerator(**sawtooth_parameters,
+                                          **gen_plot_params)
     
 else:
     
@@ -295,8 +308,7 @@ else:
         
     elif args.data == 'noisy-mixture':
         kernel = stheno.EQ().stretch(MIXTURE_PARAMS[0]) + \
-                 stheno.EQ().stretch(MIXTURE_PARAMS[1]) + \
-                 1e-3 * stheno.Delta()
+                 stheno.EQ().stretch(MIXTURE_PARAMS[1])
         
     elif args.data == 'weakly-periodic':
         kernel = stheno.EQ().stretch(WP_PARAMS[0]) * \
@@ -305,17 +317,22 @@ else:
     else:
         raise ValueError(f'Unknown generator kind "{args.data}".')
         
+    kernel = kernel + 1e-2 * stheno.Delta()
+        
     gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
                                      kernel=kernel,
-                                     **generator_parameters)
+                                     **gen_params)
         
     gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
                                    kernel=kernel,
-                                   **generator_parameters)
+                                   **gen_params)
         
     gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
                                     kernel=kernel,
-                                    **generator_parameters)
+                                    **gen_params)
+        
+    gen_plot = cnp.data.GPGenerator(kernel=kernel,
+                                    **gen_plot_params)
     
 
 
@@ -378,7 +395,7 @@ model.to(device)
 
 # Number of epochs between validations
 LOG_EVERY = 10
-VALIDATE_EVERY = 10
+VALIDATE_EVERY = 50
 
 if args.train:
 
@@ -413,6 +430,13 @@ if args.train:
             # Update the best objective value and checkpoint the model
             is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                                 (False, best_nll)
+            
+            plot_samples_and_data(model=model,
+                                  gen_plot=gen_plot,
+                                  xmin=args.x_range[0],
+                                  xmax=args.x_range[1],
+                                  root=working_directory.root,
+                                  epoch=epoch)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,
