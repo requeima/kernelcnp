@@ -133,9 +133,9 @@ class ConvDecoder(nn.Module):
         r = r.reshape(r.shape[0], r.shape[1], -1).permute(0, 2, 1)
 
         x_grid, num_points = build_grid(x_context, 
-                                x_target, 
-                                self.points_per_unit, 
-                                self.grid_multiplier)
+                                        x_target, 
+                                        self.points_per_unit, 
+                                        self.grid_multiplier)
         # Compute shapes.
         batch_size = x_grid.shape[0]
         n_in = x_grid.shape[1]

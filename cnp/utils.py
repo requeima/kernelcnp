@@ -7,17 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-__all__ = ['device',
-           'to_multiple',
+__all__ = ['to_multiple',
            'BatchLinear',
            'init_layer_weights',
            'init_sequential_weights',
            'compute_dists',
            'pad_concat',
            'stacked_batch_mlp']
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-"""Device perform computations on."""
 
 
 def to_multiple(x, multiple):
@@ -175,6 +171,7 @@ def compute_dists(x, y):
 
 
 def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
+    
     n_out = x_target.shape[1]
 
     # Determine the grid on which to evaluate functional representation.
@@ -184,7 +181,7 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
                 torch.max(x_target).cpu().numpy(), 2.) + 0.1
     num_points = int(to_multiple(points_per_unit * (x_max - x_min),
                                  grid_multiplier))
-    x_grid = torch.linspace(x_min, x_max, num_points).to(device)
+    x_grid = torch.linspace(x_min, x_max, num_points).to(x_context.device)
     x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
     return x_grid, num_points
 
@@ -195,7 +192,13 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
 # =============================================================================
 
 
-def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
+def plot_samples_and_data(model,
+                          gen_plot,
+                          xmin,
+                          xmax,
+                          root,
+                          epoch,
+                          plot_marginals):
 
     # Sample datasets from generator
     data = list(gen_plot)[0]
@@ -212,20 +215,11 @@ def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
     xmin = xmin - 0.5 * xrange
     xmax = xmax + 0.5 * xrange
     plot_inputs = torch.linspace(xmin, xmax, 100)[None, :, None]
-    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(device)
+    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
 
     # Make predictions 
     tensors = model(ctx_in, ctx_out, plot_inputs)
-    mean, cov, cov_plus_noise = [tensor.detach() for tensor in tensors]
-
-    # Convert from cuda to cpu if necessary
-    mean = mean.cpu()
-    cov = cov.cpu()
-    plot_inputs = plot_inputs.cpu()
-    ctx_in = ctx_in.cpu()
-    ctx_out = ctx_out.cpu()
-    trg_in = trg_in.cpu()
-    trg_out = trg_out.cpu()
+    mean, cov, cov_plus_noise = [tensor.detach().cpu() for tensor in tensors]
 
     plt.figure(figsize=(16, 3))
 
@@ -236,21 +230,26 @@ def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
         # Plot samples from predictive distribution
         # Try samlping and plotting with jitter -- if error is raised, plot marginals
         try:
-            cov_ = cov[i, :, :].double()
-            cov_plus_jitter = cov_ + 1e-4 * torch.eye(cov.shape[-1]).double()
-            dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
-                                                          covariance_matrix=cov_plus_jitter)
+            
+            if plot_marginals:
+                plt.fill_between(plot_inputs[i, :, 0].cpu(),
+                                 mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
+                                 mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
+                                 color='blue',
+                                 alpha=0.3,
+                                 zorder=1)
+            
+            else:
+                cov_plus_jitter = cov[i, :, :] + 1e-6 * torch.eye(cov.shape[-1])
+                dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0],
+                                                              covariance_matrix=cov_plus_jitter)
 
-            for j in range(100):
-                sample = dist.sample()
-                plt.plot(plot_inputs[i, :, 0],
-                         sample,
-                         color='blue',
-                         alpha=0.05,
-                         zorder=2)
-
+                for j in range(100):
+                    sample = dist.sample()
+                    plt.plot(plot_inputs[i, :, 0], sample, color='blue', alpha=0.05, zorder=2)
+                
         except:
-            plt.fill_between(plot_inputs[i, :, 0],
+            plt.fill_between(plot_inputs[i, :, 0].cpu(),
                              mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
                              mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
                              color='blue',
@@ -258,21 +257,21 @@ def plot_samples_and_data(model, gen_plot, xmin, xmax, root, epoch):
                              zorder=1)
 
 
-        plt.plot(plot_inputs[i, :, 0],
+        plt.plot(plot_inputs[i, :, 0].cpu(),
                  mean[i, :, 0],
                  '--',
                  color='k')
 
-        plt.scatter(ctx_in[i, :, 0],
-                    ctx_out[i, :, 0],
+        plt.scatter(ctx_in[i, :, 0].cpu(),
+                    ctx_out[i, :, 0].cpu(),
                     s=100,
                     marker='+',
                     color='black',
                     label='Context',
                     zorder=3)
 
-        plt.scatter(trg_in[i, :, 0],
-                    trg_out[i, :, 0],
+        plt.scatter(trg_in[i, :, 0].cpu(),
+                    trg_out[i, :, 0].cpu(),
                     s=100,
                     marker='+',
                     color='red',

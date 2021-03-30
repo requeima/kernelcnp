@@ -2,11 +2,14 @@ Notes on experiments on toy data and changes to make.
 
 # General
 
-- Distributed experiments: Probably the most valuable thing at the moment is to write a script which distributes experiments over GPUs, and executes several of them in parallel.
+- Done: ~~Distributed experiments: Probably the most valuable thing at the moment is to write a script which distributes experiments over GPUs, and executes several of them in parallel.~~
+
+- Most models (GNP, AGNP, )
 
 - Log numbers of parameters: Add functionality to training script which prints the architecture name and total number of parameters.
 
 - Log memory usage, wall-clock time and loss: Use tensorboardX for logging all of these quantities (and potentially images too).
+
 
 # GNP
 

@@ -36,8 +36,6 @@ from cnp.utils import plot_samples_and_data
 
 from torch.distributions import MultivariateNormal
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 def validate(data, model, report_freq, std_error=False):
     """ Compute the validation loss. """
@@ -231,8 +229,16 @@ parser.add_argument('--test',
                     help='Test the model and record the values in the'
                          'experimental root.')
 
+parser.add_argument('--gpu',
+                    default=0,
+                    type=int,
+                    help='GPU to run experiment on. Defaults to 0.')
+
 
 args = parser.parse_args()
+
+device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
+                             else torch.device(f'cuda:{args.gpu}')
 
 
 # Load working directory
@@ -264,7 +270,8 @@ gen_params = {
     'x_range'                   : args.x_range,
     'max_num_context'           : args.max_num_context,
     'max_num_target'            : args.max_num_target,
-    'include_context_in_target' : False
+    'include_context_in_target' : False,
+    'device'                    : device
 }
 
 # Plotting data generator parameters -- used for both Sawtooth and GP
@@ -284,18 +291,18 @@ gen_train_sawtooth_params = {
 if args.data == 'sawtooth':
     
     gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                           **sawtooth_parameters,
+                                           **gen_train_sawtooth_params,
                                            **gen_params)
     
     gen_val = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                         **sawtooth_parameters,
+                                         **gen_train_sawtooth_params,
                                          **gen_params)
     
     gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
-                                          **sawtooth_parameters,
+                                          **gen_train_sawtooth_params,
                                           **gen_params)
     
-    gen_plot = cnp.data.SawtoothGenerator(**sawtooth_parameters,
+    gen_plot = cnp.data.SawtoothGenerator(**gen_train_sawtooth_params,
                                           **gen_plot_params)
     
 else:
@@ -383,10 +390,10 @@ elif args.model == 'TEGNP':
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
-
-# Load model to appropriate device
-model.to(device)
     
+    
+# Load model to appropriate device
+model = model.to(device)
 
 
 # =============================================================================
@@ -431,12 +438,15 @@ if args.train:
             is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                                 (False, best_nll)
             
+            plot_marginals = args.covtype == 'meanfield'
+            
             plot_samples_and_data(model=model,
                                   gen_plot=gen_plot,
                                   xmin=args.x_range[0],
                                   xmax=args.x_range[1],
                                   root=working_directory.root,
-                                  epoch=epoch)
+                                  epoch=epoch,
+                                  plot_marginals=plot_marginals)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,
