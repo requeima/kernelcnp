@@ -237,9 +237,11 @@ parser.add_argument('--gpu',
 
 args = parser.parse_args()
 
-device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
-                             else torch.device(f'cuda:{args.gpu}')
+if torch.cuda.is_available():
+    torch.cuda.set_device(args.gpu)
 
+device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
+                             else torch.device('cuda')
 
 # Load working directory
 if args.root:
