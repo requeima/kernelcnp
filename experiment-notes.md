@@ -4,7 +4,7 @@ Notes on experiments on toy data and changes to make.
 
 - Done: ~~Distributed experiments: Probably the most valuable thing at the moment is to write a script which distributes experiments over GPUs, and executes several of them in parallel.~~
 
-- Most models (GNP, AGNP, )
+- Sampling functions for most models (GNP, AGNP, convGNP) fails. Must look into numerical stability of sampling, potentially add more jitter. (Added more jitter and converted to double).
 
 - Log numbers of parameters: Add functionality to training script which prints the architecture name and total number of parameters.
 

@@ -5,9 +5,6 @@ import torch
 import nvsmi
 import os
 
-# Maximum number of experiments per GPU at any one time
-MAX_EXPERIMENTS_PER_GPU = 3
-
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = list(range(torch.cuda.device_count()))
 GPU_MEMORY_PERCENTAGE = 50.
@@ -19,11 +16,12 @@ data_generators = ['eq',
                    'weakly-periodic',
                    'sawtooth']
 
-models = ['GNP',
-          'AGNP',
-          'convGNP',
-          'TEGNP',
-          'TEGNP']
+# models = ['GNP',
+#           'AGNP',
+#           'convGNP',
+#           'TEGNP']
+
+models = ['TEGNP']
 
 covs = ['innerprod-homo',
         'innerprod-hetero',
@@ -44,8 +42,6 @@ optional_params = [(k, str(v)) for k, v in optional_params.items()]
 optional_params = [param for tup in optional_params for param in tup]
 
 FNULL = open(os.devnull, 'w')
-
-count = 0
 
 if __name__ == '__main__':
 

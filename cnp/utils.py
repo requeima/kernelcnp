@@ -240,15 +240,17 @@ def plot_samples_and_data(model,
                                  zorder=1)
             
             else:
-                cov_plus_jitter = cov[i, :, :] + 1e-6 * torch.eye(cov.shape[-1])
-                dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0],
+                cov_plus_jitter = cov[i, :, :].double() + \
+                                  1e-4 * torch.eye(cov.shape[-1]).double()
+                dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
                                                               covariance_matrix=cov_plus_jitter)
 
                 for j in range(100):
                     sample = dist.sample()
-                    plt.plot(plot_inputs[i, :, 0], sample, color='blue', alpha=0.05, zorder=2)
+                    plt.plot(plot_inputs[i, :, 0].cpu(), sample, color='blue', alpha=0.05, zorder=2)
                 
-        except:
+        except Exception as e:
+            print(e)
             plt.fill_between(plot_inputs[i, :, 0].cpu(),
                              mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
                              mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
