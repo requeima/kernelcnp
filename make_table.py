@@ -4,7 +4,9 @@ from gnp.experiment import WorkingDirectory, generate_root
 import os
 
 models = ["GNP", "AGNP", "convGNP"]
-covs = ["innerprod-homo", "innerprod-hetero", "kvv-homo", "kvv-hetero", "meanfield"]
+covs = ["innerprod-homo-4basisdims", "innerprod-hetero-4basisdims", "kvv-homo-4basisdims", "kvv-hetero-4basisdims",
+        "innerprod-homo-512basisdims", "innerprod-hetero-512basisdims", "kvv-homo-512basisdims", "kvv-hetero-512basisdims",
+        "meanfield"]
 
 fullmodels = []
 

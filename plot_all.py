@@ -89,40 +89,129 @@ parser.add_argument('data',
                              'weakly-periodic',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
-parser.add_argument('--num_basis_dim',
-                    default=1024,
+
+parser.add_argument('--batch_size',
+                    default=16,
                     type=int,
-                    help='Maximum number of context points for test set.')                
+                    help='Number of tasks per batch sampled.')
+
+parser.add_argument('--x_range',
+                    default=[-3., 3.],
+                    nargs='+',
+                    type=float,
+                    help='Range of input x for sampled data.')
+
+parser.add_argument('--max_num_context',
+                    default=32,
+                    type=int,
+                    help='Maximum number of context points.')
+
+parser.add_argument('--max_num_target',
+                    default=32,
+                    type=int,
+                    help='Maximum number of target points.')
+
+parser.add_argument('--gpu',
+                    default=0,
+                    type=int,
+                    help='GPU to run experiment on. Defaults to 0.')
+                    
 args = parser.parse_args()
 
-# Load data generator.
+# =============================================================================
+# Create data generators
+# =============================================================================
+
+EQ_PARAMS = [1.]
+M52_PARAMS = [1.]
+MIXTURE_PARAMS = [1., 0.25]
+WP_PARAMS = [1., 0.25]
+
+
+# Training data generator parameters -- used for both Sawtooth and GP
+gen_params = {
+    'batch_size'                : args.batch_size,
+    'x_range'                   : args.x_range,
+    'max_num_context'           : args.max_num_context,
+    'max_num_target'            : args.max_num_target,
+    'include_context_in_target' : False,
+    'device'                    : device
+}
+
+# Plotting data generator parameters -- used for both Sawtooth and GP
+gen_plot_params = deepcopy(gen_params)
+gen_plot_params['iterations_per_epoch'] = 1
+gen_plot_params['batch_size'] = 3
+gen_plot_params['max_num_context'] = 16
+
+# Training data generator parameters -- specific to Sawtooth
+gen_train_sawtooth_params = {
+    'freq_range'  : args.freq_range,
+    'shift_range' : args.shift_range,
+    'trunc_range' : args.trunc_range
+}
+
+                    
 if args.data == 'sawtooth':
-    gen = gnp.data.SawtoothGenerator()
-    gen_val = gnp.data.SawtoothGenerator(num_tasks=60)
-    gen_test = gnp.data.SawtoothGenerator(num_tasks=2048)
-    gen_plot = gnp.data.SawtoothGenerator(num_tasks=16, batch_size=1, max_train_points=20)
+    
+    gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
+                                           **gen_train_sawtooth_params,
+                                           **gen_params)
+    
+    gen_val = cnp.data.SawtoothGenerator(args.num_valid_iters,
+                                         **gen_train_sawtooth_params,
+                                         **gen_params)
+    
+    gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
+                                          **gen_train_sawtooth_params,
+                                          **gen_params)
+    
+    gen_plot = cnp.data.SawtoothGenerator(**gen_train_sawtooth_params,
+                                          **gen_plot_params)
+    
 else:
+    
     if args.data == 'eq':
-        kernel = stheno.EQ().stretch(0.25)
+        kernel = stheno.EQ().stretch(EQ_PARAMS[0])
+        
     elif args.data == 'matern':
-        kernel = stheno.Matern52().stretch(0.25)
+        kernel = stheno.Matern52().stretch(M52_PARAMS[0])
+        
     elif args.data == 'noisy-mixture':
-        kernel = stheno.EQ().stretch(1.) + \
-                 stheno.EQ().stretch(.25) + \
-                 0.001 * stheno.Delta()
+        kernel = stheno.EQ().stretch(MIXTURE_PARAMS[0]) + \
+                 stheno.EQ().stretch(MIXTURE_PARAMS[1])
+        
     elif args.data == 'weakly-periodic':
-        kernel = stheno.EQ().stretch(0.5) * stheno.EQ().periodic(period=0.25)
+        kernel = stheno.EQ().stretch(WP_PARAMS[0]) * \
+                 stheno.EQ().periodic(period=WP_PARAMS[1])
+        
     else:
-        raise ValueError(f'Unknown data "{args.data}".')
-    gp = stheno.GP(kernel)
-    gen = gnp.data.GPGenerator(kernel=kernel)
-    gen_val = gnp.data.GPGenerator(kernel=kernel, num_tasks=60)
-    gen_test = gnp.data.GPGenerator(kernel=kernel, num_tasks=2048)
-    gen_plot = gnp.data.GPGenerator(kernel=kernel, max_train_points=20, num_tasks=16, batch_size=1)
+        raise ValueError(f'Unknown generator kind "{args.data}".')
+        
+    kernel = kernel + 1e-2 * stheno.Delta()
+        
+    gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
+                                     kernel=kernel,
+                                     **gen_params)
+        
+    gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
+                                   kernel=kernel,
+                                   **gen_params)
+        
+    gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
+                                    kernel=kernel,
+                                    **gen_params)
+        
+    gen_plot = cnp.data.GPGenerator(kernel=kernel,
+                                    **gen_plot_params)
+    
+
 
 # Model list
-models = ["GNP", "AGNP", "convGNP"]
-covs = ["innerprod-homo", "innerprod-hetero", "kvv-homo", "kvv-hetero", "meanfield"]
+models = ["GNP", "AGNP", "convGNP", "TEGNP"]
+covs = ["innerprod-homo-4basisdims", "innerprod-hetero-4basisdims", "kvv-homo-4basisdims", "kvv-hetero-4basisdims",
+        "innerprod-homo-512basisdims", "innerprod-hetero-512basisdims", "kvv-homo-512basisdims", "kvv-hetero-512basisdims",
+        "meanfield"]
 
 
 for task_num, task in enumerate(gen_plot):
