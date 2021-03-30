@@ -6,8 +6,7 @@ from .aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
 from .architectures import FullyConnectedNetwork
 from .utils import (
     init_sequential_weights, 
-    BatchLinear, 
-    device, 
+    BatchLinear,
     compute_dists, 
     to_multiple, 
     stacked_batch_mlp,
@@ -63,6 +62,7 @@ class StandardEncoder(nn.Module):
             'Incorrect shapes: ensure y_context is a rank-3 tensor.'
 
         decoder_input = torch.cat((x_context, y_context), dim=-1)
+        
         h = self.pre_pooling_fn(decoder_input)
         return self.pooling_fn(h, x_context, x_target)
 
@@ -133,6 +133,7 @@ class ConvEncoder(nn.Module):
             tensor: Outputs of evaluated function at z of shape
                 (m, out_channels).
         """
+        
         x_grid, num_points = build_grid(x_context, 
                                         x_target, 
                                         self.points_per_unit, 
@@ -153,7 +154,7 @@ class ConvEncoder(nn.Module):
 
         # Compute the extra density channel.
         # Shape: (batch, n_in, 1).
-        density = torch.ones(batch_size, n_in, 1).to(device)
+        density = torch.ones(batch_size, n_in, 1).to(x_context.device)
 
         # Concatenate the channel.
         y_out = torch.cat([density, y_context], dim=2)

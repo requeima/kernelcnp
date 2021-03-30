@@ -6,7 +6,6 @@ import torch.nn as nn
 import stheno.torch as stheno
 
 from abc import ABC, abstractmethod, abstractproperty
-from .utils import device
 
 
 def cdist(x):
@@ -89,7 +88,7 @@ class MeanFieldCov(Covariance):
         batch = embeddings.shape[0]
         dim = embeddings.shape[1]
 
-        cov = torch.zeros(batch, dim, dim).to(device)
+        cov = torch.zeros(batch, dim, dim).to(embeddings.device)
         idx = np.arange(dim)
         cov[:, idx, idx] = torch.exp(embeddings[:, :, 0])
 
@@ -106,7 +105,7 @@ class AddHomoNoise(AddNoise):
         self.noise_scale = nn.Parameter(torch.zeros(1), requires_grad=True)
     
     def forward(self, cov, embeddings):
-        noise_var = torch.eye(cov.shape[1])[None, ...].to(device)
+        noise_var = torch.eye(cov.shape[1])[None, ...].to(cov.device)
         cov_plus_noise = cov + torch.exp(self.noise_scale) * noise_var
         
         return cov_plus_noise
@@ -131,7 +130,7 @@ class AddHeteroNoise(AddNoise):
         cov_plus_noise[:, idx, idx] = cov_plus_noise[:, idx, idx] + hetero_noise_var[:, :, 0]
 
         # Add homoskedastic noise to the covariance. This is for numerical stability of the initialization.
-        noise_var =  torch.eye(cov.shape[1])[None, ...].to(device)
+        noise_var =  torch.eye(cov.shape[1])[None, ...].to(cov.device)
         cov_plus_noise = cov_plus_noise + torch.exp(self.noise_scale) * noise_var
         return cov_plus_noise
 

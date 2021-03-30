@@ -4,8 +4,6 @@ import numpy as np
 import stheno
 import torch
 
-from .utils import device
-
 __all__ = ['GPGenerator', 'SawtoothGenerator']
 
 
@@ -73,7 +71,8 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  x_range,
                  max_num_context,
                  max_num_target, 
-                 include_context_in_target):
+                 include_context_in_target,
+                 device):
         
         assert max_num_context >= 3 and max_num_target >= 3
         
@@ -83,6 +82,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
         self.max_num_context = max_num_context
         self.max_num_target = max_num_target
         self.include_context_in_target = include_context_in_target
+        self.device = device
 
         
     @abc.abstractmethod
@@ -139,7 +139,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
         # Stack batch and convert to PyTorch.
         task = {k: torch.tensor(_uprank(np.stack(v, axis=0)),
-                                dtype=torch.float32).to(device)
+                                dtype=torch.float32).to(self.device)
                 for k, v in task.items()}
 
         return task
@@ -182,6 +182,7 @@ class SawtoothGenerator(DataGenerator):
     """
 
     def __init__(self,
+                 iterations_per_epoch,
                  freq_range,
                  shift_range,
                  trunc_range,
@@ -194,6 +195,7 @@ class SawtoothGenerator(DataGenerator):
         self.trunc_range = trunc_range
         
         DataGenerator.__init__(self,
+                               iterations_per_epoch=iterations_per_epoch,
                                max_num_context=max_num_context,
                                max_num_target=max_num_target,
                                **kw_args)
