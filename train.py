@@ -229,6 +229,11 @@ parser.add_argument('--test',
                     help='Test the model and record the values in the'
                          'experimental root.')
 
+parser.add_argument('--num_params',
+                    action='store_true',
+                    help='Print the total number of parameters in the moodel '
+                         'and exit.')
+
 parser.add_argument('--gpu',
                     default=0,
                     type=int,
@@ -392,11 +397,19 @@ elif args.model == 'TEGNP':
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
+
+
+print(f'{args.model} '
+      f'{args.covtype} '
+      f'{args.num_basis_dim}: '
+      f'{model.num_params}')
+        
+if args.num_params: exit()
     
     
 # Load model to appropriate device
 model = model.to(device)
-
+    
 
 # =============================================================================
 # Train or test model
