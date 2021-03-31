@@ -241,6 +241,11 @@ parser.add_argument('--test',
                     help='Test the model and record the values in the'
                          'experimental root.')
 
+parser.add_argument('--num_params',
+                    action='store_true',
+                    help='Print the total number of parameters in the moodel '
+                         'and exit.')
+
 parser.add_argument('--gpu',
                     default=0,
                     type=int,
@@ -249,9 +254,11 @@ parser.add_argument('--gpu',
 
 args = parser.parse_args()
 
-device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
-                             else torch.device(f'cuda:{args.gpu}')
+if torch.cuda.is_available():
+    torch.cuda.set_device(args.gpu)
 
+device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
+                             else torch.device('cuda')
 
 # Load working directory
 if args.root:
@@ -402,11 +409,19 @@ elif args.model == 'TEGNP':
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
+
+
+print(f'{args.model} '
+      f'{args.covtype} '
+      f'{args.num_basis_dim}: '
+      f'{model.num_params}')
+        
+if args.num_params: exit()
     
     
 # Load model to appropriate device
 model = model.to(device)
-
+    
 
 # =============================================================================
 # Train or test model

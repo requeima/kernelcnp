@@ -52,6 +52,14 @@ class GaussianNeuralProcess(nn.Module):
         cov_plus_noise = self.add_noise(cov, embedding)
         
         return mean, cov, cov_plus_noise
+    
+    
+    @property
+    def num_params(self):
+        """Number of parameters."""
+    
+        return np.sum([torch.tensor(param.shape).prod() \
+                       for param in self.parameters()])
 
 
 
