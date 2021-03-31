@@ -36,6 +36,8 @@ from cnp.utils import plot_samples_and_data
 
 from torch.distributions import MultivariateNormal
 
+from torch.utils.tensorboard import SummaryWriter
+
 
 def validate(data, model, report_freq, std_error=False):
     """ Compute the validation loss. """
@@ -95,18 +97,6 @@ def train(data, model, optimiser, log):
 
     return nll
 
-def log_args(wd, args):
-    args_file = wd.file('args_file.txt')
-
-    args_str = ""
-
-    for arg in vars(args):
-        args_str += f"{arg}: {getattr(args, arg)}"
-
-        args_str += "\n"
-
-    with open(args_file, 'w') as args_file_file_write:
-        args_file_file_write.write(args_str)
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
@@ -264,14 +254,17 @@ device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 
 if args.root:
     working_directory = WorkingDirectory(root=args.root)
     
+    writer = SummaryWriter(f'{args.root}/log')
+    
 else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'{args.model}',
-                                   f'{args.covtype}-{args.num_basis_dim}')
+                                   f'{args.covtype}')
     working_directory = WorkingDirectory(root=experiment_name)
     
-
+    writer = SummaryWriter(f'{experiment_name}/log')
+    
 
 # =============================================================================
 # Create data generators
@@ -279,8 +272,8 @@ else:
 
 EQ_PARAMS = [1.]
 M52_PARAMS = [1.]
-MIXTURE_PARAMS = [1., 0.25]
-WP_PARAMS = [1., 0.25]
+MIXTURE_PARAMS = [1., 0.5]
+WP_PARAMS = [1., 0.5]
 
 
 # Training data generator parameters -- used for both Sawtooth and GP
@@ -416,7 +409,8 @@ print(f'{args.model} '
       f'{args.num_basis_dim}: '
       f'{model.num_params}')
         
-if args.num_params: exit()
+if args.num_params:
+    exit()
     
     
 # Load model to appropriate device
@@ -432,8 +426,6 @@ LOG_EVERY = 10
 VALIDATE_EVERY = 100
 
 if args.train:
-
-    log_args(working_directory, args)
 
     # Create optimiser
     optimiser = torch.optim.Adam(model.parameters(),
@@ -456,20 +448,22 @@ if args.train:
                           optimiser,
                           log=log)
 
+        writer.add_scalar('Train log-lik.', - train_nll, epoch)
+
         if epoch % VALIDATE_EVERY == 0:
             
             # Compute validation negative log-likelihood
             val_nll = validate(gen_val,
                                model,
                                report_freq=args.num_valid_iters)
+            
+            writer.add_scalar('Valid log-lik.', - val_nll, epoch)
 
             # Update the best objective value and checkpoint the model
             is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                                 (False, best_nll)
             
             plot_marginals = args.covtype == 'meanfield'
-            
-            print(plot_marginals)
             
             plot_samples_and_data(model=model,
                                   gen_plot=gen_plot,
