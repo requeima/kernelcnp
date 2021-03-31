@@ -151,7 +151,7 @@ parser.add_argument('--x_range',
                     help='Range of input x for sampled data.')
 
 parser.add_argument('--freq_range',
-                    default=[.5, 2.],
+                    default=[3., 5.],
                     nargs='+',
                     type=float,
                     help='Range of frequencies for sawtooth data.')
