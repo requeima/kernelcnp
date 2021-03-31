@@ -261,7 +261,7 @@ else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'{args.model}',
-                                   f'{args.covtype}-{args.num_basis_dim}basisdims')
+                                   f'{args.covtype}-{args.num_basis_dim}')
     working_directory = WorkingDirectory(root=experiment_name)
     
 
