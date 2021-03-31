@@ -5,7 +5,7 @@ kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
 
 models=("GNP" "AGNP" "convGNP" "TEGNP")
 covs=("innerprod-homo" "innerprod-hetero" "kvv-homo" "kvv-hetero")
-basisdims=("4", "512")
+basisdims=("4" "512")
 
 for data in "${kernels[@]}"; do
     for model in "${models[@]}"; do

@@ -96,7 +96,7 @@ def train(data, model, optimiser, log):
     return nll
 
 def log_args(wd, args):
-    args_file = wd.file('last_epoch.txt')
+    args_file = wd.file('args_file.txt')
 
     args_str = ""
 
@@ -106,7 +106,7 @@ def log_args(wd, args):
         args_str += "\n"
 
     with open(args_file, 'w') as args_file_file_write:
-        args_file_file_write.write(arguments.txt)
+        args_file_file_write.write(args_str)
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
