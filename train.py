@@ -95,6 +95,18 @@ def train(data, model, optimiser, log):
 
     return nll
 
+def log_args(wd, args):
+    args_file = wd.file('args_file.txt')
+
+    args_str = ""
+
+    for arg in vars(args):
+        args_str += f"{arg}: {getattr(args, arg)}"
+
+        args_str += "\n"
+
+    with open(args_file, 'w') as args_file_file_write:
+        args_file_file_write.write(args_str)
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
@@ -249,7 +261,7 @@ else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'{args.model}',
-                                   f'{args.covtype}')
+                                   f'{args.covtype}-{args.num_basis_dim}')
     working_directory = WorkingDirectory(root=experiment_name)
     
 
@@ -405,6 +417,8 @@ LOG_EVERY = 10
 VALIDATE_EVERY = 100
 
 if args.train:
+
+    log_args(working_directory, args)
 
     # Create optimiser
     optimiser = torch.optim.Adam(model.parameters(),
