@@ -435,8 +435,8 @@ model = model.to(device)
 # =============================================================================
 
 # Number of epochs between validations
-LOG_EVERY = 1
-VALIDATE_EVERY = 1
+LOG_EVERY = 10
+VALIDATE_EVERY = 100
 
 if args.train:
 
