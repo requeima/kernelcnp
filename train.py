@@ -6,6 +6,9 @@ import torch
 import matplotlib.pyplot as plt
 import os
 
+# This is for an error that is now popping up when running on macos
+# os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 import cnp.data
 
 from copy import deepcopy
@@ -39,10 +42,11 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, model, report_freq, std_error=False):
+def validate(data, model, report_freq, args, std_error=False):
     """ Compute the validation loss. """
     
     nll_list = []
+    oracle_nll_list = []
     
     with torch.no_grad():
         for step, batch in enumerate(data):
@@ -55,8 +59,17 @@ def validate(data, model, report_freq, std_error=False):
                                       covariance_matrix=y_cov)
             
             nll = - dist.log_prob(batch['y_target'][:, :, 0]).sum()
-            
+            if args.data == 'sawtooth':
+                oracle_nll = 0.
+            else:
+                for b in range(batch['x_context'].shape[0]):
+                    oracle_nll = - data.log_like(batch['x_context'][b],
+                                                 batch['y_context'][b],
+                                                 batch['x_target'][b],
+                                                 batch['y_target'][b])
+                
             nll_list.append(nll.item())
+            oracle_nll_list.append(oracle_nll)
 
             if (step + 1) % report_freq == 0:
                 print(f"Validation neg. log-lik: "
@@ -64,8 +77,8 @@ def validate(data, model, report_freq, std_error=False):
                       f"{np.var(nll_list) ** 0.5:.2f}")
                 
     mean_nll = np.mean(nll_list)
-    
-    return mean_nll
+    mean_oracle = np.mean(nll_list)
+    return mean_nll, mean_oracle
 
 
 def train(data, model, optimiser, log):
@@ -450,14 +463,18 @@ if args.train:
 
         writer.add_scalar('Train log-lik.', - train_nll, epoch)
 
+
         if epoch % VALIDATE_EVERY == 0:
             
             # Compute validation negative log-likelihood
-            val_nll = validate(gen_val,
-                               model,
-                               report_freq=args.num_valid_iters)
+            val_nll, val_oracle = validate(gen_val,
+                                           model,
+                                           report_freq=args.num_valid_iters,
+                                           args=args)
             
             writer.add_scalar('Valid log-lik.', - val_nll, epoch)
+            writer.add_scalar('Valid oracle log-lik.', - val_oracle, epoch)
+            writer.add_scalar('Oracle minus valid log-lik.', - val_oracle + val_nll, epoch)
 
             # Update the best objective value and checkpoint the model
             is_best, best_obj = (True, val_nll) if val_nll < best_nll else \

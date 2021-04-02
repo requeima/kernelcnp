@@ -165,6 +165,11 @@ class GPGenerator(DataGenerator):
     def sample(self, x):
         return np.squeeze(self.gp(x).sample())
 
+    def log_like(self, x_context, y_context, x_target, y_target):
+        to_numpy = lambda x: x.squeeze().cpu().numpy()
+        post = self.gp.measure | (self.gp(to_numpy(x_context).astype(np.float64)), to_numpy(y_context).astype(np.float64))
+        return post(self.gp(to_numpy(x_target).astype(np.float64))).logpdf(to_numpy(y_target).astype(np.float64))
+
 
 class SawtoothGenerator(DataGenerator):
     """Generate samples from a random sawtooth.
