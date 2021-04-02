@@ -59,14 +59,16 @@ def validate(data, model, report_freq, args, std_error=False):
                                       covariance_matrix=y_cov)
             
             nll = - dist.log_prob(batch['y_target'][:, :, 0]).sum()
-            if args.data == 'sawtooth':
-                oracle_nll = 0.
-            else:
-                for b in range(batch['x_context'].shape[0]):
-                    oracle_nll = - data.log_like(batch['x_context'][b],
-                                                 batch['y_context'][b],
-                                                 batch['x_target'][b],
-                                                 batch['y_target'][b])
+            
+            oracle_nll = np.array(0.)
+#             if (type(data) == cnp.data.GPGenerator):
+#                 for b in range(batch['x_context'].shape[0]):
+#                     _oracle_nll =  - data.log_like(batch['x_context'][b],
+#                                                             batch['y_context'][b],
+#                                                             batch['x_target'][b],
+#                                                             batch['y_target'][b])
+#                     oracle_nll = oracle_nll + _oracle_nll
+                    
                 
             nll_list.append(nll.item())
             oracle_nll_list.append(oracle_nll)
@@ -77,7 +79,10 @@ def validate(data, model, report_freq, args, std_error=False):
                       f"{np.var(nll_list) ** 0.5:.2f}")
                 
     mean_nll = np.mean(nll_list)
-    mean_oracle = np.mean(nll_list)
+    mean_oracle = np.mean(oracle_nll_list)
+    
+    print('mean_oracle', mean_oracle)
+    
     return mean_nll, mean_oracle
 
 

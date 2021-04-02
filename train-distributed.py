@@ -22,17 +22,15 @@ models = ['GNP',
           'TEGNP']
 
 covs = ['innerprod-homo',
-        'innerprod-hetero',
         'kvv-homo',
-        'kvv-hetero',
         'meanfield']
 
 configs = list(product(data_generators, models, covs))
 
 # Other experiment parameters
 optional_params = {
-    '--epochs'          : 10000,
-    '--num_train_iters' : 1,
+    '--epochs'          : 20000,
+    '--num_train_iters' : 4,
     '--learning_rate'   : 1e-3
 }
 
