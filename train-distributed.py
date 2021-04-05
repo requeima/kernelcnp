@@ -6,11 +6,14 @@ import nvsmi
 import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
-GPUS_TO_USE = list(range(torch.cuda.device_count()))
-GPU_MEMORY_PERCENTAGE = 50.
+GPUS_TO_USE = [1] # list(range(torch.cuda.device_count()))
+GPU_MEMORY_PERCENTAGE = 60.
 
 # Model and data generator configurations
-data_generators = ['weakly-periodic',
+data_generators = ['eq',
+                   'matern',
+                   'noisy-mixture',
+                   'weakly-periodic',
                    'sawtooth']
 
 models = ['GNP',
@@ -26,7 +29,7 @@ configs = list(product(data_generators, models, covs))
 
 # Other experiment parameters
 optional_params = {
-    '--epochs'          : 20000,
+    '--epochs'          : 30000,
     '--num_train_iters' : 1,
     '--learning_rate'   : 1e-3
 }

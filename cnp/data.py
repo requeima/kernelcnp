@@ -184,24 +184,14 @@ class GPGenerator(DataGenerator):
         y_target = to_numpy(y_target)
         
         
-        prior = Measure()
-        f = stheno.GP(self.kernel, measure=prior)
-        noise_1 = stheno.GP(self.std_noise ** 2 * Delta(), measure=prior)
-        noise_2 = stheno.GP(self.std_noise ** 2 * Delta(), measure=prior)
+        prior = stheno.Measure()
+        f = stheno.GP(self.gp.kernel, measure=prior)
+        noise_1 = stheno.GP(self.std_noise ** 2 * stheno.Delta(), measure=prior)
+        noise_2 = stheno.GP(self.std_noise ** 2 * stheno.Delta(), measure=prior)
         
         post = prior | ((f + noise_1)(x_context), y_context)
         
         return post(f + noise_2)(x_target).logpdf(y_target)
-    
-    
-    
-# prior = Measure()
-# f = GP(kernel, measure=prior)
-# e1 = GP(1e-2 * Delta(), measure=prior)
-# e2 = GP(1e-2 * Delta(), measure=prior)
-# post = prior | ((f + e1)(x_context), y_context)
-
-# -post(f + e2)(x_target).logpdf(y_target)
 
 
 class SawtoothGenerator(DataGenerator):

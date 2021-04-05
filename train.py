@@ -64,9 +64,9 @@ def validate(data, model, report_freq, args, std_error=False):
             if (type(data) == cnp.data.GPGenerator):
                 for b in range(batch['x_context'].shape[0]):
                     _oracle_nll =  - data.log_like(batch['x_context'][b],
-                                                            batch['y_context'][b],
-                                                            batch['x_target'][b],
-                                                            batch['y_target'][b])
+                                                   batch['y_context'][b],
+                                                   batch['x_target'][b],
+                                                   batch['y_target'][b])
                     oracle_nll = oracle_nll + _oracle_nll
                     
                 
@@ -78,10 +78,12 @@ def validate(data, model, report_freq, args, std_error=False):
                       f"{np.mean(nll_list):.2f} +/- "
                       f"{np.var(nll_list) ** 0.5:.2f}")
                 
+                print(f"Oracle     neg. log-lik: "
+                      f"{np.mean(oracle_nll_list):.2f} +/- "
+                      f"{np.var(oracle_nll_list) ** 0.5:.2f}")
+                
     mean_nll = np.mean(nll_list)
     mean_oracle = np.mean(oracle_nll_list)
-    
-    print('mean_oracle', mean_oracle)
     
     return mean_nll, mean_oracle
 
@@ -158,7 +160,7 @@ parser.add_argument('--num_train_iters',
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=100,
+                    default=25,
                     type=int,
                     help='Iterations (# batches sampled) for validation.')
 
@@ -448,7 +450,7 @@ model = model.to(device)
 
 # Number of epochs between validations
 LOG_EVERY = 10
-VALIDATE_EVERY = 100
+VALIDATE_EVERY = 500
 
 if args.train:
 
@@ -460,7 +462,7 @@ if args.train:
     # Run the training loop, maintaining the best objective value
     best_nll = np.inf
     
-    for epoch in range(args.epochs):
+    for epoch in range(args.epochs + 1):
         
         log = epoch % LOG_EVERY == 0
         
