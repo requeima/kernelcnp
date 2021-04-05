@@ -158,17 +158,50 @@ class GPGenerator(DataGenerator):
             Defaults to an EQ kernel.
     """
 
-    def __init__(self, kernel, **kw_args):
+    def __init__(self, kernel, std_noise, **kw_args):
+        
+        kernel = kernel + std_noise ** 2 * stheno.Delta()
+        
         self.gp = stheno.GP(kernel)
+        self.std_noise = std_noise
+        
         DataGenerator.__init__(self, **kw_args)
+        
 
     def sample(self, x):
         return np.squeeze(self.gp(x).sample())
+    
 
     def log_like(self, x_context, y_context, x_target, y_target):
+        
         to_numpy = lambda x: x.squeeze().cpu().numpy().astype(np.float64)
-        post = self.gp.measure | (self.gp(to_numpy(x_context)), to_numpy(y_context))
-        return post(self.gp(to_numpy(x_target))).logpdf(to_numpy(y_target))
+        
+        # Convert torch tensors to numpy arrays
+        x_context = to_numpy(x_context)
+        y_context = to_numpy(y_context)
+        
+        x_target = to_numpy(x_target)
+        y_target = to_numpy(y_target)
+        
+        
+        prior = Measure()
+        f = stheno.GP(self.kernel, measure=prior)
+        noise_1 = stheno.GP(self.std_noise ** 2 * Delta(), measure=prior)
+        noise_2 = stheno.GP(self.std_noise ** 2 * Delta(), measure=prior)
+        
+        post = prior | ((f + noise_1)(x_context), y_context)
+        
+        return post(f + noise_2)(x_target).logpdf(y_target)
+    
+    
+    
+# prior = Measure()
+# f = GP(kernel, measure=prior)
+# e1 = GP(1e-2 * Delta(), measure=prior)
+# e2 = GP(1e-2 * Delta(), measure=prior)
+# post = prior | ((f + e1)(x_context), y_context)
+
+# -post(f + e2)(x_target).logpdf(y_target)
 
 
 class SawtoothGenerator(DataGenerator):

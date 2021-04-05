@@ -61,13 +61,13 @@ def validate(data, model, report_freq, args, std_error=False):
             nll = - dist.log_prob(batch['y_target'][:, :, 0]).sum()
             
             oracle_nll = np.array(0.)
-#             if (type(data) == cnp.data.GPGenerator):
-#                 for b in range(batch['x_context'].shape[0]):
-#                     _oracle_nll =  - data.log_like(batch['x_context'][b],
-#                                                             batch['y_context'][b],
-#                                                             batch['x_target'][b],
-#                                                             batch['y_target'][b])
-#                     oracle_nll = oracle_nll + _oracle_nll
+            if (type(data) == cnp.data.GPGenerator):
+                for b in range(batch['x_context'].shape[0]):
+                    _oracle_nll =  - data.log_like(batch['x_context'][b],
+                                                            batch['y_context'][b],
+                                                            batch['x_target'][b],
+                                                            batch['y_target'][b])
+                    oracle_nll = oracle_nll + _oracle_nll
                     
                 
             nll_list.append(nll.item())
@@ -131,6 +131,11 @@ parser.add_argument('data',
                              'weakly-periodic',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
+
+parser.add_argument('--std_noise',
+                    default=1e-1,
+                    type=float,
+                    help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
                     default=16,
@@ -354,21 +359,23 @@ else:
     else:
         raise ValueError(f'Unknown generator kind "{args.data}".')
         
-    kernel = kernel + 1e-2 * stheno.Delta()
-        
     gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
                                      kernel=kernel,
+                                     std_noise=args.std_noise,
                                      **gen_params)
         
     gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
                                    kernel=kernel,
+                                   std_noise=args.std_noise,
                                    **gen_params)
         
     gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
                                     kernel=kernel,
+                                    std_noise=args.std_noise,
                                     **gen_params)
         
     gen_plot = cnp.data.GPGenerator(kernel=kernel,
+                                    std_noise=args.std_noise,
                                     **gen_plot_params)
     
 
