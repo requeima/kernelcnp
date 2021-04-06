@@ -4,19 +4,19 @@ import torch.nn as nn
 
 from torch.distributions import MultivariateNormal
 
-from .encoders import (
+from cnp.encoders import (
     StandardEncoder,
     ConvEncoder,
     StandardFullyConnectedTEEncoder
 )
 
-from .decoders import (
+from cnp.decoders import (
     StandardDecoder,
     ConvDecoder,
     StandardFullyConnectedTEDecoder
 )
 
-from .architectures import UNet
+from cnp.architectures import UNet
 
 
 

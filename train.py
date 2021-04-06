@@ -5,6 +5,7 @@ import stheno.torch as stheno
 import torch
 import matplotlib.pyplot as plt
 import os
+from datetime import datetime
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -59,14 +60,16 @@ def validate(data, model, report_freq, args, std_error=False):
                                       covariance_matrix=y_cov)
             
             nll = - dist.log_prob(batch['y_target'][:, :, 0]).sum()
-            if args.data == 'sawtooth':
-                oracle_nll = 0.
-            else:
+            
+            oracle_nll = np.array(0.)
+            if (type(data) == cnp.data.GPGenerator):
                 for b in range(batch['x_context'].shape[0]):
-                    oracle_nll = - data.log_like(batch['x_context'][b],
-                                                 batch['y_context'][b],
-                                                 batch['x_target'][b],
-                                                 batch['y_target'][b])
+                    _oracle_nll =  - data.log_like(batch['x_context'][b],
+                                                   batch['y_context'][b],
+                                                   batch['x_target'][b],
+                                                   batch['y_target'][b])
+                    oracle_nll = oracle_nll + _oracle_nll
+                    
                 
             nll_list.append(nll.item())
             oracle_nll_list.append(oracle_nll)
@@ -76,8 +79,13 @@ def validate(data, model, report_freq, args, std_error=False):
                       f"{np.mean(nll_list):.2f} +/- "
                       f"{np.var(nll_list) ** 0.5:.2f}")
                 
+                print(f"Oracle     neg. log-lik: "
+                      f"{np.mean(oracle_nll_list):.2f} +/- "
+                      f"{np.var(oracle_nll_list) ** 0.5:.2f}")
+                
     mean_nll = np.mean(nll_list)
-    mean_oracle = np.mean(nll_list)
+    mean_oracle = np.mean(oracle_nll_list)
+    
     return mean_nll, mean_oracle
 
 
@@ -127,6 +135,16 @@ parser.add_argument('data',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
 
+parser.add_argument('--seed',
+                    default=0,
+                    type=int,
+                    help='Random seed to use.')
+
+parser.add_argument('--std_noise',
+                    default=1e-1,
+                    type=float,
+                    help='Standard dev. of noise added to GP-generated data.')
+
 parser.add_argument('--batch_size',
                     default=16,
                     type=int,
@@ -148,7 +166,7 @@ parser.add_argument('--num_train_iters',
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=100,
+                    default=25,
                     type=int,
                     help='Iterations (# batches sampled) for validation.')
 
@@ -256,12 +274,26 @@ parser.add_argument('--gpu',
 
 
 args = parser.parse_args()
+    
 
+# =============================================================================
+# Set random seed, device and tensorboard writer
+# =============================================================================
+
+# Set seed
+np.random.seed(args.seed)
+torch.manual_seed(args.seed)
+
+# Set device
 if torch.cuda.is_available():
     torch.cuda.set_device(args.gpu)
 
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
+
+
+prefix = datetime.now().strftime("%y-%m-%d_%H-%M-%S")
+prefix = prefix + f'_{args.seed}'
 
 # Load working directory
 if args.root:
@@ -273,7 +305,8 @@ else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'{args.model}',
-                                   f'{args.covtype}')
+                                   f'{args.covtype}',
+                                   f'{prefix}')
     working_directory = WorkingDirectory(root=experiment_name)
     
     writer = SummaryWriter(f'{experiment_name}/log')
@@ -349,21 +382,23 @@ else:
     else:
         raise ValueError(f'Unknown generator kind "{args.data}".')
         
-    kernel = kernel + 1e-2 * stheno.Delta()
-        
     gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
                                      kernel=kernel,
+                                     std_noise=args.std_noise,
                                      **gen_params)
         
     gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
                                    kernel=kernel,
+                                   std_noise=args.std_noise,
                                    **gen_params)
         
     gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
                                     kernel=kernel,
+                                    std_noise=args.std_noise,
                                     **gen_params)
         
     gen_plot = cnp.data.GPGenerator(kernel=kernel,
+                                    std_noise=args.std_noise,
                                     **gen_plot_params)
     
 
@@ -436,7 +471,7 @@ model = model.to(device)
 
 # Number of epochs between validations
 LOG_EVERY = 10
-VALIDATE_EVERY = 100
+VALIDATE_EVERY = 1000
 
 if args.train:
 
@@ -448,7 +483,7 @@ if args.train:
     # Run the training loop, maintaining the best objective value
     best_nll = np.inf
     
-    for epoch in range(args.epochs):
+    for epoch in range(args.epochs + 1):
         
         log = epoch % LOG_EVERY == 0
         

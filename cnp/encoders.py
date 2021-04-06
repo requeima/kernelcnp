@@ -2,9 +2,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
-from .architectures import FullyConnectedNetwork
-from .utils import (
+from cnp.aggregation import (
+    CrossAttention,
+    MeanPooling,
+    FullyConnectedDeepSet
+)
+
+from cnp.architectures import FullyConnectedNetwork
+
+from cnp.utils import (
     init_sequential_weights, 
     BatchLinear,
     compute_dists, 
@@ -27,6 +33,7 @@ class StandardEncoder(nn.Module):
                  input_dim,
                  latent_dim,
                  use_attention=False):
+        
         super(StandardEncoder, self).__init__()
 
         self.latent_dim = latent_dim

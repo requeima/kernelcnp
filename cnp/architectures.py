@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 
-from .utils import (
+from cnp.utils import (
     init_sequential_weights,
     init_layer_weights,
     pad_concat
