@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .utils import init_sequential_weights, BatchLinear
-from .architectures import BatchMLP, FullyConnectedNetwork
+from cnp.utils import init_sequential_weights, BatchLinear
+from cnp.architectures import BatchMLP, FullyConnectedNetwork
 
 class MeanPooling(nn.Module):
     """Helper class for performing mean pooling in CNPs.

@@ -5,6 +5,7 @@ import stheno.torch as stheno
 import torch
 import matplotlib.pyplot as plt
 import os
+from datetime import datetime
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -133,6 +134,11 @@ parser.add_argument('data',
                              'weakly-periodic',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
+
+parser.add_argument('--seed',
+                    default=0,
+                    type=int,
+                    help='Random seed to use.')
 
 parser.add_argument('--std_noise',
                     default=1e-1,
@@ -268,12 +274,26 @@ parser.add_argument('--gpu',
 
 
 args = parser.parse_args()
+    
 
+# =============================================================================
+# Set random seed, device and tensorboard writer
+# =============================================================================
+
+# Set seed
+np.random.seed(args.seed)
+torch.manual_seed(args.seed)
+
+# Set device
 if torch.cuda.is_available():
     torch.cuda.set_device(args.gpu)
 
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
+
+
+prefix = datetime.now().strftime("%y-%m-%d_%H-%M-%S")
+prefix = prefix + f'_{args.seed}'
 
 # Load working directory
 if args.root:
@@ -285,7 +305,8 @@ else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'{args.model}',
-                                   f'{args.covtype}')
+                                   f'{args.covtype}',
+                                   f'{prefix}')
     working_directory = WorkingDirectory(root=experiment_name)
     
     writer = SummaryWriter(f'{experiment_name}/log')
@@ -450,7 +471,7 @@ model = model.to(device)
 
 # Number of epochs between validations
 LOG_EVERY = 10
-VALIDATE_EVERY = 500
+VALIDATE_EVERY = 1000
 
 if args.train:
 

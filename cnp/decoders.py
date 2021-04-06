@@ -2,15 +2,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .utils import (
+from cnp.utils import (
     init_sequential_weights, 
     BatchLinear, 
     compute_dists, 
     stacked_batch_mlp,
     build_grid
 )
-from .aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
-from .architectures import FullyConnectedNetwork
+from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
+from cnp.architectures import FullyConnectedNetwork
 
 
 class StandardDecoder(nn.Module):
