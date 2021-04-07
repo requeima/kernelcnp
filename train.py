@@ -6,6 +6,7 @@ import torch
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
+import pickle
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -17,7 +18,8 @@ from copy import deepcopy
 from cnp.experiment import (
     generate_root,
     WorkingDirectory,
-    save_checkpoint
+    save_checkpoint,
+    log_args
 )
 
 from cnp.cnp import (
@@ -43,7 +45,7 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, model, report_freq, args, std_error=False):
+def validate(data, data_generator, model, report_freq, args, device, std_error=False):
     """ Compute the validation loss. """
     
     nll_list = []
@@ -52,22 +54,22 @@ def validate(data, model, report_freq, args, std_error=False):
     with torch.no_grad():
         for step, batch in enumerate(data):
 
-            y_mean, _, y_cov = model(batch['x_context'],
-                                     batch['y_context'],
-                                     batch['x_target'])
+            y_mean, _, y_cov = model(batch['x_context'].to(device),
+                                     batch['y_context'].to(device),
+                                     batch['x_target'].to(device))
 
             dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                       covariance_matrix=y_cov)
             
-            nll = - dist.log_prob(batch['y_target'][:, :, 0]).sum()
+            nll = - dist.log_prob(batch['y_target'].to(device)[:, :, 0]).sum()
             
             oracle_nll = np.array(0.)
-            if (type(data) == cnp.data.GPGenerator):
+            if (type(data_generator) == cnp.data.GPGenerator):
                 for b in range(batch['x_context'].shape[0]):
-                    _oracle_nll =  - data.log_like(batch['x_context'][b],
-                                                   batch['y_context'][b],
-                                                   batch['x_target'][b],
-                                                   batch['y_target'][b])
+                    _oracle_nll =  - data_generator.log_like(batch['x_context'][b],
+                                                             batch['y_context'][b],
+                                                             batch['x_target'][b],
+                                                             batch['y_target'][b])
                     oracle_nll = oracle_nll + _oracle_nll
                     
                 
@@ -89,21 +91,21 @@ def validate(data, model, report_freq, args, std_error=False):
     return mean_nll, mean_oracle
 
 
-def train(data, model, optimiser, log):
+def train(data, model, optimiser, log, device):
     """ Perform a training epoch. """
 
     nll = 0.
     
     for step, batch in enumerate(data):
 
-        y_mean, _, y_cov = model(batch['x_context'],
-                                 batch['y_context'],
-                                 batch['x_target'])
+        y_mean, _, y_cov = model(batch['x_context'].to(device),
+                                 batch['y_context'].to(device),
+                                 batch['x_target'].to(device))
         
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)
-        nll = nll - dist.log_prob(batch['y_target'][:, :, 0]).sum()
+        nll = nll - dist.log_prob(batch['y_target'].to(device)[:, :, 0]).sum()
         
     # Scale objective by number of iterations
     nll = nll / (step + 1)
@@ -175,6 +177,35 @@ parser.add_argument('--num_test_iters',
                     type=int,
                     help='Iterations (# batches sampled) for testing.')
 
+parser.add_argument('--validate_every',
+                    default=1000,
+                    type=int,
+                    help='.')
+
+parser.add_argument('--eq_params',
+                    default=[1.],
+                    nargs='+',
+                    type=float,
+                    help='.')
+
+parser.add_argument('--m52_params',
+                    default=[1.],
+                    nargs='+',
+                    type=float,
+                    help='.')
+
+parser.add_argument('--mixture_params',
+                    default=[1., 0.5],
+                    nargs='+',
+                    type=float,
+                    help='.')
+
+parser.add_argument('--wp_params',
+                    default=[1., 0.5],
+                    nargs='+',
+                    type=float,
+                    help='.')
+
 parser.add_argument('--x_range',
                     default=[-3., 3.],
                     nargs='+',
@@ -200,7 +231,7 @@ parser.add_argument('--trunc_range',
                     help='Range of truncations for sawtooth data.')
 
 parser.add_argument('--epochs',
-                    default=10000,
+                    default=1000,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -291,35 +322,39 @@ if torch.cuda.is_available():
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
 
-
-prefix = datetime.now().strftime("%y-%m-%d_%H-%M-%S")
-prefix = prefix + f'_{args.seed}'
+data_root = os.path.join('_experiments',
+                         f'{args.data}',
+                         'data',
+                         f'{args.seed}')
 
 # Load working directory
 if args.root:
     working_directory = WorkingDirectory(root=args.root)
+    data_directory = WorkingDirectory(root=data_root)
     
     writer = SummaryWriter(f'{args.root}/log')
     
 else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
+                                   f'models',
                                    f'{args.model}',
                                    f'{args.covtype}',
-                                   f'{prefix}')
+                                   f'{args.seed}')
     working_directory = WorkingDirectory(root=experiment_name)
+    data_directory = WorkingDirectory(root=data_root)
     
     writer = SummaryWriter(f'{experiment_name}/log')
+    
+
+file = open(working_directory.file('data_location.txt'), 'w')
+file.write(data_directory.root)
+file.close()
     
 
 # =============================================================================
 # Create data generators
 # =============================================================================
-
-EQ_PARAMS = [1.]
-M52_PARAMS = [1.]
-MIXTURE_PARAMS = [1., 0.5]
-WP_PARAMS = [1., 0.5]
 
 
 # Training data generator parameters -- used for both Sawtooth and GP
@@ -366,18 +401,18 @@ if args.data == 'sawtooth':
 else:
     
     if args.data == 'eq':
-        kernel = stheno.EQ().stretch(EQ_PARAMS[0])
+        kernel = stheno.EQ().stretch(args.eq_params[0])
         
     elif args.data == 'matern':
-        kernel = stheno.Matern52().stretch(M52_PARAMS[0])
+        kernel = stheno.Matern52().stretch(args.m52_params[0])
         
     elif args.data == 'noisy-mixture':
-        kernel = stheno.EQ().stretch(MIXTURE_PARAMS[0]) + \
-                 stheno.EQ().stretch(MIXTURE_PARAMS[1])
+        kernel = stheno.EQ().stretch(mixture_params[0]) + \
+                 stheno.EQ().stretch(mixture_params[1])
         
     elif args.data == 'weakly-periodic':
-        kernel = stheno.EQ().stretch(WP_PARAMS[0]) * \
-                 stheno.EQ().periodic(period=WP_PARAMS[1])
+        kernel = stheno.EQ().stretch(wp_params[0]) * \
+                 stheno.EQ().periodic(period=wp_params[1])
         
     else:
         raise ValueError(f'Unknown generator kind "{args.data}".')
@@ -463,6 +498,20 @@ if args.num_params:
     
 # Load model to appropriate device
 model = model.to(device)
+
+
+# =============================================================================
+# Load data
+# =============================================================================
+
+
+file = open(data_directory.file('train-data.pkl'), 'rb')
+data_train = pickle.load(file)
+file.close()
+
+file = open(data_directory.file('valid-data.pkl'), 'rb')
+data_val = pickle.load(file)
+file.close()
     
 
 # =============================================================================
@@ -471,9 +520,11 @@ model = model.to(device)
 
 # Number of epochs between validations
 LOG_EVERY = 10
-VALIDATE_EVERY = 1000
+args.validate_every = 1000
 
 if args.train:
+    
+    log_args(working_directory, args)
 
     # Create optimiser
     optimiser = torch.optim.Adam(model.parameters(),
@@ -491,21 +542,24 @@ if args.train:
             print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
         # Compute training negative log-likelihood
-        train_nll = train(gen_train,
+        train_nll = train(data_train[epoch],
                           model,
                           optimiser,
-                          log=log)
+                          log,
+                          device)
 
         writer.add_scalar('Train log-lik.', - train_nll, epoch)
 
 
-        if epoch % VALIDATE_EVERY == 0:
+        if epoch % args.validate_every == 0:
             
             # Compute validation negative log-likelihood
-            val_nll, val_oracle = validate(gen_val,
+            val_nll, val_oracle = validate(data_val[epoch // args.validate_every],
+                                           gen_val,
                                            model,
                                            report_freq=args.num_valid_iters,
-                                           args=args)
+                                           args=args,
+                                           device=device)
             
             writer.add_scalar('Valid log-lik.', - val_nll, epoch)
             writer.add_scalar('Valid oracle log-lik.', - val_oracle, epoch)
@@ -549,7 +603,7 @@ elif args.test:
     model.load_state_dict(load_dict['state_dict'])
     
     # Test model on ~2000 tasks.
-    test_obj, test_obj_std_error = validate(gen_test, model, std_error=True)
+    test_obj, test_obj_std_error = validate(gen_test, model, device, std_error=True)
     
     print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
     

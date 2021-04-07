@@ -117,7 +117,8 @@ class DataGenerator(metaclass=abc.ABCMeta):
         num_points = num_train_points + num_test_points
 
         for i in range(self.batch_size):
-            # Sample inputs and outputs.
+            
+            # Sample inputs and outputs
             x = _rand(self.x_range, num_points)
             y = self.sample(x)
 
