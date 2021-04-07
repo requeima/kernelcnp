@@ -116,3 +116,18 @@ class RunningAverage:
         self.sum += val * n
         self.cnt += n
         self.avg = self.sum / self.cnt
+
+    
+    
+def log_args(wd, args):
+    args_file = wd.file('args_file.txt')
+
+    args_str = ""
+
+    for arg in vars(args):
+        args_str += f"{arg}: {getattr(args, arg)}"
+
+        args_str += "\n"
+
+    with open(args_file, 'w') as args_file_file_write:
+        args_file_file_write.write(args_str)
