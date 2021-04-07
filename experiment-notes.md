@@ -55,7 +55,6 @@ Notes on experiments on toy data and changes to make.
     - convGNP
     - TEGNP
     
-    
     Metrics
     - Predictive log-likelihood
     - RMSE
