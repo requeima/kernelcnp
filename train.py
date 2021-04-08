@@ -45,7 +45,7 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, data_generator, model, report_freq, args, device, std_error=False):
+def validate(data, data_generator, model, args, device, std_error=False):
     """ Compute the validation loss. """
     
     nll_list = []
@@ -76,14 +76,13 @@ def validate(data, data_generator, model, report_freq, args, device, std_error=F
             nll_list.append(nll.item())
             oracle_nll_list.append(oracle_nll)
 
-            if (step + 1) % report_freq == 0:
-                print(f"Validation neg. log-lik: "
-                      f"{np.mean(nll_list):.2f} +/- "
-                      f"{np.var(nll_list) ** 0.5:.2f}")
-                
-                print(f"Oracle     neg. log-lik: "
-                      f"{np.mean(oracle_nll_list):.2f} +/- "
-                      f"{np.var(oracle_nll_list) ** 0.5:.2f}")
+        print(f"Validation neg. log-lik: "
+              f"{np.mean(nll_list):.2f} +/- "
+              f"{np.var(nll_list) ** 0.5:.2f}")
+
+        print(f"Oracle     neg. log-lik: "
+              f"{np.mean(oracle_nll_list):.2f} +/- "
+              f"{np.var(oracle_nll_list) ** 0.5:.2f}")
                 
     mean_nll = np.mean(nll_list)
     mean_oracle = np.mean(oracle_nll_list)
@@ -178,7 +177,7 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=1000,
+                    default=5000,
                     type=int,
                     help='.')
 
@@ -231,7 +230,7 @@ parser.add_argument('--trunc_range',
                     help='Range of truncations for sawtooth data.')
 
 parser.add_argument('--epochs',
-                    default=1000,
+                    default=50000,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -520,7 +519,6 @@ file.close()
 
 # Number of epochs between validations
 LOG_EVERY = 10
-args.validate_every = 1000
 
 if args.train:
     
@@ -550,14 +548,12 @@ if args.train:
 
         writer.add_scalar('Train log-lik.', - train_nll, epoch)
 
-
         if epoch % args.validate_every == 0:
             
             # Compute validation negative log-likelihood
             val_nll, val_oracle = validate(data_val[epoch // args.validate_every],
                                            gen_val,
                                            model,
-                                           report_freq=args.num_valid_iters,
                                            args=args,
                                            device=device)
             

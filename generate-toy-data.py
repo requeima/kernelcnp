@@ -142,101 +142,98 @@ data_kinds = ['eq',
               'sawtooth']
 
 
-seeds = [range(2)]
+seeds = list(range(1, 3))
 
-for data_kind in data_kinds:
-    
-    # =============================================================================
-    # Set random seed and device
-    # =============================================================================
+for seed in seeds:
+    for data_kind in data_kinds:
 
-    # Set seed
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+        # =============================================================================
+        # Set random seed and device
+        # =============================================================================
 
-    # Set device
-    if torch.cuda.is_available():
-        torch.cuda.set_device(args.gpu)
+        # Set seed
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
 
-    device = torch.device('cpu')
+        device = torch.device('cpu')
 
-    path = os.path.join('_experiments', f'{data_kind}', 'data', f'{args.seed}')
+        path = os.path.join('_experiments', f'{data_kind}', 'data', f'{seed}')
 
 
-    # =============================================================================
-    # Create data generators
-    # =============================================================================
+        # =============================================================================
+        # Create data generators
+        # =============================================================================
 
 
-    # Training data generator parameters -- used for both Sawtooth and GP
-    gen_params = {
-        'batch_size'                : args.batch_size,
-        'x_range'                   : args.x_range,
-        'max_num_context'           : args.max_num_context,
-        'max_num_target'            : args.max_num_target,
-        'include_context_in_target' : False,
-        'device'                    : device
-    }
+        # Training data generator parameters -- used for both Sawtooth and GP
+        gen_params = {
+            'batch_size'                : args.batch_size,
+            'x_range'                   : args.x_range,
+            'max_num_context'           : args.max_num_context,
+            'max_num_target'            : args.max_num_target,
+            'include_context_in_target' : False,
+            'device'                    : device
+        }
 
-    # Training data generator parameters -- specific to Sawtooth
-    gen_train_sawtooth_params = {
-        'freq_range'  : args.freq_range,
-        'shift_range' : args.shift_range,
-        'trunc_range' : args.trunc_range
-    }
+        # Training data generator parameters -- specific to Sawtooth
+        gen_train_sawtooth_params = {
+            'freq_range'  : args.freq_range,
+            'shift_range' : args.shift_range,
+            'trunc_range' : args.trunc_range
+        }
 
 
-    if data_kind == 'sawtooth':
+        if data_kind == 'sawtooth':
 
-        gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                               **gen_train_sawtooth_params,
-                                               **gen_params)
-    
-        gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                               **gen_train_sawtooth_params,
-                                               **gen_params)
+            gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
+                                                   **gen_train_sawtooth_params,
+                                                   **gen_params)
 
-    else:
-
-        if data_kind == 'eq':
-            kernel = stheno.EQ().stretch(args.eq_params[0])
-
-        elif data_kind == 'matern':
-            kernel = stheno.Matern52().stretch(args.m52_params[0])
-
-        elif data_kind == 'noisy-mixture':
-            kernel = stheno.EQ().stretch(args.mixture_params[0]) + \
-                     stheno.EQ().stretch(args.mixture_params[1])
-
-        elif data_kind == 'weakly-periodic':
-            kernel = stheno.EQ().stretch(args.wp_params[0]) * \
-                     stheno.EQ().periodic(period=args.wp_params[1])
+            gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
+                                                   **gen_train_sawtooth_params,
+                                                   **gen_params)
 
         else:
-            raise ValueError(f'Unknown generator kind "{data_kind}".')
 
-        gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
-                                         kernel=kernel,
-                                         std_noise=args.std_noise,
-                                         **gen_params)
-        
-        gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
-                                         kernel=kernel,
-                                         std_noise=args.std_noise,
-                                         **gen_params)
+            if data_kind == 'eq':
+                kernel = stheno.EQ().stretch(args.eq_params[0])
+
+            elif data_kind == 'matern':
+                kernel = stheno.Matern52().stretch(args.m52_params[0])
+
+            elif data_kind == 'noisy-mixture':
+                kernel = stheno.EQ().stretch(args.mixture_params[0]) + \
+                         stheno.EQ().stretch(args.mixture_params[1])
+
+            elif data_kind == 'weakly-periodic':
+                kernel = stheno.EQ().stretch(args.wp_params[0]) * \
+                         stheno.EQ().periodic(period=args.wp_params[1])
+
+            else:
+                raise ValueError(f'Unknown generator kind "{data_kind}".')
+
+            gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
+                                             kernel=kernel,
+                                             std_noise=args.std_noise,
+                                             **gen_params)
+
+            gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
+                                             kernel=kernel,
+                                             std_noise=args.std_noise,
+                                             **gen_params)
 
 
-    train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
-    valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
+        train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
+        valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
 
-    wd = WorkingDirectory(root=path)
-    log_args(wd, args)
+        wd = WorkingDirectory(root=path)
+        log_args(wd, args)
 
-    with open(wd.file('train-data.pkl'), 'wb') as file:
-        pickle.dump(train_data, file)
-        file.close()
+        with open(wd.file('train-data.pkl'), 'wb') as file:
+            pickle.dump(train_data, file)
+            file.close()
 
-    with open(wd.file('valid-data.pkl'), 'wb') as file:
-        pickle.dump(valid_data, file)
-        file.close()
+        with open(wd.file('valid-data.pkl'), 'wb') as file:
+            pickle.dump(valid_data, file)
+            file.close()
         

@@ -31,7 +31,7 @@ configs = list(product(seeds, data_generators, models, covs))
 
 # Other experiment parameters
 optional_params = {
-    '--epochs'          : 30000,
+    '--epochs'          : 50000,
     '--num_train_iters' : 1,
     '--learning_rate'   : 1e-3
 }
