@@ -38,12 +38,7 @@ parser.add_argument('--std_noise',
                     type=float,
                     help='Standard dev. of noise added to GP-generated data.')
 
-parser.add_argument('--train_batch_size',
-                    default=128,
-                    type=int,
-                    help='Number of tasks per batch sampled.')
-
-parser.add_argument('--valid_batch_size',
+parser.add_argument('--batch_size',
                     default=128,
                     type=int,
                     help='Number of tasks per batch sampled.')
@@ -190,12 +185,12 @@ for seed in seeds:
         if data_kind == 'sawtooth':
 
             gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                                   batch_size=args.train_batch_size,
+                                                   batch_size=args.batch_size,
                                                    **gen_train_sawtooth_params,
                                                    **gen_params)
 
             gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                                   batch_size=args.valid_batch_size,
+                                                   batch_size=args.batch_size,
                                                    **gen_train_sawtooth_params,
                                                    **gen_params)
 
@@ -219,13 +214,13 @@ for seed in seeds:
                 raise ValueError(f'Unknown generator kind "{data_kind}".')
 
             gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
-                                             batch_size=args.train_batch_size,
+                                             batch_size=args.batch_size,
                                              kernel=kernel,
                                              std_noise=args.std_noise,
                                              **gen_params)
 
             gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
-                                             batch_size=args.valid_batch_size,
+                                             batch_size=args.batch_size,
                                              kernel=kernel,
                                              std_noise=args.std_noise,
                                              **gen_params)
