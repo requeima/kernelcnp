@@ -15,6 +15,10 @@ Notes on experiments on toy data and changes to make.
 
 - Our models cannot model multi-modal distributions.
 
+- Different numbers of parameters being used.
+
+- Is our TEGNP iff condition meaningful? We could just subtract a mean. What about the RTEGNP?
+
 
 
 # Experiments
@@ -64,9 +68,6 @@ Notes on experiments on toy data and changes to make.
     Extended experiments:
     - Total of percipitation in a region: show that correlated models give better error bars
     - Probability that percipitation remains over threshold for sufficiently long: only correlated models can do this
-    
-    
-    
     
     
 
