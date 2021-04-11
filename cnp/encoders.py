@@ -248,7 +248,7 @@ class StandardFullyConnectedTEEncoder(FullyConnectedTEEncoder):
         
         # Sizes of hidden layers and nonlinearity type
         # Used for both elementwise and aggregate networks
-        hidden_dims = [128]
+        hidden_dims = [100]
         nonlinearity = 'Tanh'
         
         # Element network -- in (B, C, C, Din + 2 * Dout), out (B, C, C, R)

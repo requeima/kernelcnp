@@ -147,7 +147,7 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=16,
+                    default=128,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
@@ -177,7 +177,7 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=5000,
+                    default=1000,
                     type=int,
                     help='.')
 
@@ -230,7 +230,7 @@ parser.add_argument('--trunc_range',
                     help='Range of truncations for sawtooth data.')
 
 parser.add_argument('--epochs',
-                    default=50000,
+                    default=10000,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -321,7 +321,7 @@ if torch.cuda.is_available():
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
 
-data_root = os.path.join('_experiments',
+data_root = os.path.join('__experiments',
                          f'{args.data}',
                          'data',
                          f'{args.seed}')
@@ -334,7 +334,7 @@ if args.root:
     writer = SummaryWriter(f'{args.root}/log')
     
 else:
-    experiment_name = os.path.join('_experiments',
+    experiment_name = os.path.join('__experiments',
                                    f'{args.data}',
                                    f'models',
                                    f'{args.model}',
@@ -406,12 +406,12 @@ else:
         kernel = stheno.Matern52().stretch(args.m52_params[0])
         
     elif args.data == 'noisy-mixture':
-        kernel = stheno.EQ().stretch(mixture_params[0]) + \
-                 stheno.EQ().stretch(mixture_params[1])
+        kernel = stheno.EQ().stretch(args.mixture_params[0]) + \
+                 stheno.EQ().stretch(args.mixture_params[1])
         
     elif args.data == 'weakly-periodic':
-        kernel = stheno.EQ().stretch(wp_params[0]) * \
-                 stheno.EQ().periodic(period=wp_params[1])
+        kernel = stheno.EQ().stretch(args.wp_params[0]) * \
+                 stheno.EQ().periodic(period=args.wp_params[1])
         
     else:
         raise ValueError(f'Unknown generator kind "{args.data}".')
@@ -511,6 +511,8 @@ file.close()
 file = open(data_directory.file('valid-data.pkl'), 'rb')
 data_val = pickle.load(file)
 file.close()
+
+print(len(data_train))
     
 
 # =============================================================================
@@ -518,7 +520,7 @@ file.close()
 # =============================================================================
 
 # Number of epochs between validations
-LOG_EVERY = 10
+LOG_EVERY = 1
 
 if args.train:
     

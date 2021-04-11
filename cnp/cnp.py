@@ -132,7 +132,7 @@ class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
         
         input_dim = 1
         output_dim = 1
-        rep_dim = 128
+        rep_dim = 100
         
         embedding_dim = output_dim +               \
                         covariance.num_basis_dim + \

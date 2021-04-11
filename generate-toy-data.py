@@ -38,8 +38,13 @@ parser.add_argument('--std_noise',
                     type=float,
                     help='Standard dev. of noise added to GP-generated data.')
 
-parser.add_argument('--batch_size',
-                    default=16,
+parser.add_argument('--train_batch_size',
+                    default=128,
+                    type=int,
+                    help='Number of tasks per batch sampled.')
+
+parser.add_argument('--valid_batch_size',
+                    default=128,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
@@ -59,7 +64,7 @@ parser.add_argument('--num_train_iters',
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=100,
+                    default=10,
                     type=int,
                     help='Iterations (# batches sampled) for validation.')
 
@@ -69,7 +74,7 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=5000,
+                    default=1000,
                     type=int,
                     help='.')
 
@@ -122,7 +127,7 @@ parser.add_argument('--trunc_range',
                     help='Range of truncations for sawtooth data.')
 
 parser.add_argument('--epochs',
-                    default=50000,
+                    default=10000,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -167,7 +172,6 @@ for seed in seeds:
 
         # Training data generator parameters -- used for both Sawtooth and GP
         gen_params = {
-            'batch_size'                : args.batch_size,
             'x_range'                   : args.x_range,
             'max_num_context'           : args.max_num_context,
             'max_num_target'            : args.max_num_target,
@@ -186,10 +190,12 @@ for seed in seeds:
         if data_kind == 'sawtooth':
 
             gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
+                                                   batch_size=args.train_batch_size,
                                                    **gen_train_sawtooth_params,
                                                    **gen_params)
 
             gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
+                                                   batch_size=args.valid_batch_size,
                                                    **gen_train_sawtooth_params,
                                                    **gen_params)
 
@@ -213,11 +219,13 @@ for seed in seeds:
                 raise ValueError(f'Unknown generator kind "{data_kind}".')
 
             gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
+                                             batch_size=args.train_batch_size,
                                              kernel=kernel,
                                              std_noise=args.std_noise,
                                              **gen_params)
 
             gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
+                                             batch_size=args.valid_batch_size,
                                              kernel=kernel,
                                              std_noise=args.std_noise,
                                              **gen_params)

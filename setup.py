@@ -26,6 +26,8 @@ setup(
         'jupyter',
         'jupyterlab',
         'ipykernel',
+        'tqdm',
+        'stheno'
     ],
     zip_safe=False,
 )
