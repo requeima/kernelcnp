@@ -16,10 +16,14 @@ data_generators = ['eq',
                    'weakly-periodic',
                    'sawtooth']
 
-models = ['GNP',
-          'AGNP',
-          'convGNP',
-          'TEGNP']
+# models = ['GNP',
+#           'AGNP',
+#           'MeanTEGNP',
+#           'MeanTEAGNP',
+#           'convGNP',
+#           'TEGNP']
+
+models = ['MeanTEGNP']
 
 covs = ['innerprod-homo',
         'kvv-homo',
