@@ -25,6 +25,8 @@ from cnp.experiment import (
 from cnp.cnp import (
     StandardGNP,
     StandardAGNP,
+    StandardMeanTEGNP,
+    StandardMeanTEAGNP,
     StandardConvGNP,
     StandardFullyConnectedTEGNP
 )
@@ -242,6 +244,8 @@ parser.add_argument('--epochs',
 parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
+                             'MeanTEGNP',
+                             'MeanTEAGNP',
                              'convGNP',
                              'TEGNP'],
                     help='Choice of model. ')
@@ -473,6 +477,14 @@ if args.model == 'GNP':
 elif args.model == 'AGNP':
     model = StandardAGNP(covariance=cov,
                          add_noise=noise)
+    
+if args.model == 'MeanTEGNP':
+    model = StandardMeanTEGNP(covariance=cov,
+                              add_noise=noise)
+    
+if args.model == 'MeanTEAGNP':
+    model = StandardMeanTEGNP(covariance=cov,
+                              add_noise=noise)
     
 elif args.model == 'convGNP':
     model = StandardConvGNP(covariance=cov,

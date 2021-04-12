@@ -107,11 +107,69 @@ class StandardGNP(GaussianNeuralProcess):
 
 
 # =============================================================================
+# Standard Mean Translation Equivariant Gaussian Neural Process
+# =============================================================================
+
+
+class StandardMeanTEGNP(GaussianNeuralProcess):
+    
+    def __init__(self, covariance, add_noise, use_attention=False):
+        
+        # Standard input/output dimensions and latent representation dimension
+        input_dim = 1
+        output_dim = 1
+        latent_dim = 128
+        
+        # Decoder output dimension
+        decoder_output_dim = output_dim +               \
+                             covariance.num_basis_dim + \
+                             covariance.extra_cov_dim + \
+                             add_noise.extra_noise_dim
+
+        # Construct the standard encoder
+        encoder = StandardMeanTEEncoder(input_dim=input_dim + output_dim,
+                                        latent_dim=latent_dim,
+                                        use_attention=use_attention)
+        
+        # Construct the standard decoder
+        decoder = StandardMeanTEDecoder(input_dim=input_dim + latent_dim,
+                                        latent_dim=latent_dim,
+                                        output_dim=decoder_output_dim)
+
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         covariance=covariance,
+                         add_noise=add_noise)
+        
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.latent_dim = latent_dim
+        self.num_out_channels = decoder_output_dim
+        self.use_attention = use_attention
+
+
+
+# =============================================================================
 # Standard Attentive Gaussian Neural Process
 # =============================================================================
 
 
 class StandardAGNP(StandardGNP):
+    
+    def __init__(self, covariance, add_noise):
+        
+        super().__init__(covariance=covariance,
+                         add_noise=add_noise,
+                         use_attention=True)
+
+
+
+# =============================================================================
+# Standard Attentive Gaussian Neural Process
+# =============================================================================
+
+
+class StandardMeanTEAGNP(StandardMeanTEGNP):
     
     def __init__(self, covariance, add_noise):
         
