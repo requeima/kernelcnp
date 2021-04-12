@@ -28,11 +28,6 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
-parser.add_argument('--seed',
-                    default=0,
-                    type=int,
-                    help='Random seed to use.')
-
 parser.add_argument('--std_noise',
                     default=1e-1,
                     type=float,
@@ -142,7 +137,7 @@ data_kinds = ['eq',
               'sawtooth']
 
 
-seeds = list(range(1, 3))
+seeds = list(range(2, 3))
 
 for seed in seeds:
     for data_kind in data_kinds:
@@ -152,8 +147,8 @@ for seed in seeds:
         # =============================================================================
 
         # Set seed
-        np.random.seed(args.seed)
-        torch.manual_seed(args.seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
 
         device = torch.device('cpu')
 

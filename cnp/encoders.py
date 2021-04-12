@@ -71,6 +71,7 @@ class StandardEncoder(nn.Module):
         decoder_input = torch.cat((x_context, y_context), dim=-1)
         
         h = self.pre_pooling_fn(decoder_input)
+        
         return self.pooling_fn(h, x_context, x_target)
 
     
