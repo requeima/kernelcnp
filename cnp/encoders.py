@@ -71,8 +71,50 @@ class StandardEncoder(nn.Module):
         decoder_input = torch.cat((x_context, y_context), dim=-1)
         
         h = self.pre_pooling_fn(decoder_input)
-        
         return self.pooling_fn(h, x_context, x_target)
+    
+
+
+class StandardMeanTEEncoder(StandardEncoder):
+
+    def __init__(self,
+                 input_dim,
+                 latent_dim,
+                 use_attention=False):
+        
+        super().__init__(input_dim=input_dim,
+                         latent_dim=latent_dim,
+                         use_attention=use_attention)
+        
+
+    def forward(self, x_context, y_context, x_target):
+        """Forward pass through the decoder.
+
+        Args:
+            x_context (tensor): Context locations of shape
+                `(batch, num_context, input_dim_x)`.
+            y_context (tensor): Context values of shape
+                `(batch, num_context, input_dim_y)`.
+            x_target (tensor, optional): Target locations of shape
+                `(batch, num_target, input_dim_x)`.
+
+        Returns:
+            tensor: Latent representation of each context set of shape
+                `(batch, 1, latent_dim)`.
+        """
+        
+        assert len(x_context.shape) == 3, \
+            'Incorrect shapes: ensure x_context is a rank-3 tensor.'
+        assert len(y_context.shape) == 3, \
+            'Incorrect shapes: ensure y_context is a rank-3 tensor.'
+
+        context_means = torch.mean(x_context, dim=1)[:, None, :]
+        decoder_input = torch.cat([x_context - context_means, y_context], dim=-1)
+        
+        h = self.pre_pooling_fn(decoder_input)
+        r = self.pooling_fn(h, x_context - context_means, x_target - context_means)
+        
+        return r, context_means
 
     
 
