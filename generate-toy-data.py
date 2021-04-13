@@ -137,7 +137,7 @@ data_kinds = ['eq',
               'sawtooth']
 
 
-seeds = list(range(2, 3))
+seeds = list(range(0, 2))
 
 for seed in seeds:
     for data_kind in data_kinds:
