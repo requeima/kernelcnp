@@ -325,7 +325,7 @@ if torch.cuda.is_available():
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
 
-data_root = os.path.join('_experiments',
+data_root = os.path.join('__experiments',
                          f'{args.data}',
                          'data',
                          f'seed-{args.seed}',
@@ -339,7 +339,7 @@ if args.root:
     writer = SummaryWriter(f'{args.root}/log')
     
 else:
-    experiment_name = os.path.join('_experiments',
+    experiment_name = os.path.join('__experiments',
                                    f'{args.data}',
                                    f'models',
                                    f'{args.model}',
@@ -479,13 +479,13 @@ elif args.model == 'AGNP':
     model = StandardAGNP(covariance=cov,
                          add_noise=noise)
     
-if args.model == 'MeanTEGNP':
+elif args.model == 'MeanTEGNP':
     model = StandardMeanTEGNP(covariance=cov,
                               add_noise=noise)
     
-if args.model == 'MeanTEAGNP':
-    model = StandardMeanTEGNP(covariance=cov,
-                              add_noise=noise)
+elif args.model == 'MeanTEAGNP':
+    model = StandardMeanTEAGNP(covariance=cov,
+                               add_noise=noise)
     
 elif args.model == 'convGNP':
     model = StandardConvGNP(covariance=cov,

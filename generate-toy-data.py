@@ -143,7 +143,7 @@ data_kinds = ['eq',
               'weakly-periodic',
               'sawtooth']
 
-seeds = list(range(0, 3))
+seeds = list(range(0, 2))
 
 for seed in seeds:
     for x_dim in args.x_dims:

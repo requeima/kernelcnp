@@ -6,12 +6,14 @@ from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
     StandardEncoder,
+    StandardMeanTEEncoder,
     ConvEncoder,
     StandardFullyConnectedTEEncoder
 )
 
 from cnp.decoders import (
     StandardDecoder,
+    StandardMeanTEDecoder,
     ConvDecoder,
     StandardFullyConnectedTEDecoder
 )
@@ -205,6 +207,40 @@ class StandardFullyConnectedTEGNP(GaussianNeuralProcess):
                                                   output_dim=output_dim,
                                                   rep_dim=rep_dim,
                                                   embedding_dim=embedding_dim)
+        
+        super().__init__(encoder=encoder, 
+                         decoder=decoder,
+                         covariance=covariance,
+                         add_noise=add_noise)
+
+
+
+# =============================================================================
+# Standard Fully Connected Fully Equivariant Gaussian Neural Process
+# =============================================================================
+        
+        
+class StandardFullyConnectedTRREGNP(GaussianNeuralProcess):
+    
+    def __init__(self, covariance, add_noise):
+        
+        input_dim = 1
+        output_dim = 1
+        rep_dim = 100
+        
+        embedding_dim = output_dim +               \
+                        covariance.num_basis_dim + \
+                        covariance.extra_cov_dim + \
+                        add_noise.extra_noise_dim
+        
+        encoder = StandardFullyConnectedTRREEncoder(input_dim=input_dim,
+                                                    output_dim=output_dim,
+                                                    rep_dim=rep_dim)
+        
+        decoder = StandardFullyConnectedTRREDecoder(input_dim=input_dim,
+                                                    output_dim=output_dim,
+                                                    rep_dim=rep_dim,
+                                                    embedding_dim=embedding_dim)
         
         super().__init__(encoder=encoder, 
                          decoder=decoder,
