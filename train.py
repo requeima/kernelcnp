@@ -483,6 +483,7 @@ elif args.model == 'MeanTEGNP':
                               add_noise=noise)
     
 elif args.model == 'MeanTEAGNP':
+    exit()
     model = StandardMeanTEAGNP(covariance=cov,
                                add_noise=noise)
     
