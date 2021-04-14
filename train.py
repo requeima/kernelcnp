@@ -328,7 +328,8 @@ device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 
 data_root = os.path.join('__experiments',
                          f'{args.data}',
                          'data',
-                         f'{args.seed}')
+                         f'seed-{args.seed}',
+                         f'dim-1')
 
 # Load working directory
 if args.root:
