@@ -23,13 +23,13 @@ data_generators = ['eq',
 #           'convGNP',
 #           'TEGNP']
 
-models = ['MeanTEGNP']
+models = ['MeanTEAGNP']
 
 covs = ['innerprod-homo',
         'kvv-homo',
         'meanfield']
 
-seeds = [str(i) for i in range(1, 3)]
+seeds = [str(i) for i in range(0, 2)]
 
 configs = list(product(seeds, data_generators, models, covs))
 
