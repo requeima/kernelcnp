@@ -68,27 +68,29 @@ def validate(data, data_generator, model, args, device, oracle=True):
             if oracle:
                 if (type(data_generator) == cnp.data.GPGenerator):
                     for b in range(batch['x_context'].shape[0]):
-                        _oracle_nll =  - data_generator.log_like(batch['x_context'][b],
+                        oracle_nll =  - data_generator.log_like(batch['x_context'][b],
                                                                 batch['y_context'][b],
                                                                 batch['x_target'][b],
                                                                 batch['y_target'][b])
-                        oracle_nll = oracle_nll + _oracle_nll
                         
-            nll_list.append(nll.item())
-            oracle_nll_list.append(oracle_nll)
 
-        print(f"Validation neg. log-lik: "
-              f"{np.mean(nll_list):.2f} +/- "
-              f"{np.var(nll_list) ** 0.5:.2f}")
-
-        print(f"Oracle     neg. log-lik: "
-              f"{np.mean(oracle_nll_list):.2f} +/- "
-              f"{np.var(oracle_nll_list) ** 0.5:.2f}")
+            # Scale by the maximum number of target points            
+            nll_list.append(nll.item()/args.max_num_target)
+            oracle_nll_list.append(oracle_nll.item()/args.max_num_target)
                 
     mean_nll = np.mean(nll_list)
-    std_nll = np.var(nll_list) ** 0.5
+    std_nll = (np.var(nll_list) ** 0.5) / np.sqrt(len(nll_list))
     mean_oracle = np.mean(oracle_nll_list)
-    std_oracle = np.var(oracle_nll_list) ** 0.5
+    std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(len(oracle_nll_list)) 
+
+
+    print(f"Validation neg. log-lik: "
+        f"{mean_nll:.2f} +/- "
+        f"{std_nll:.2f}")
+
+    print(f"Oracle     neg. log-lik: "
+        f"{mean_oracle:.2f} +/- "
+        f"{std_oracle:.2f}")
 
     return mean_nll, std_nll, mean_oracle, std_oracle
 
@@ -504,7 +506,7 @@ print(f'{args.model} '
       f'{model.num_params}')
 
 with open(working_directory.file('num_params.txt'), 'w') as f:
-    f.write(str(test_obj))
+    f.write(f'{model.num_params}')
         
 if args.num_params:
     exit()

@@ -55,7 +55,7 @@ class WorkingDirectory:
             exists. Defaults to `False`.
     """
 
-    def __init__(self, root, override=False):
+    def __init__(self, root, override=False, print_root=True):
         self.root = root
 
         # Delete if the root already exists.
@@ -63,7 +63,8 @@ class WorkingDirectory:
             print('Experiment directory already exists. Overwriting.')
             shutil.rmtree(self.root)
 
-        print('Root:', self.root)
+        if print_root:
+            print('Root:', self.root)
 
         # Create root directory.
         os.makedirs(self.root, exist_ok=True)
