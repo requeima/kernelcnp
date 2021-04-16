@@ -28,6 +28,11 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
+parser.add_argument('--test',
+                    action='store_true',
+                    help='Test the model and record the values in the'
+                         'experimental root.')
+
 parser.add_argument('--std_noise',
                     default=1e-1,
                     type=float,
@@ -137,7 +142,7 @@ data_kinds = ['eq',
               'sawtooth']
 
 
-seeds = list(range(0, 2))
+seeds = list(range(0, 1))
 
 for seed in seeds:
     for data_kind in data_kinds:
@@ -188,6 +193,11 @@ for seed in seeds:
                                                    batch_size=args.batch_size,
                                                    **gen_train_sawtooth_params,
                                                    **gen_params)
+            
+            gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
+                                                  batch_size=args.batch_size,
+                                                  **gen_train_sawtooth_params,
+                                                  **gen_params)
 
         else:
 
@@ -220,18 +230,32 @@ for seed in seeds:
                                              std_noise=args.std_noise,
                                              **gen_params)
 
+            gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
+                                            batch_size=args.batch_size,
+                                            kernel=kernel,
+                                            std_noise=args.std_noise,
+                                            **gen_params)
+            
 
-        train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
-        valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
 
         wd = WorkingDirectory(root=path)
         log_args(wd, args)
 
-        with open(wd.file('train-data.pkl'), 'wb') as file:
-            pickle.dump(train_data, file)
-            file.close()
 
-        with open(wd.file('valid-data.pkl'), 'wb') as file:
-            pickle.dump(valid_data, file)
-            file.close()
-        
+        if args.test:
+            test_data = [batch for batch in gen_test]
+
+            with open(wd.file('test-data.pkl'), 'wb') as file:
+                pickle.dump(test_data, file)
+                file.close()
+        else:
+            train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
+            valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
+
+            with open(wd.file('train-data.pkl'), 'wb') as file:
+                pickle.dump(train_data, file)
+                file.close()
+
+            with open(wd.file('valid-data.pkl'), 'wb') as file:
+                pickle.dump(valid_data, file)
+                file.close()
