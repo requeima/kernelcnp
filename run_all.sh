@@ -25,8 +25,7 @@ done
 
 # oracle
 for data in "${kernels[@]}"; do
-        for seed in "${seeds[@]}"; do
-            python train.py $data GNP meanfield --test_oracle --seed $seed
-        done
+    for seed in "${seeds[@]}"; do
+        python test_oracle.py $data --seed $seed
     done
 done
