@@ -7,9 +7,17 @@ import torch
 __all__ = ['GPGenerator', 'SawtoothGenerator']
 
 
-def _rand(val_range, *shape):
-    lower, upper = val_range
-    return lower + np.random.rand(*shape) * (upper - lower)
+def x_sample_uniform(ranges, num_points, num_dim):
+    
+    assert len(ranges) == num_dim
+    
+    lower, upper = list(zip(*ranges))
+    lower = np.array(lower)[None, :]
+    upper = np.array(upper)[None, :]
+    
+    uniform = np.random.uniform(size=(num_points, num_dim))
+    
+    return lower + uniform * (upper - lower)
 
 
 def _uprank(a):
@@ -68,21 +76,26 @@ class DataGenerator(metaclass=abc.ABCMeta):
     def __init__(self,
                  iterations_per_epoch,
                  batch_size,
-                 x_range,
+                 x_context_ranges,
                  max_num_context,
-                 max_num_target, 
-                 include_context_in_target,
-                 device):
+                 max_num_target,
+                 device,
+                 x_target_ranges=None):
         
         assert max_num_context >= 3 and max_num_target >= 3
+        assert (x_target_ranges is None) or \
+               (len(x_context_ranges) == len(x_target_ranges))
         
         self.iterations_per_epoch = iterations_per_epoch
         self.batch_size = batch_size
-        self.x_range = x_range
         self.max_num_context = max_num_context
         self.max_num_target = max_num_target
-        self.include_context_in_target = include_context_in_target
         self.device = device
+        
+        self.num_dim = len(x_context_ranges)
+        self.x_context_ranges = x_context_ranges
+        self.x_target_ranges = x_context_ranges if x_target_ranges is None else \
+                               x_target_ranges
 
         
     @abc.abstractmethod
@@ -104,46 +117,54 @@ class DataGenerator(metaclass=abc.ABCMeta):
             dict: A task, which is a dictionary with keys `x`, `y`, `x_context`,
                 `y_context`, `x_target`, and `y_target.
         """
-        task = {'x'         : [],
-                'y'         : [],
-                'x_context' : [],
-                'y_context' : [],
-                'x_target'  : [],
-                'y_target'  : []}
+        batch = {'x'         : [],
+                 'y'         : [],
+                 'x_context' : [],
+                 'y_context' : [],
+                 'x_target'  : [],
+                 'y_target'  : []}
 
         # Determine number of test and train points.
-        num_train_points = np.random.randint(3, self.max_num_context + 1)
-        num_test_points = np.random.randint(3, self.max_num_target + 1)
-        num_points = num_train_points + num_test_points
+        num_context_points = np.random.randint(3, self.max_num_context + 1)
+        num_target_points = np.random.randint(3, self.max_num_target + 1)
 
         for i in range(self.batch_size):
             
-            # Sample inputs and outputs
-            x = _rand(self.x_range, num_points)
+            # Sample context and target inputs and concatenate them
+            x_context = x_sample_uniform(self.x_context_ranges,
+                                         num_context_points,
+                                         self.num_dim)
+            
+            x_target = x_sample_uniform(self.x_context_ranges,
+                                         num_target_points,
+                                         self.num_dim)
+            
+            x = np.concatenate([x_context, x_target], axis=0)
+            
+            # Sample context and target outputs together, then split them
             y = self.sample(x)
+            
+            y_context = y[:num_context_points]
+            y_target = y[num_context_points:]
 
-            # Determine indices for train and test set.
-            inds = np.random.permutation(x.shape[0])
-            inds_train = sorted(inds[:num_train_points])
-            if self.include_context_in_target:
-                inds_test = sorted(inds[:num_points])
-            else:
-                inds_test = sorted(inds[num_train_points:num_points])
+            # Put data in batch dictionary
+            batch['x'].append(x)
+            batch['y'].append(y)
+            
+            batch['x_context'].append(x_context)
+            batch['y_context'].append(y_context)
+            
+            batch['x_target'].append(x_target)
+            batch['y_target'].append(y_target)
+            
+#             print(x_context.shape, y_context.shape, x_target.shape, y_target.shape)
 
-            # Record to task.
-            task['x'].append(sorted(x))
-            task['y'].append(y[np.argsort(x)])
-            task['x_context'].append(x[inds_train])
-            task['y_context'].append(y[inds_train])
-            task['x_target'].append(x[inds_test])
-            task['y_target'].append(y[inds_test])
+        # Stack batch and convert to PyTorch
+        batch = {k: torch.tensor(_uprank(np.stack(v, axis=0)),
+                                 dtype=torch.float32).to(self.device)
+                 for k, v in batch.items()}
 
-        # Stack batch and convert to PyTorch.
-        task = {k: torch.tensor(_uprank(np.stack(v, axis=0)),
-                                dtype=torch.float32).to(self.device)
-                for k, v in task.items()}
-
-        return task
+        return batch
 
     def __iter__(self):
         return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
@@ -232,12 +253,12 @@ class SawtoothGenerator(DataGenerator):
     def sample(self, x):
         # Sample parameters of sawtooth.
         amp = 1
-        freq = _rand(self.freq_range)
-        shift = _rand(self.shift_range)
+        freq = np.random.uniform(low=self.freq_range[0], high=self.freq_range[1])
+        shift = np.random.uniform(low=self.shift_range[0], high=self.shift_range[1])
         trunc = np.random.randint(self.trunc_range[0], self.trunc_range[1] + 1)
 
         # Construct expansion.
-        x = x[:, None] + shift
+        x = x + shift
         k = np.arange(1, trunc + 1)[None, :]
         return 0.5 * amp - amp / np.pi * \
                np.sum((-1) ** k * np.sin(2 * np.pi * k * freq * x) / k, axis=1)
