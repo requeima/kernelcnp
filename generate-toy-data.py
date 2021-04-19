@@ -28,6 +28,11 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
+parser.add_argument('--test',
+                    action='store_true',
+                    help='Test the model and record the values in the'
+                         'experimental root.')
+
 parser.add_argument('--x_dims',
                     default=[1, 2, 3],
                     nargs='+',
@@ -75,6 +80,11 @@ parser.add_argument('--num_valid_iters',
                     default=10,
                     type=int,
                     help='Iterations (# batches sampled) for validation.')
+
+parser.add_argument('--num_test_iters',
+                    default=2048,
+                    type=int,
+                    help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
                     default=1000,
@@ -195,20 +205,26 @@ for seed in seeds:
                 
                 if x_dim > 1: continue
 
-                gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                                       batch_size=args.batch_size,
-                                                       x_context_ranges=x_context_ranges,
-                                                       x_target_ranges=x_target_ranges,
-                                                       **gen_train_sawtooth_params,
-                                                       **gen_params)
+                    gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
+                                                           batch_size=args.batch_size,
+                                                           x_context_ranges=x_context_ranges,
+                                                           x_target_ranges=x_target_ranges,
+                                                           **gen_train_sawtooth_params,
+                                                           **gen_params)
 
-                gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                                       batch_size=args.batch_size,
-                                                       x_context_ranges=x_context_ranges,
-                                                       x_target_ranges=x_target_ranges,
-                                                       **gen_train_sawtooth_params,
-                                                       **gen_params)
+                    gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
+                                                           batch_size=args.batch_size,
+                                                           x_context_ranges=x_context_ranges,
+                                                           x_target_ranges=x_target_ranges,
+                                                           **gen_train_sawtooth_params,
+                                                           **gen_params)
 
+                    gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
+                                                          batch_size=args.batch_size,
+                                                          x_context_ranges=x_context_ranges,
+                                                          x_target_ranges=x_target_ranges,
+                                                          **gen_train_sawtooth_params,
+                                                          **gen_params)
             else:
 
                 if data_kind == 'eq':
@@ -244,18 +260,40 @@ for seed in seeds:
                                                  x_target_ranges=x_target_ranges,
                                                  **gen_params)
 
-            train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
-            valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
+                gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
+                                                 batch_size=args.batch_size,
+                                                 kernel=kernel,
+                                                 std_noise=args.std_noise,
+                                                 x_context_ranges=x_context_ranges,
+                                                 x_target_ranges=x_target_ranges,
+                                                 **gen_params)
             
 
             wd = WorkingDirectory(root=path)
-            log_args(wd, args)
 
             with open(wd.file('train-data.pkl'), 'wb') as file:
                 pickle.dump(train_data, file)
                 file.close()
 
-            with open(wd.file('valid-data.pkl'), 'wb') as file:
-                pickle.dump(valid_data, file)
-                file.close()
+                
+            if args.test:
+                test_data = [batch for batch in gen_test]
 
+                with open(wd.file('test-data.pkl'), 'wb') as file:
+                    pickle.dump(test_data, file)
+                    file.close()
+                    
+            else:
+              
+                log_args(wd, args)
+                
+                train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
+                valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
+
+                with open(wd.file('train-data.pkl'), 'wb') as file:
+                    pickle.dump(train_data, file)
+                    file.close()
+
+                with open(wd.file('valid-data.pkl'), 'wb') as file:
+                    pickle.dump(valid_data, file)
+                    file.close()

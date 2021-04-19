@@ -1,25 +1,31 @@
 #!/bin/bash
 
-MODE="--train"
+MODE="--test"
 kernels=("eq" "matern" "noisy-mixture" "weakly-periodic" "sawtooth")
+# kernels=("sawtooth")
 
-models=("GNP" "AGNP" "convGNP" "TEGNP")
-covs=("innerprod-homo" "innerprod-hetero" "kvv-homo" "kvv-hetero")
-basisdims=("4" "512")
+seeds=("0")
+models=("GNP" "AGNP" "convGNP" "TEGNP" "MeanTEGNP" "MeanTEAGNP")
+# models=("TEGNP")
+
+covs=("innerprod-homo" "kvv-homo" "meanfield")
+# covs=("kvv-homo")
+
 
 for data in "${kernels[@]}"; do
     for model in "${models[@]}"; do
         for cov in "${covs[@]}"; do
-            for dim in "${basisdims[@]}"; do
-                    python train.py $data $model $cov $MODE --num_basis_dim $dim
+            for seed in "${seeds[@]}"; do
+                python train.py $data $model $cov $MODE --seed $seed
+            done
         done
     done
 done
 
 
-# meanfield
+# oracle
 for data in "${kernels[@]}"; do
-    for cov in "${covs[@]}"; do
-            python train.py $data meanfield $cov $MODE
+    for seed in "${seeds[@]}"; do
+        python test_oracle.py $data --seed $seed
     done
 done

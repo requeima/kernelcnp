@@ -47,7 +47,7 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, data_generator, model, args, device, std_error=False):
+def validate(data, data_generator, model, args, device, oracle=True):
     """ Compute the validation loss. """
     
     nll_list = []
@@ -55,7 +55,6 @@ def validate(data, data_generator, model, args, device, std_error=False):
     
     with torch.no_grad():
         for step, batch in enumerate(data):
-
             y_mean, _, y_cov = model(batch['x_context'].to(device),
                                      batch['y_context'].to(device),
                                      batch['x_target'].to(device))
@@ -66,30 +65,34 @@ def validate(data, data_generator, model, args, device, std_error=False):
             nll = - dist.log_prob(batch['y_target'].to(device)[:, :, 0]).sum()
             
             oracle_nll = np.array(0.)
-            if (type(data_generator) == cnp.data.GPGenerator):
-                for b in range(batch['x_context'].shape[0]):
-                    _oracle_nll =  - data_generator.log_like(batch['x_context'][b],
-                                                             batch['y_context'][b],
-                                                             batch['x_target'][b],
-                                                             batch['y_target'][b])
-                    oracle_nll = oracle_nll + _oracle_nll
-                    
-                
-            nll_list.append(nll.item())
-            oracle_nll_list.append(oracle_nll)
+            if oracle:
+                if (type(data_generator) == cnp.data.GPGenerator):
+                    for b in range(batch['x_context'].shape[0]):
+                        oracle_nll =  - data_generator.log_like(batch['x_context'][b],
+                                                                batch['y_context'][b],
+                                                                batch['x_target'][b],
+                                                                batch['y_target'][b])
+                        
 
-        print(f"Validation neg. log-lik: "
-              f"{np.mean(nll_list):.2f} +/- "
-              f"{np.var(nll_list) ** 0.5:.2f}")
-
-        print(f"Oracle     neg. log-lik: "
-              f"{np.mean(oracle_nll_list):.2f} +/- "
-              f"{np.var(oracle_nll_list) ** 0.5:.2f}")
+            # Scale by the maximum number of target points            
+            nll_list.append(nll.item()/args.max_num_target)
+            oracle_nll_list.append(oracle_nll.item()/args.max_num_target)
                 
     mean_nll = np.mean(nll_list)
+    std_nll = (np.var(nll_list) ** 0.5) / np.sqrt(len(nll_list))
     mean_oracle = np.mean(oracle_nll_list)
-    
-    return mean_nll, mean_oracle
+    std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(len(oracle_nll_list)) 
+
+
+    print(f"Validation neg. log-lik: "
+        f"{mean_nll:.2f} +/- "
+        f"{std_nll:.2f}")
+
+    print(f"Oracle     neg. log-lik: "
+        f"{mean_oracle:.2f} +/- "
+        f"{std_oracle:.2f}")
+
+    return mean_nll, std_nll, mean_oracle, std_oracle
 
 
 def train(data, model, optimiser, log, device):
@@ -309,7 +312,6 @@ parser.add_argument('--gpu',
 
 args = parser.parse_args()
     
-
 # =============================================================================
 # Set random seed, device and tensorboard writer
 # =============================================================================
@@ -325,7 +327,7 @@ if torch.cuda.is_available():
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
 
-data_root = os.path.join('__experiments',
+data_root = os.path.join('_experiments',
                          f'{args.data}',
                          'data',
                          f'seed-{args.seed}',
@@ -339,7 +341,7 @@ if args.root:
     writer = SummaryWriter(f'{args.root}/log')
     
 else:
-    experiment_name = os.path.join('__experiments',
+    experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'models',
                                    f'{args.model}',
@@ -503,6 +505,9 @@ print(f'{args.model} '
       f'{args.covtype} '
       f'{args.num_basis_dim}: '
       f'{model.num_params}')
+
+with open(working_directory.file('num_params.txt'), 'w') as f:
+    f.write(f'{model.num_params}')
         
 if args.num_params:
     exit()
@@ -516,17 +521,18 @@ model = model.to(device)
 # Load data
 # =============================================================================
 
+if args.train:
+    file = open(data_directory.file('train-data.pkl'), 'rb')
+    data_train = pickle.load(file)
+    file.close()
 
-file = open(data_directory.file('train-data.pkl'), 'rb')
-data_train = pickle.load(file)
-file.close()
-
-file = open(data_directory.file('valid-data.pkl'), 'rb')
-data_val = pickle.load(file)
-file.close()
-
-print(len(data_train))
-    
+    file = open(data_directory.file('valid-data.pkl'), 'rb')
+    data_val = pickle.load(file)
+    file.close()
+if args.test:
+    file = open(data_directory.file('test-data.pkl'), 'rb')
+    data_test = pickle.load(file)
+    file.close()
 
 # =============================================================================
 # Train or test model
@@ -566,7 +572,7 @@ if args.train:
         if epoch % args.validate_every == 0:
             
             # Compute validation negative log-likelihood
-            val_nll, val_oracle = validate(data_val[epoch // args.validate_every],
+            val_nll, _, val_oracle, _ = validate(data_val[epoch // args.validate_every],
                                            gen_val,
                                            model,
                                            args=args,
@@ -601,6 +607,8 @@ if args.train:
         
 
 elif args.test:
+
+    print('Testing...')
     
     # Load model on appropriate device
     if device.type == 'cpu':
@@ -614,7 +622,12 @@ elif args.test:
     model.load_state_dict(load_dict['state_dict'])
     
     # Test model on ~2000 tasks.
-    test_obj, test_obj_std_error = validate(gen_test, model, device, std_error=True)
+    test_obj, test_obj_std_error, _, _ = validate(data_test, 
+                                            gen_test, 
+                                            model, 
+                                            args, 
+                                            device,
+                                            oracle=False)
     
     print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
     
