@@ -55,14 +55,10 @@ def validate(data, data_generator, model, args, device, oracle=True):
     
     with torch.no_grad():
         for step, batch in enumerate(data):
-            y_mean, _, y_cov = model(batch['x_context'].to(device),
-                                     batch['y_context'].to(device),
-                                     batch['x_target'].to(device))
-
-            dist = MultivariateNormal(loc=y_mean[:, :, 0],
-                                      covariance_matrix=y_cov)
-            
-            nll = - dist.log_prob(batch['y_target'].to(device)[:, :, 0]).sum()
+            nll = model.loss(batch['x_context'].to(device),
+                             batch['y_context'].to(device),
+                             batch['x_target'].to(device),
+                             batch['y_target'].to(device))
             
             oracle_nll = np.array(0.)
             if oracle:
@@ -102,14 +98,10 @@ def train(data, model, optimiser, log, device):
     
     for step, batch in enumerate(data):
 
-        y_mean, _, y_cov = model(batch['x_context'].to(device),
+        nll = nll + model.loss(batch['x_context'].to(device),
                                  batch['y_context'].to(device),
-                                 batch['x_target'].to(device))
-        
-
-        dist = MultivariateNormal(loc=y_mean[:, :, 0],
-                                  covariance_matrix=y_cov)
-        nll = nll - dist.log_prob(batch['y_target'].to(device)[:, :, 0]).sum()
+                                 batch['x_target'].to(device),
+                                 batch['y_target'].to(device))
         
     # Scale objective by number of iterations
     nll = nll / (step + 1)
@@ -210,11 +202,17 @@ parser.add_argument('--wp_params',
                     type=float,
                     help='.')
 
-parser.add_argument('--x_range',
+parser.add_argument('--x_context_range',
                     default=[-3., 3.],
                     nargs='+',
                     type=float,
                     help='Range of input x for sampled data.')
+
+parser.add_argument('--x_target_range',
+                    default=None,
+                    nargs='+',
+                    type=float,
+                    help='Range of inputs for sampled data.')
 
 parser.add_argument('--freq_range',
                     default=[3., 5.],
@@ -366,10 +364,9 @@ file.close()
 # Training data generator parameters -- used for both Sawtooth and GP
 gen_params = {
     'batch_size'                : args.batch_size,
-    'x_range'                   : args.x_range,
+    'x_context_ranges'          : args.x_context_range,
     'max_num_context'           : args.max_num_context,
     'max_num_target'            : args.max_num_target,
-    'include_context_in_target' : False,
     'device'                    : device
 }
 

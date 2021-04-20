@@ -54,8 +54,25 @@ class GaussianNeuralProcess(nn.Module):
         cov_plus_noise = self.add_noise(cov, embedding)
         
         return mean, cov, cov_plus_noise
+
     
-    
+    def loss(self, x_context, y_context, x_target, y_target):
+        y_mean, _, y_cov = self.forward(x_context, y_context, x_target)
+
+        dist = MultivariateNormal(loc=y_mean[:, :, 0],
+                                    covariance_matrix=y_cov)
+        
+        nll = - torch.mean(dist.log_prob(y_target[:, :, 0]))
+        return nll
+
+
+    def mean_and_marginals(self, x_context, y_context, x_target):
+        mean, cov, cov_plus_noise = self.forward(x_context, y_context, x_target)
+        var = torch.diagonal(cov, dim1=-2, dim2=-2)
+        var_plus_noise = torch.diagonal(cov_plus_noise, dim1=-2, dim2=-2)
+        return mean, var, var_plus_noise
+
+
     @property
     def num_params(self):
         """Number of parameters."""
