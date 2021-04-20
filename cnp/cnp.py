@@ -6,12 +6,12 @@ from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
     StandardEncoder,
-    ConvEncoder
+    ConvEncoder1D
 )
 
 from cnp.decoders import (
     StandardDecoder,
-    ConvDecoder
+    ConvDecoder1D
 )
 
 from cnp.architectures import UNet
@@ -156,8 +156,8 @@ class StandardConvGNP(GaussianNeuralProcess):
         grid_multiplyer =  2 ** conv_architecture.num_halving_layers
         init_length_scale = 2.0 / points_per_unit
         
-        encoder = ConvEncoder(out_channels=conv_architecture.in_channels,
-                              init_length_scale=init_length_scale,
+        encoder = ConvEncoder1D(out_channels=conv_architecture.in_channels,
+                                init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer)
         
@@ -167,7 +167,7 @@ class StandardConvGNP(GaussianNeuralProcess):
                            covariance.extra_cov_dim + \
                            add_noise.extra_noise_dim
         
-        decoder = ConvDecoder(conv_architecture=conv_architecture,
+        decoder = ConvDecoder1D(conv_architecture=conv_architecture,
                               in_channels=conv_architecture.out_channels,
                               out_channels=num_out_channels,
                               init_length_scale=init_length_scale,

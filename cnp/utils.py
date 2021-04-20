@@ -155,21 +155,6 @@ def pad_concat(t1, t2):
     return torch.cat([t1, t2], dim=1)
 
 
-def compute_dists(x, y):
-    """Fast computation of pair-wise distances for the 1d case.
-
-    Args:
-        x (tensor): Inputs of shape `(batch, n, 1)`.
-        y (tensor): Inputs of shape `(batch, m, 1)`.
-
-    Returns:
-        tensor: Pair-wise distances of shape `(batch, n, m)`.
-    """
-    assert x.shape[2] == 1 and y.shape[2] == 1, \
-        'The inputs x and y must be 1-dimensional observations.'
-    return (x - y.permute(0, 2, 1)) ** 2
-
-
 def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
     
     n_out = x_target.shape[1]
@@ -183,9 +168,42 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
                                  grid_multiplier))
     x_grid = torch.linspace(x_min, x_max, num_points).to(x_context.device)
     x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
+
     return x_grid, num_points
 
 
+def build_nD_grid(x_context, x_target, points_per_unit, grid_multiplier, num_dims):
+    if num_dims == 1:
+        return build_grid(x_context, x_target, points_per_unit, grid_multiplier)
+    else:
+        n_out = x_target.shape[1]
+
+        x_mins = []
+        x_maxs = []
+        num_points = []
+        x_grids = []
+        for i in range(num_dims):
+            d = i + 2 
+            # Determine the grid on which to evaluate functional representation.
+            x_min = min(torch.min(x_context[d]).cpu().numpy(),
+                        torch.min(x_target[d]).cpu().numpy(), -2.) - 0.1
+            x_max = max(torch.max(x_context[d]).cpu().numpy(),
+                        torch.max(x_target[d]).cpu().numpy(), 2.) + 0.1
+            n = int(to_multiple(points_per_unit * (x_max - x_min),
+                                        grid_multiplier))
+            # update the lists
+            x_mins.append(x_min)
+            x_maxs.append(x_max)
+            num_points.append(n)
+            
+            # compute the x_grid
+            x_grids.append(torch.linspace(x_min, x_max, num_points).to(x_context.device))
+
+        x_grid = torch.cartesian_prod(*x_grids)
+        x_grid = x_grid[None, :, :].repeat(x_context.shape[0], 1, 1)
+        
+        
+        return x_grid, num_points
 
 # =============================================================================
 # Plotting util
