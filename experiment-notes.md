@@ -99,7 +99,6 @@ Notes on experiments on toy data and changes to make.
 
 
 # Model todos and baselines
-
 - Add 2D (and 3D?) convCNP
 - FullConvGNP
 - Leave out ~~ConvNP~~
@@ -108,8 +107,21 @@ Notes on experiments on toy data and changes to make.
 
 
 # Extensions
-
 - Pseudopoint sets (grid, collection of points)
 - Process set of points all at once for grids/pseudopoint-sets of fixed size
 - Normalising flows on top
 - Gaussian mixture model
+
+
+# Output-side paper experiments
+- Toy experiments on 1D data (Conditional models, latent models, original GNP)
+        Coompare performance and computational efficiency
+- Environmental data
+        Percipitation sums
+        Sustained percipitation
+        Active learning (where to place rain gauges?)
+- Image completion
+- Sim-to-real
+- Multimodal posteriors: mixture and changepoint detection
+
+
