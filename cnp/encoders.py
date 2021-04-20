@@ -253,21 +253,25 @@ class ConvEncoder2D(nn.Module):
         """Forward pass through the layer with evaluations at locations t.
 
         Args:
-            x (tensor): Inputs of observations of shape (n, 1).
+            x (tensor): Inputs of observations of shape (n, d).
             y (tensor): Outputs of observations of shape (n, in_channels).
-            t (tensor): Inputs to evaluate function at of shape (m, 1).
+            t (tensor): Inputs to evaluate function at of shape (m, d).
 
         Returns:
             tensor: Outputs of evaluated function at z of shape
-                (m, out_channels).
+                (Batch, out_channels, x_grid_1,..., x_grid_n).
         """
-        
+
+        # Number of input dimensios
+        num_dims = len(x_context.shape) - 2
+
         # x_grid shape: (batch, n_out, x_dims)
         # num_points: list of num grid points in each dim
-        x_grid, num_grid_points = build_grid(x_context, 
-                                             x_target, 
-                                             self.points_per_unit, 
-                                             self.grid_multiplier)
+        x_grid, num_grid_points = build_nd_grid(x_context, 
+                                                x_target, 
+                                                self.points_per_unit, 
+                                                self.grid_multiplie,
+                                                num_dims)
 
         # Compute shapes.
         batch_size = x_context.shape[0]
