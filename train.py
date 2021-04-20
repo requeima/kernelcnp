@@ -25,10 +25,7 @@ from cnp.experiment import (
 from cnp.cnp import (
     StandardGNP,
     StandardAGNP,
-    StandardMeanTEGNP,
-    StandardMeanTEAGNP,
-    StandardConvGNP,
-    StandardFullyConnectedTEGNP
+    StandardConvGNP
 )
 
 from cnp.cov import (
@@ -245,10 +242,8 @@ parser.add_argument('--epochs',
 parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
-                             'MeanTEGNP',
-                             'MeanTEAGNP',
-                             'convGNP',
-                             'TEGNP'],
+                             'convGNP'
+                             ],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
