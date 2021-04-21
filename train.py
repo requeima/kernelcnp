@@ -25,7 +25,8 @@ from cnp.experiment import (
 from cnp.cnp import (
     StandardGNP,
     StandardAGNP,
-    StandardConvGNP
+    StandardConvGNP,
+    StandardNDConvGNP
 )
 
 from cnp.cov import (
@@ -242,7 +243,8 @@ parser.add_argument('--epochs',
 parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
-                             'convGNP'
+                             'convGNP',
+                             'StandardNDConvGNP'
                              ],
                     help='Choice of model. ')
 
@@ -473,21 +475,13 @@ elif args.model == 'AGNP':
     model = StandardAGNP(covariance=cov,
                          add_noise=noise)
     
-elif args.model == 'MeanTEGNP':
-    model = StandardMeanTEGNP(covariance=cov,
-                              add_noise=noise)
-    
-elif args.model == 'MeanTEAGNP':
-    model = StandardMeanTEAGNP(covariance=cov,
-                               add_noise=noise)
-    
 elif args.model == 'convGNP':
     model = StandardConvGNP(covariance=cov,
                             add_noise=noise)
     
-elif args.model == 'TEGNP':
-    model = StandardFullyConnectedTEGNP(covariance=cov,
-                                        add_noise=noise)
+elif args.model == 'StandardNDConvGNP':
+    model = StandardNDConvGNP(covariance=cov,
+                              add_noise=noise)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')

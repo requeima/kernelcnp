@@ -325,6 +325,6 @@ class ConvEncoderND(nn.Module):
         # Reshape into grid for convolutions
         # Shape: (Batch, out_channels, x_grid_1,..., x_grid_n)
         r_dims = [batch_size, self.out_channels] + num_grid_points
-        r.view(r_dims)
+        r = r.view(r_dims)
 
         return r

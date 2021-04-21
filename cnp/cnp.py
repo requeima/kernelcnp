@@ -6,12 +6,15 @@ from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
     StandardEncoder,
-    ConvEncoder1D
+    ConvEncoder1D,
+    ConvEncoderND
+    
 )
 
 from cnp.decoders import (
     StandardDecoder,
-    ConvDecoder1D
+    ConvDecoder1D,
+    ConvDecoderND
 )
 
 from cnp.architectures import UNet
@@ -168,6 +171,49 @@ class StandardConvGNP(GaussianNeuralProcess):
                            add_noise.extra_noise_dim
         
         decoder = ConvDecoder1D(conv_architecture=conv_architecture,
+                              in_channels=conv_architecture.out_channels,
+                              out_channels=num_out_channels,
+                              init_length_scale=init_length_scale,
+                              points_per_unit=points_per_unit,
+                              grid_multiplier=grid_multiplyer)
+
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         covariance=covariance,
+                         add_noise=add_noise)
+        
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.conv_architecture = conv_architecture
+
+
+class StandardNDConvGNP(GaussianNeuralProcess):
+    
+    def __init__(self, covariance, add_noise, input_dim=1):
+        
+        # Standard output dimensions and discretisation density
+        output_dim = 1
+        points_per_unit = 64
+        
+        # Standard convolutional architecture
+        conv_architecture = UNet()
+
+        # Construct the convolutional encoder
+        grid_multiplyer =  2 ** conv_architecture.num_halving_layers
+        init_length_scale = 2.0 / points_per_unit
+        
+        encoder = ConvEncoderND(out_channels=conv_architecture.in_channels,
+                                init_length_scale=init_length_scale,
+                                points_per_unit=points_per_unit,
+                                grid_multiplier=grid_multiplyer)
+        
+        # Construct the convolutional decoder
+        num_out_channels = output_dim +               \
+                           covariance.num_basis_dim + \
+                           covariance.extra_cov_dim + \
+                           add_noise.extra_noise_dim
+        
+        decoder = ConvDecoderND(conv_architecture=conv_architecture,
                               in_channels=conv_architecture.out_channels,
                               out_channels=num_out_channels,
                               init_length_scale=init_length_scale,
