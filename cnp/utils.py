@@ -154,6 +154,9 @@ def pad_concat(t1, t2):
 
     return torch.cat([t1, t2], dim=1)
 
+def pad_concat_nd(t1, t2):
+    raise NotImplementedError
+
 
 def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
     
@@ -172,7 +175,7 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
     return x_grid, num_points
 
 
-def build_nD_grid(x_context, x_target, points_per_unit, grid_multiplier, num_dims):
+def build_nd_grid(x_context, x_target, points_per_unit, grid_multiplier, num_dims):
     if num_dims == 1:
         return build_grid(x_context, x_target, points_per_unit, grid_multiplier)
     else:

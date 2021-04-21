@@ -17,7 +17,7 @@ from cnp.utils import (
     to_multiple, 
     stacked_batch_mlp,
     build_grid,
-    build_nD_grid
+    build_nd_grid
 )
 
 
@@ -194,7 +194,7 @@ class ConvEncoder1D(nn.Module):
         return r
 
 
-class ConvEncoder2D(nn.Module):
+class ConvEncoderND(nn.Module):
     """Two-dimensional ConvDeepSet module. Uses an RBF kernel for psi(x, x').
 
     Args:
@@ -263,7 +263,7 @@ class ConvEncoder2D(nn.Module):
         """
 
         # Number of input dimensios
-        num_dims = len(x_context.shape) - 2
+        num_x_dims = len(x_context.shape) - 2
 
         # x_grid shape: (batch, n_out, x_dims)
         # num_points: list of num grid points in each dim
@@ -271,7 +271,7 @@ class ConvEncoder2D(nn.Module):
                                                 x_target, 
                                                 self.points_per_unit, 
                                                 self.grid_multiplie,
-                                                num_dims)
+                                                num_x_dims)
 
         # Compute shapes.
         batch_size = x_context.shape[0]
@@ -326,7 +326,5 @@ class ConvEncoder2D(nn.Module):
         # Shape: (Batch, out_channels, x_grid_1,..., x_grid_n)
         r_dims = [batch_size, self.out_channels] + num_grid_points
         r.view(r_dims)
-
-
 
         return r

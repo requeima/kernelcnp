@@ -120,6 +120,112 @@ class ConvDecoder1D(nn.Module):
         """Forward pass through the layer with evaluations at locations t.
 
         Args:
+            
+        Returns:
+
+        """
+
+        # r input shape: (batch, conv_in_channels, grid_size)
+        # r output shape: (batch, conv_out_channels, grid_size)
+        r = self.conv(r)
+        # Shape: (batch, grid_size, conv_out_channels)
+        r = r.reshape(r.shape[0], r.shape[1], -1).permute(0, 2, 1)
+
+
+        x_grid, num_points = build_grid(x_context, 
+                                        x_target, 
+                                        self.points_per_unit, 
+                                        self.grid_multiplier)
+        # Compute shapes.
+        batch_size = x_grid.shape[0]
+        n_in = x_grid.shape[1]
+        n_out = x_target.shape[1]
+
+
+        # Compute the pairwise distances.
+        # Shape: (batch, n_in, n_out).
+        dists = compute_dists(x_grid, x_target)
+
+        # Compute the weights.
+        # Shape: (batch, n_in, n_out, in_channels).
+        wt = self.rbf(dists)
+
+        # Perform the weighting.
+        # Shape: (batch, n_in, n_out, in_channels).
+        z = r.view(batch_size, n_in, -1, self.in_channels) * wt
+
+        # Sum over the inputs.
+        # Shape: (batch, n_out, in_channels).
+        z = z.sum(1)
+
+        # Apply the point-wise function.
+        # Shape: (batch, n_out, out_channels).
+        z = z.view(batch_size * n_out, self.in_channels)
+        z = self.linear_model(z)
+        z = z.view(batch_size, n_out, self.out_channels)
+
+        return z
+
+
+class ConvDecoderND(nn.Module):
+    """One-dimensional Set convolution layer. Uses an RBF kernel for psi(x, x').
+
+    Args:
+        in_channels (int): Number of inputs channels.
+        init_length_scale (float): Initial value for the length scale.
+    """
+
+    def __init__(self, 
+                 conv_architecture, 
+                 in_channels, 
+                 out_channels, 
+                 init_length_scale, 
+                 points_per_unit, 
+                 grid_multiplier):
+
+        super().__init__()
+        self.conv = conv_architecture
+        self.out_channels = out_channels
+        self.in_channels = in_channels
+        self.grid_multiplier = grid_multiplier
+        self.points_per_unit = points_per_unit
+        self.linear_model = self.build_weight_model()
+        self.sigma = nn.Parameter(np.log(init_length_scale) * torch.ones(self.in_channels), requires_grad=True)
+        self.sigma_fn = torch.exp
+
+    def build_weight_model(self):
+        """Returns a function point-wise function that transforms the
+        (in_channels + 1)-dimensional representation to dimensionality
+        out_channels.
+
+        Returns:
+            torch.nn.Module: Linear layer applied point-wise to channels.
+        """
+        model = nn.Sequential(
+            nn.Linear(self.in_channels, self.out_channels),
+        )
+        init_sequential_weights(model)
+        return model
+    
+    def rbf(self, dists):
+        """Compute the RBF values for the distances using the correct length
+        scales.
+
+        Args:
+            dists (tensor): Pair-wise distances between x and t.
+
+        Returns:
+            tensor: Evaluation of psi(x, t) with psi an RBF kernel.
+        """
+        # Compute the RBF kernel, broadcasting appropriately.
+        scales = self.sigma_fn(self.sigma)[None, None, None, :]
+        a, b, c = dists.shape
+        return torch.exp(-0.5 * dists.view(a, b, c, -1) / scales ** 2)
+
+    def forward(self, r, x_context, y_context, x_target):
+        """Forward pass through the layer with evaluations at locations t.
+
+        Args:
             x (tensor): Inputs of observations of shape (n, 1).
             y (tensor): Outputs of observations of shape (n, in_channels).
             t (tensor): Inputs to evaluate function at of shape (m, 1).
@@ -128,14 +234,21 @@ class ConvDecoder1D(nn.Module):
             tensor: Outputs of evaluated function at z of shape
                 (m, out_channels).
         """
+        num_x_dims = len(x_context.shape) - 2
 
+        
+        # Put the channels in the last dimension
         r = self.conv(r)
-        r = r.reshape(r.shape[0], r.shape[1], -1).permute(0, 2, 1)
+        r_order = [0] + [i + 2 for i in range(num_x_dims)] + [1]
+        r = r.permute(r_order)
 
+        # Reconstruct the x_grid
         x_grid, num_points = build_grid(x_context, 
                                         x_target, 
                                         self.points_per_unit, 
-                                        self.grid_multiplier)
+                                        self.grid_multiplier,
+                                        num_x_dims)
+        
         # Compute shapes.
         batch_size = x_grid.shape[0]
         n_in = x_grid.shape[1]

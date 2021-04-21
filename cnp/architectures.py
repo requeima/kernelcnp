@@ -4,7 +4,8 @@ import torch
 from cnp.utils import (
     init_sequential_weights,
     init_layer_weights,
-    pad_concat
+    pad_concat,
+    pad_concat_nd
 )
 
 __all__ = ['SimpleConv', 'UNet']
@@ -153,6 +154,113 @@ class UNet(nn.Module):
         h12 = self.activation(self.l12(h11))
 
         return pad_concat(x, h12)
+
+
+class UNetND(nn.Module):
+
+    def __init__(self, in_channels=8, num_dims=1):
+        super(UNet, self).__init__()
+        self.activation = nn.ReLU()
+        self.in_channels = in_channels
+        self.num_halving_layers = 6
+        # This cannot currently be changed
+        self.out_channels = 16
+
+        if num_dims == 1:
+            convf = nn.Conv1d
+            convT = nn.ConvTranspose1d
+            self.pad_concat = pad_concat
+        elif num_dims == 2:
+            convf = nn.Conv2d
+            convT = nn.ConvTranspose2d
+            self.pad_concat = pad_concat_nd
+        elif num_dims == 3:
+            convf = nn.Conv3d
+            convT = nn.ConvTranspose3d
+            self.pad_concat = pad_concat_nd
+        else:
+            raise ValueError(f'Convolutions of dimension {num_dims} not currently supported.')
+
+        self.l1 = convf(in_channels=self.in_channels,
+                            out_channels=self.in_channels,
+                            kernel_size=5, stride=2, padding=2)
+        self.l2 = convf(in_channels=self.in_channels,
+                            out_channels=2 * self.in_channels,
+                            kernel_size=5, stride=2, padding=2)
+        self.l3 = convf(in_channels=2 * self.in_channels,
+                            out_channels=2 * self.in_channels,
+                            kernel_size=5, stride=2, padding=2)
+        self.l4 = convf(in_channels=2 * self.in_channels,
+                            out_channels=4 * self.in_channels,
+                            kernel_size=5, stride=2, padding=2)
+        self.l5 = convf(in_channels=4 * self.in_channels,
+                            out_channels=4 * self.in_channels,
+                            kernel_size=5, stride=2, padding=2)
+        self.l6 = convf(in_channels=4 * self.in_channels,
+                            out_channels=8 * self.in_channels,
+                            kernel_size=5, stride=2, padding=2)
+
+        for layer in [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6]:
+            init_layer_weights(layer)
+
+        self.l7 = convT(in_channels=8 * self.in_channels,
+                                     out_channels=4 * self.in_channels,
+                                     kernel_size=5, stride=2, padding=2,
+                                     output_padding=1)
+        self.l8 = convT(in_channels=8 * self.in_channels,
+                                     out_channels=4 * self.in_channels,
+                                     kernel_size=5, stride=2, padding=2,
+                                     output_padding=1)
+        self.l9 = convT(in_channels=8 * self.in_channels,
+                                     out_channels=2 * self.in_channels,
+                                     kernel_size=5, stride=2, padding=2,
+                                     output_padding=1)
+        self.l10 = convT(in_channels=4 * self.in_channels,
+                                      out_channels=2 * self.in_channels,
+                                      kernel_size=5, stride=2, padding=2,
+                                      output_padding=1)
+        self.l11 = convT(in_channels=4 * self.in_channels,
+                                      out_channels=self.in_channels,
+                                      kernel_size=5, stride=2, padding=2,
+                                      output_padding=1)
+        self.l12 = convT(in_channels=2 * self.in_channels,
+                                      out_channels=self.in_channels,
+                                      kernel_size=5, stride=2, padding=2,
+                                      output_padding=1)
+
+        for layer in [self.l7, self.l8, self.l9, self.l10, self.l11, self.l12]:
+            init_layer_weights(layer)
+
+    def forward(self, x):
+        """Forward pass through the convolutional structure.
+
+        Args:
+            x (tensor): Inputs of shape `(batch, n_in, in_channels)`.
+
+        Returns:
+            tensor: Outputs of shape `(batch, n_out, out_channels)`.
+        """
+        h1 = self.activation(self.l1(x))
+        h2 = self.activation(self.l2(h1))
+        h3 = self.activation(self.l3(h2))
+        h4 = self.activation(self.l4(h3))
+        h5 = self.activation(self.l5(h4))
+        h6 = self.activation(self.l6(h5))
+        h7 = self.activation(self.l7(h6))
+
+        h7 = self.pad_concat(h5, h7)
+        h8 = self.activation(self.l8(h7))
+        h8 = self.pad_concat(h4, h8)
+        h9 = self.activation(self.l9(h8))
+        h9 = self.pad_concat(h3, h9)
+        h10 = self.activation(self.l10(h9))
+        h10 = self.pad_concat(h2, h10)
+        h11 = self.activation(self.l11(h10))
+        h11 = self.pad_concat(h1, h11)
+        h12 = self.activation(self.l12(h11))
+
+        return self.pad_concat(x, h12)
+
 
 
 class BatchMLP(nn.Module):
