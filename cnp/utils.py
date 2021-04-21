@@ -154,59 +154,41 @@ def pad_concat(t1, t2):
 
     return torch.cat([t1, t2], dim=1)
 
-def pad_concat_nd(t1, t2):
-    raise NotImplementedError
 
+def build_grid(x_context, x_target, points_per_unit, grid_multiplier, grid_margin):
+    x_mins = []
+    x_maxs = []
+    x_grids = []
+    for i in range(x_context.shape[-1]):
+        d = i + 2 
+        # Determine the grid on which to evaluate functional representation.
+        x_min = min(torch.min(x_context[d]).cpu().numpy(),
+                    torch.min(x_target[d]).cpu().numpy()) - grid_margin
+        x_max = max(torch.max(x_context[d]).cpu().numpy(),
+                    torch.max(x_target[d]).cpu().numpy()) + grid_margin
+        n = int(to_multiple(points_per_unit * (x_max - x_min),
+                                    grid_multiplier))
+        # update the lists
+        x_mins.append(x_min)
+        x_maxs.append(x_max)
+        
+        # compute the x_grid
+        x_grids.append(torch.linspace(x_min, x_max, n).to(x_context.device))
 
-def build_grid(x_context, x_target, points_per_unit, grid_multiplier):
+    x_grid = torch.stack(torch.meshgrid(x_grids), dim=-1)
     
-    n_out = x_target.shape[1]
-
-    # Determine the grid on which to evaluate functional representation.
-    x_min = min(torch.min(x_context).cpu().numpy(),
-                torch.min(x_target).cpu().numpy(), -2.) - 0.1
-    x_max = max(torch.max(x_context).cpu().numpy(),
-                torch.max(x_target).cpu().numpy(), 2.) + 0.1
-    num_points = int(to_multiple(points_per_unit * (x_max - x_min),
-                                 grid_multiplier))
-    x_grid = torch.linspace(x_min, x_max, num_points).to(x_context.device)
-    x_grid = x_grid[None, :, None].repeat(x_context.shape[0], 1, 1)
-
-    return x_grid, num_points
+    return x_grid
 
 
-def build_nd_grid(x_context, x_target, points_per_unit, grid_multiplier, num_dims):
-    if num_dims == 1:
-        return build_grid(x_context, x_target, points_per_unit, grid_multiplier)
+def move_channel_idx(x, to_last, num_dims):
+    if to_last:
+        perm_idx = [0] + [i + 2 for i in range(num_dims)] + [1]
     else:
-        n_out = x_target.shape[1]
+        perm_idx = [0, num_dims + 1] + [i + 1 for i in range(num_dims)]
+    
+    return x.permute(perm_idx)
 
-        x_mins = []
-        x_maxs = []
-        num_points = []
-        x_grids = []
-        for i in range(num_dims):
-            d = i + 2 
-            # Determine the grid on which to evaluate functional representation.
-            x_min = min(torch.min(x_context[d]).cpu().numpy(),
-                        torch.min(x_target[d]).cpu().numpy(), -2.) - 0.1
-            x_max = max(torch.max(x_context[d]).cpu().numpy(),
-                        torch.max(x_target[d]).cpu().numpy(), 2.) + 0.1
-            n = int(to_multiple(points_per_unit * (x_max - x_min),
-                                        grid_multiplier))
-            # update the lists
-            x_mins.append(x_min)
-            x_maxs.append(x_max)
-            num_points.append(n)
-            
-            # compute the x_grid
-            x_grids.append(torch.linspace(x_min, x_max, num_points).to(x_context.device))
 
-        x_grid = torch.cartesian_prod(*x_grids)
-        x_grid = x_grid[None, :, :].repeat(x_context.shape[0], 1, 1)
-        
-        
-        return x_grid, num_points
 
 # =============================================================================
 # Plotting util
