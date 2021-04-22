@@ -76,12 +76,6 @@ class StandardEncoder(nn.Module):
     
 
 class ConvEncoder(nn.Module):
-    """Two-dimensional ConvDeepSet module. Uses an RBF kernel for psi(x, x').
-
-    Args:
-        out_channels (int): Number of output channels.
-        init_length_scale (float): Initial value for the length scale.
-    """
 
     def __init__(self,
                  input_dim, 
