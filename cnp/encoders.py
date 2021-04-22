@@ -73,6 +73,62 @@ class StandardEncoder(nn.Module):
         h = self.pre_pooling_fn(decoder_input)
         return self.pooling_fn(h, x_context, x_target)
     
+    
+
+class StandardANPEncoder(nn.Module):
+
+    def __init__(self, input_dim, latent_dim):
+        
+        super().__init__()
+        
+        assert latent_dim % 2 == 0
+
+        self.latent_dim = latent_dim
+        self.input_dim = input_dim
+
+        pre_pooling_fn_det = stacked_batch_mlp(self.input_dim, self.latent_dim, self.latent_dim // 2)
+        self.pre_pooling_fn_det = init_sequential_weights(pre_pooling_fn_det)
+        
+        pre_pooling_fn_stoch = stacked_batch_mlp(self.input_dim, self.latent_dim, self.latent_dim)
+        self.pre_pooling_fn_stoch = init_sequential_weights(pre_pooling_fn_stoch)
+
+        self.pooling_fn_det = MeanPooling(pooling_dim=1)
+        self.pooling_fn_stoch = CrossAttention()
+
+
+    def forward(self, x_context, y_context, x_target):
+        
+        assert len(x_context.shape) == 3, \
+            'Incorrect shapes: ensure x_context is a rank-3 tensor.'
+        assert len(y_context.shape) == 3, \
+            'Incorrect shapes: ensure y_context is a rank-3 tensor.'
+        assert len(x_target.shape) == 3, \
+            'Incorrect shapes: ensure x_target is a rank-3 tensor.'
+
+        tensor = torch.cat((x_context, y_context), dim=-1)
+        
+        # Deterministic path
+        r_det = self.pre_pooling_fn_det(tensor)
+        
+        r_det_mean = self.pooling_fn_det(r_det, x_context, x_target)
+        r_det_mean = r_det_mean.repeat(1, x_target.shape[1], 1)
+        r_det_scale = 1e-9 * torch.ones_like(r_det_mean)
+        
+        # Stochastic path
+        r_stoch = self.pre_pooling_fn_stoch(tensor)
+        r_stoch = self.pooling_fn_stoch(r_stoch, x_context, x_target)
+        
+        r_stoch_mean = r_stoch[:, :, :self.latent_dim//2]
+        r_stoch_scale = r_stoch[:, :, self.latent_dim//2:]
+        r_stoch_scale = torch.exp(r_stoch_scale)
+        
+        # Create distribution
+        mean = torch.cat([r_det_mean, r_stoch_mean], dim=-1)
+        scale = torch.cat([r_det_scale, r_stoch_scale], dim=-1)
+        
+        dist = torch.distributions.Normal(loc=mean, scale=scale)
+        
+        return dist
 
 
 class StandardMeanTEEncoder(StandardEncoder):

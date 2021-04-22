@@ -29,7 +29,10 @@ class StandardDecoder(nn.Module):
         self.latent_dim = latent_dim
         self.output_dim = output_dim
 
-        post_pooling_fn = stacked_batch_mlp(self.input_dim, self.latent_dim, self.output_dim)
+        post_pooling_fn = stacked_batch_mlp(self.input_dim,
+                                            self.latent_dim,
+                                            self.output_dim)
+        
         self.post_pooling_fn = init_sequential_weights(post_pooling_fn)
 
     def forward(self, r, x_context, y_context, x_target):
