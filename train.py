@@ -130,6 +130,12 @@ parser.add_argument('data',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
 
+parser.add_argument('--x_dim',
+                    default=1,
+                    choices=[1, 2, 3],
+                    type=int,
+                    help='Input dimension of data.')
+
 parser.add_argument('--seed',
                     default=0,
                     type=int,
@@ -324,7 +330,7 @@ data_root = os.path.join('_experiments',
                          f'{args.data}',
                          'data',
                          f'seed-{args.seed}',
-                         f'dim-1')
+                         f'dim-{args.x_dim}')
 
 # Load working directory
 if args.root:
@@ -339,7 +345,8 @@ else:
                                    f'models',
                                    f'{args.model}',
                                    f'{args.covtype}',
-                                   f'{args.seed}')
+                                   f'seed-{args.seed}',
+                                   f'dim-{args.x_dim}')
     working_directory = WorkingDirectory(root=experiment_name)
     data_directory = WorkingDirectory(root=data_root)
     
@@ -466,17 +473,19 @@ else:
     
 # Create model architecture
 if args.model == 'GNP':
-    model = StandardGNP(covariance=cov,
+    model = StandardGNP(input_dim=input_dim,
+                        covariance=cov,
                         add_noise=noise)
     
 elif args.model == 'AGNP':
-    model = StandardAGNP(covariance=cov,
+    model = StandardAGNP(input_dim=input_dim,
+                         covariance=cov,
                          add_noise=noise)
     
 elif args.model == 'convGNP':
-    model = StandardConvGNP(covariance=cov,
-                            add_noise=noise,
-                            input_dim=1)
+    model = StandardConvGNP(input_dim=input_dim,
+                            covariance=cov,
+                            add_noise=noise)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
