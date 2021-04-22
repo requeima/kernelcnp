@@ -12,16 +12,31 @@ __all__ = ['SimpleConv', 'UNet']
 
 class DepthwiseSeparableConv(nn.Module):
     
-    def __init__(self, in_channels, out_channels, kernel_size, num_dims):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 num_dims,
+                 stride,
+                 transpose):
         
         if num_dims == 1:
-            convf = nn.Conv1d
+            if transpose:
+                convf = nn.ConvTranspose1d
+            else:
+                convf = nn.Conv1d
             
         elif num_dims == 2:
-            convf = nn.Conv2d
+            if transpose:
+                convf = nn.ConvTranspose2d
+            else:
+                convf = nn.Conv2d
             
         elif num_dims == 3:
-            convf = nn.Conv3d
+            if transpose:
+                convf = nn.ConvTranspose3d
+            else:
+                convf = nn.Conv3d
             
         else:
             raise ValueError('Number of dimensions > 3 not supported')
@@ -32,18 +47,41 @@ class DepthwiseSeparableConv(nn.Module):
         kernel_size = [kernel_size] * num_dims
 
         super(DepthwiseSeparableConv, self).__init__()
-        self.depthwise = convf(in_channels, 
-                               in_channels, 
-                               kernel_size=kernel_size, 
-                               padding=padding, 
-                               groups=in_channels)
+        
+        if transpose:
 
-        self.pointwise = convf(in_channels, out_channels, kernel_size=1)
+            self.pointwise = convf(in_channels, out_channels, kernel_size=1)
+            
+            self.depthwise = convf(out_channels, 
+                                   out_channels, 
+                                   kernel_size=kernel_size, 
+                                   padding=padding, 
+                                   groups=in_channels,
+                                   stride=stride,
+                                   output_padding=1)
+            
+        else:
+            self.depthwise = convf(in_channels, 
+                                   in_channels, 
+                                   kernel_size=kernel_size, 
+                                   padding=padding, 
+                                   groups=in_channels,
+                                   stride=stride)
+
+            self.pointwise = convf(in_channels, out_channels, kernel_size=1)
+        self.transpose = transpose
 
     def forward(self, x):
-        out = self.depthwise(x)
-        out = self.pointwise(out)
-        return out
+        
+        if self.transpose:
+            tensor = self.pointwise(x)
+            tensor = self.depthwise(tensor)
+            
+        else:
+            tensor = self.depthwise(x)
+            tensor = self.pointwise(tensor)
+        
+        return tensor
 
 
 class StandardDepthwiseSeparableCNN(nn.Module):
@@ -54,24 +92,40 @@ class StandardDepthwiseSeparableCNN(nn.Module):
         
         latent_channels = 32
         kernel_size = 5
+        stride = 2
         num_layers = 12
         
         layers = [DepthwiseSeparableConv(in_channels,
                                          latent_channels,
                                          kernel_size,
-                                         num_dims)]
+                                         num_dims,
+                                         stride=stride,
+                                         transpose=False)]
         
-        for i in range(num_layers - 2):
+        for i in range(num_layers // 2 - 1):
             
             layers.append(DepthwiseSeparableConv(latent_channels,
                                                  latent_channels,
                                                  kernel_size,
-                                                 num_dims))
+                                                 num_dims,
+                                                 stride=stride,
+                                                 transpose=False))
+        
+        for i in range(num_layers // 2 - 1):
+            
+            layers.append(DepthwiseSeparableConv(latent_channels,
+                                                 latent_channels,
+                                                 kernel_size,
+                                                 num_dims,
+                                                 stride=stride,
+                                                 transpose=True))
             
         layers.append(DepthwiseSeparableConv(latent_channels,
                                              out_channels,
                                              kernel_size,
-                                             num_dims))
+                                             num_dims,
+                                             stride=stride,
+                                             transpose=True))
         
         self.layers = nn.ModuleList(layers)
 
@@ -149,60 +203,67 @@ class UNet(nn.Module):
             network. Defaults to 8.
     """
 
-    def __init__(self, in_channels=8):
+    def __init__(self, input_dim, in_channels=8):
+        
         super(UNet, self).__init__()
+        
+        
+        conv = getattr(nn, f'Conv{input_dim}d')
+        convt = getattr(nn, f'ConvTranspose{input_dim}d')
+        
         self.activation = nn.ReLU()
         self.in_channels = in_channels
         self.num_halving_layers = 6
+        
         # This cannot currently be changed
         self.out_channels = 16
 
-        self.l1 = nn.Conv1d(in_channels=self.in_channels,
-                            out_channels=self.in_channels,
-                            kernel_size=5, stride=2, padding=2)
-        self.l2 = nn.Conv1d(in_channels=self.in_channels,
-                            out_channels=2 * self.in_channels,
-                            kernel_size=5, stride=2, padding=2)
-        self.l3 = nn.Conv1d(in_channels=2 * self.in_channels,
-                            out_channels=2 * self.in_channels,
-                            kernel_size=5, stride=2, padding=2)
-        self.l4 = nn.Conv1d(in_channels=2 * self.in_channels,
-                            out_channels=4 * self.in_channels,
-                            kernel_size=5, stride=2, padding=2)
-        self.l5 = nn.Conv1d(in_channels=4 * self.in_channels,
-                            out_channels=4 * self.in_channels,
-                            kernel_size=5, stride=2, padding=2)
-        self.l6 = nn.Conv1d(in_channels=4 * self.in_channels,
-                            out_channels=8 * self.in_channels,
-                            kernel_size=5, stride=2, padding=2)
+        self.l1 = conv(in_channels=self.in_channels,
+                       out_channels=self.in_channels,
+                       kernel_size=5, stride=2, padding=2)
+        self.l2 = conv(in_channels=self.in_channels,
+                       out_channels=2 * self.in_channels,
+                       kernel_size=5, stride=2, padding=2)
+        self.l3 = conv(in_channels=2 * self.in_channels,
+                       out_channels=2 * self.in_channels,
+                       kernel_size=5, stride=2, padding=2)
+        self.l4 = conv(in_channels=2 * self.in_channels,
+                       out_channels=4 * self.in_channels,
+                       kernel_size=5, stride=2, padding=2)
+        self.l5 = conv(in_channels=4 * self.in_channels,
+                       out_channels=4 * self.in_channels,
+                       kernel_size=5, stride=2, padding=2)
+        self.l6 = conv(in_channels=4 * self.in_channels,
+                       out_channels=8 * self.in_channels,
+                       kernel_size=5, stride=2, padding=2)
 
         for layer in [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6]:
             init_layer_weights(layer)
 
-        self.l7 = nn.ConvTranspose1d(in_channels=8 * self.in_channels,
-                                     out_channels=4 * self.in_channels,
-                                     kernel_size=5, stride=2, padding=2,
-                                     output_padding=1)
-        self.l8 = nn.ConvTranspose1d(in_channels=8 * self.in_channels,
-                                     out_channels=4 * self.in_channels,
-                                     kernel_size=5, stride=2, padding=2,
-                                     output_padding=1)
-        self.l9 = nn.ConvTranspose1d(in_channels=8 * self.in_channels,
-                                     out_channels=2 * self.in_channels,
-                                     kernel_size=5, stride=2, padding=2,
-                                     output_padding=1)
-        self.l10 = nn.ConvTranspose1d(in_channels=4 * self.in_channels,
-                                      out_channels=2 * self.in_channels,
-                                      kernel_size=5, stride=2, padding=2,
-                                      output_padding=1)
-        self.l11 = nn.ConvTranspose1d(in_channels=4 * self.in_channels,
-                                      out_channels=self.in_channels,
-                                      kernel_size=5, stride=2, padding=2,
-                                      output_padding=1)
-        self.l12 = nn.ConvTranspose1d(in_channels=2 * self.in_channels,
-                                      out_channels=self.in_channels,
-                                      kernel_size=5, stride=2, padding=2,
-                                      output_padding=1)
+        self.l7 = convt(in_channels=8 * self.in_channels,
+                        out_channels=4 * self.in_channels,
+                        kernel_size=5, stride=2, padding=2,
+                        output_padding=1)
+        self.l8 = convt(in_channels=8 * self.in_channels,
+                        out_channels=4 * self.in_channels,
+                        kernel_size=5, stride=2, padding=2,
+                        output_padding=1)
+        self.l9 = convt(in_channels=8 * self.in_channels,
+                        out_channels=2 * self.in_channels,
+                        kernel_size=5, stride=2, padding=2,
+                        output_padding=1)
+        self.l10 = convt(in_channels=4 * self.in_channels,
+                         out_channels=2 * self.in_channels,
+                         kernel_size=5, stride=2, padding=2,
+                         output_padding=1)
+        self.l11 = convt(in_channels=4 * self.in_channels,
+                         out_channels=self.in_channels,
+                         kernel_size=5, stride=2, padding=2,
+                         output_padding=1)
+        self.l12 = convt(in_channels=2 * self.in_channels,
+                         out_channels=self.in_channels,
+                         kernel_size=5, stride=2, padding=2,
+                         output_padding=1)
 
         for layer in [self.l7, self.l8, self.l9, self.l10, self.l11, self.l12]:
             init_layer_weights(layer)
@@ -224,15 +285,19 @@ class UNet(nn.Module):
         h6 = self.activation(self.l6(h5))
         h7 = self.activation(self.l7(h6))
 
-        h7 = pad_concat(h5, h7)
+        h7 = torch.cat([h5, h7], dim=1)
         h8 = self.activation(self.l8(h7))
-        h8 = pad_concat(h4, h8)
+        
+        h8 = torch.cat([h4, h8], dim=1)
         h9 = self.activation(self.l9(h8))
-        h9 = pad_concat(h3, h9)
+        
+        h9 = torch.cat([h3, h9], dim=1)
         h10 = self.activation(self.l10(h9))
-        h10 = pad_concat(h2, h10)
+        
+        h10 = torch.cat([h2, h10], dim=1)
         h11 = self.activation(self.l11(h10))
-        h11 = pad_concat(h1, h11)
+        
+        h11 = torch.cat([h1, h11], dim=1)
         h12 = self.activation(self.l12(h11))
 
         return pad_concat(x, h12)

@@ -52,10 +52,10 @@ def validate(data, data_generator, model, args, device, oracle=True):
     
     with torch.no_grad():
         for step, batch in enumerate(data):
-            nll = model.loss(batch['x_context'].to(device),
-                             batch['y_context'].to(device),
-                             batch['x_target'].to(device),
-                             batch['y_target'].to(device))
+            nll = model.loss(batch['x_context'][:16].to(device),
+                             batch['y_context'][:16].to(device),
+                             batch['x_target'][:16].to(device),
+                             batch['y_target'][:16].to(device))
             
             oracle_nll = np.array(0.)
             if oracle:
@@ -95,10 +95,10 @@ def train(data, model, optimiser, log, device):
     
     for step, batch in enumerate(data):
 
-        nll = nll + model.loss(batch['x_context'].to(device),
-                                 batch['y_context'].to(device),
-                                 batch['x_target'].to(device),
-                                 batch['y_target'].to(device))
+        nll = nll + model.loss(batch['x_context'][:16].to(device),
+                                 batch['y_context'][:16].to(device),
+                                 batch['x_target'][:16].to(device),
+                                 batch['y_target'][:16].to(device))
         
     # Scale objective by number of iterations
     nll = nll / (step + 1)
@@ -581,13 +581,14 @@ if args.train:
             
             plot_marginals = args.covtype == 'meanfield'
             
-            plot_samples_and_data(model=model,
-                                  gen_plot=gen_plot,
-                                  xmin=args.x_context_range[0],
-                                  xmax=args.x_context_range[1],
-                                  root=working_directory.root,
-                                  epoch=epoch,
-                                  plot_marginals=plot_marginals)
+            if args.x_dim == 1:
+                plot_samples_and_data(model=model,
+                                      gen_plot=gen_plot,
+                                      xmin=args.x_context_range[0],
+                                      xmax=args.x_context_range[1],
+                                      root=working_directory.root,
+                                      epoch=epoch,
+                                      plot_marginals=plot_marginals)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,

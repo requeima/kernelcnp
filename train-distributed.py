@@ -24,7 +24,7 @@ models = ['convGNP']
 
 covs = ['innerprod-homo']
 
-x_dims = ['1', '2', '3']
+x_dims = ['2', '3']
 
 seeds = [str(i) for i in range(0, 1)]
 

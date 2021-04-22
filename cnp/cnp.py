@@ -14,7 +14,7 @@ from cnp.decoders import (
     ConvDecoder
 )
 
-from cnp.architectures import StandardDepthwiseSeparableCNN
+from cnp.architectures import StandardDepthwiseSeparableCNN, UNet
 
 
 
@@ -135,6 +135,63 @@ class StandardAGNP(StandardGNP):
                          use_attention=True)
 
 
+# # =============================================================================
+# # Standard Convolutional Translation Equivariant Gaussian Neural Process
+# # =============================================================================
+        
+
+# class StandardConvGNP(GaussianNeuralProcess):
+    
+#     def __init__(self, input_dim, covariance, add_noise):
+        
+#         # Standard input/output dimensions and discretisation density
+#         output_dim = 1
+#         points_per_unit = 64
+
+#         encoder_out_channels = 32
+#         conv_out_channels = 32
+
+#         # Construct the convolutional encoder
+#         grid_multiplyer =  64
+#         init_length_scale = 2.0 / points_per_unit
+#         grid_margin = 0.2
+        
+#         encoder = ConvEncoder(input_dim=input_dim,
+#                               out_channels=encoder_out_channels,
+#                               init_length_scale=init_length_scale,
+#                               points_per_unit=points_per_unit,
+#                               grid_multiplier=grid_multiplyer,
+#                               grid_margin=grid_margin)
+
+#         # Standard convolutional architecture
+#         conv_architecture = StandardDepthwiseSeparableCNN(in_channels=encoder_out_channels, 
+#                                                           out_channels=conv_out_channels, 
+#                                                           num_dims=input_dim)
+
+#         # Construct the convolutional decoder
+#         decoder_out_channels = output_dim +               \
+#                                covariance.num_basis_dim + \
+#                                covariance.extra_cov_dim + \
+#                                add_noise.extra_noise_dim
+        
+#         decoder = ConvDecoder(input_dim=input_dim,
+#                               conv_architecture=conv_architecture,
+#                               conv_out_channels=conv_out_channels,
+#                               out_channels=decoder_out_channels,
+#                               init_length_scale=init_length_scale,
+#                               points_per_unit=points_per_unit,
+#                               grid_multiplier=grid_multiplyer,
+#                               grid_margin=grid_margin)
+
+#         super().__init__(encoder=encoder,
+#                          decoder=decoder,
+#                          covariance=covariance,
+#                          add_noise=add_noise)
+        
+#         self.conv_architecture = conv_architecture
+
+        
+        
 # =============================================================================
 # Standard Convolutional Translation Equivariant Gaussian Neural Process
 # =============================================================================
@@ -147,27 +204,22 @@ class StandardConvGNP(GaussianNeuralProcess):
         # Standard input/output dimensions and discretisation density
         output_dim = 1
         points_per_unit = 64
-
-        encoder_out_channels = 32
-        conv_out_channels = 32
+        
+        # Standard convolutional architecture
+        conv_architecture = UNet(input_dim=input_dim)
 
         # Construct the convolutional encoder
-        grid_multiplyer =  64
+        grid_multiplyer =  2 ** conv_architecture.num_halving_layers
         init_length_scale = 2.0 / points_per_unit
         grid_margin = 0.2
         
         encoder = ConvEncoder(input_dim=input_dim,
-                              out_channels=encoder_out_channels,
+                              out_channels=conv_architecture.in_channels,
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer,
                               grid_margin=grid_margin)
-
-        # Standard convolutional architecture
-        conv_architecture = StandardDepthwiseSeparableCNN(in_channels=encoder_out_channels, 
-                                                          out_channels=conv_out_channels, 
-                                                          num_dims=input_dim)
-
+        
         # Construct the convolutional decoder
         decoder_out_channels = output_dim +               \
                                covariance.num_basis_dim + \
@@ -176,17 +228,19 @@ class StandardConvGNP(GaussianNeuralProcess):
         
         decoder = ConvDecoder(input_dim=input_dim,
                               conv_architecture=conv_architecture,
-                              conv_out_channels=conv_out_channels,
+                              conv_out_channels=conv_architecture.out_channels,
                               out_channels=decoder_out_channels,
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer,
                               grid_margin=grid_margin)
 
+
         super().__init__(encoder=encoder,
                          decoder=decoder,
                          covariance=covariance,
                          add_noise=add_noise)
         
+        self.input_dim = input_dim
+        self.output_dim = output_dim
         self.conv_architecture = conv_architecture
-

@@ -137,6 +137,7 @@ def pad_concat(t1, t2):
         tensor: Concatenated activations of both layers of shape
             `(batch, max(n1, n2), c1 + c2)`.
     """
+    
     if t1.shape[2] > t2.shape[2]:
         padding = t1.shape[2] - t2.shape[2]
         if padding % 2 == 0:  # Even difference
@@ -144,6 +145,7 @@ def pad_concat(t1, t2):
         else:  # Odd difference
             t2 = F.pad(t2, (int((padding - 1) / 2), int((padding + 1) / 2)),
                        'reflect')
+            
     elif t2.shape[2] > t1.shape[2]:
         padding = t2.shape[2] - t1.shape[2]
         if padding % 2 == 0:  # Even difference
@@ -159,13 +161,14 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier, grid_margi
     x_mins = []
     x_maxs = []
     x_grids = []
-    for i in range(x_context.shape[-1]):
-        d = i + 2 
+    
+    for d in range(x_context.shape[-1]):
+        
         # Determine the grid on which to evaluate functional representation.
-        x_min = min(torch.min(x_context[d]).cpu().numpy(),
-                    torch.min(x_target[d]).cpu().numpy()) - grid_margin
-        x_max = max(torch.max(x_context[d]).cpu().numpy(),
-                    torch.max(x_target[d]).cpu().numpy()) + grid_margin
+        x_min = min(torch.min(x_context[..., d]).cpu().numpy(),
+                    torch.min(x_target[..., d]).cpu().numpy()) - grid_margin
+        x_max = max(torch.max(x_context[..., d]).cpu().numpy(),
+                    torch.max(x_target[..., d]).cpu().numpy()) + grid_margin
         n = int(to_multiple(points_per_unit * (x_max - x_min),
                                     grid_multiplier))
         # update the lists
