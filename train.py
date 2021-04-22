@@ -243,8 +243,7 @@ parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
                              'convGNP',
-                             'StandardNDConvGNP'
-                             ],
+                             'StandardNDConvGNP'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
