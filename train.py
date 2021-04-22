@@ -362,11 +362,12 @@ file.close()
 # Create data generators
 # =============================================================================
 
+x_context_ranges = [args.x_context_range] * args.x_dim
 
 # Training data generator parameters -- used for both Sawtooth and GP
 gen_params = {
     'batch_size'                : args.batch_size,
-    'x_context_ranges'          : args.x_context_range,
+    'x_context_ranges'          : x_context_ranges,
     'max_num_context'           : args.max_num_context,
     'max_num_target'            : args.max_num_target,
     'device'                    : device
@@ -471,24 +472,26 @@ elif args.covtype == 'meanfield':
 else:
     raise ValueError(f'Unknown covariance method {args.covtype}.')
     
+print('creating model')
 # Create model architecture
 if args.model == 'GNP':
-    model = StandardGNP(input_dim=input_dim,
+    model = StandardGNP(input_dim=args.x_dim,
                         covariance=cov,
                         add_noise=noise)
     
 elif args.model == 'AGNP':
-    model = StandardAGNP(input_dim=input_dim,
+    model = StandardAGNP(input_dim=args.x_dim,
                          covariance=cov,
                          add_noise=noise)
     
 elif args.model == 'convGNP':
-    model = StandardConvGNP(input_dim=input_dim,
+    model = StandardConvGNP(input_dim=args.x_dim,
                             covariance=cov,
                             add_noise=noise)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
+print('created model')
 
 
 print(f'{args.model} '
@@ -578,13 +581,13 @@ if args.train:
             
             plot_marginals = args.covtype == 'meanfield'
             
-            # plot_samples_and_data(model=model,
-            #                       gen_plot=gen_plot,
-            #                       xmin=args.x_context_range[0],
-            #                       xmax=args.x_context_range[1],
-            #                       root=working_directory.root,
-            #                       epoch=epoch,
-            #                       plot_marginals=plot_marginals)
+            plot_samples_and_data(model=model,
+                                  gen_plot=gen_plot,
+                                  xmin=args.x_context_range[0],
+                                  xmax=args.x_context_range[1],
+                                  root=working_directory.root,
+                                  epoch=epoch,
+                                  plot_marginals=plot_marginals)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,

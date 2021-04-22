@@ -56,21 +56,41 @@ class StandardDepthwiseSeparableCNN(nn.Module):
         kernel_size = 5
         num_layers = 12
         
-        layers = [DepthwiseSeparableConv(in_channels, latent_channels, kernel_size, num_dims), nn.ReLU()]
+        layers = [DepthwiseSeparableConv(in_channels,
+                                         latent_channels,
+                                         kernel_size,
+                                         num_dims)]
         
         for i in range(num_layers - 2):
             
-            layers.append(DepthwiseSeparableConv(latent_channels, latent_channels, kernel_size, num_dims))
-            layers.append(nn.ReLU()) 
+            layers.append(DepthwiseSeparableConv(latent_channels,
+                                                 latent_channels,
+                                                 kernel_size,
+                                                 num_dims))
             
-        layers.append(DepthwiseSeparableConv(latent_channels, out_channels, kernel_size, num_dims))
+        layers.append(DepthwiseSeparableConv(latent_channels,
+                                             out_channels,
+                                             kernel_size,
+                                             num_dims))
+        
+        self.layers = nn.ModuleList(layers)
 
         self.conv_net = nn.Sequential(*layers)
         init_sequential_weights(self.conv_net)
 
         
-    def forward(self, x):
-        return self.conv_net(x)
+    def forward(self, tensor):
+        
+        relu = nn.ReLU()
+        
+        for conv in self.layers[:-1]:
+            
+            tensor = relu(conv(tensor)) # + tensor
+            
+        tensor = conv(tensor)
+            
+        return tensor
+        
         
         
 class SimpleConv(nn.Module):

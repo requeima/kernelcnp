@@ -85,10 +85,9 @@ class GaussianNeuralProcess(nn.Module):
 
 class StandardGNP(GaussianNeuralProcess):
     
-    def __init__(self, covariance, add_noise, use_attention=False):
+    def __init__(self, input_dim, covariance, add_noise, use_attention=False):
         
         # Standard input/output dimensions and latent representation dimension
-        input_dim = 1
         output_dim = 1
         latent_dim = 128
         
@@ -128,9 +127,10 @@ class StandardGNP(GaussianNeuralProcess):
 
 class StandardAGNP(StandardGNP):
     
-    def __init__(self, covariance, add_noise):
+    def __init__(self, input_dim, covariance, add_noise):
         
-        super().__init__(covariance=covariance,
+        super().__init__(input_dim=input_dim,
+                         covariance=covariance,
                          add_noise=add_noise,
                          use_attention=True)
 
@@ -142,7 +142,7 @@ class StandardAGNP(StandardGNP):
 
 class StandardConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, covariance, add_noise, input_dim):
+    def __init__(self, input_dim, covariance, add_noise):
         
         # Standard input/output dimensions and discretisation density
         output_dim = 1
@@ -152,7 +152,7 @@ class StandardConvGNP(GaussianNeuralProcess):
         conv_out_channels = 32
 
         # Construct the convolutional encoder
-        grid_multiplyer =  8
+        grid_multiplyer =  64
         init_length_scale = 2.0 / points_per_unit
         grid_margin = 0.2
         
