@@ -11,19 +11,25 @@ __all__ = ['SimpleConv', 'UNet']
 
 
 class DepthwiseSeparableConv(nn.Module):
+    
     def __init__(self, in_channels, out_channels, kernel_size, num_dims):
+        
         if num_dims == 1:
             convf = nn.Conv1d
+            
         elif num_dims == 2:
             convf = nn.Conv2d
+            
         elif num_dims == 3:
             convf = nn.Conv3d
+            
         else:
             raise ValueError('Number of dimensions > 3 not supported')
 
         assert kernel_size % 2 == 1
+        
+        padding = [kernel_size // 2] * num_dims
         kernel_size = [kernel_size] * num_dims
-        padding = [k // 2 for k in kernel_size]
 
         super(DepthwiseSeparableConv, self).__init__()
         self.depthwise = convf(in_channels, 
@@ -41,22 +47,28 @@ class DepthwiseSeparableConv(nn.Module):
 
 
 class StandardDepthwiseSeparableCNN(nn.Module):
+    
     def __init__(self, in_channels, out_channels, num_dims):
-        # Default parameters
+        
+        super().__init__()
+        
         latent_channels = 32
         kernel_size = 5
         num_layers = 12
-        super().__init__()
         
         layers = [DepthwiseSeparableConv(in_channels, latent_channels, kernel_size, num_dims), nn.ReLU()]
+        
         for i in range(num_layers - 2):
+            
             layers.append(DepthwiseSeparableConv(latent_channels, latent_channels, kernel_size, num_dims))
             layers.append(nn.ReLU()) 
+            
         layers.append(DepthwiseSeparableConv(latent_channels, out_channels, kernel_size, num_dims))
 
         self.conv_net = nn.Sequential(*layers)
         init_sequential_weights(self.conv_net)
 
+        
     def forward(self, x):
         return self.conv_net(x)
         
