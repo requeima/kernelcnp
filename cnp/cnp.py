@@ -203,7 +203,7 @@ class StandardConvGNP(GaussianNeuralProcess):
         
         # Standard input/output dimensions and discretisation density
         output_dim = 1
-        points_per_unit = 64
+        points_per_unit = 32
         
         # Standard convolutional architecture
         conv_architecture = UNet(input_dim=input_dim)
