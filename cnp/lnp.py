@@ -208,3 +208,4 @@ class StandardConvNP(LatentNeuralProcess):
         
         self.input_dim = input_dim
         self.output_dim = output_dim
+        

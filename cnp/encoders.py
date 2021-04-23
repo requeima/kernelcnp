@@ -21,6 +21,12 @@ from cnp.utils import (
 )
 
 
+
+# =============================================================================
+# Standard Encoder for Fully Connected CNPs
+# =============================================================================
+
+
 class StandardEncoder(nn.Module):
     """Encoder used for standard CNP model.
 
@@ -76,8 +82,13 @@ class StandardEncoder(nn.Module):
         
         h = self.pre_pooling_fn(decoder_input)
         return self.pooling_fn(h, x_context, x_target)
-    
-    
+
+
+
+# =============================================================================
+# Standard Encoder for Fully Connected ANPs
+# =============================================================================
+
 
 class StandardANPEncoder(nn.Module):
 
@@ -139,42 +150,12 @@ class StandardANPEncoder(nn.Module):
         dist = torch.distributions.Normal(loc=mean, scale=scale)
         
         return dist
-        
-        
-class LatentConvEncoder(ConvEncoder):
 
-    def __init__(self,
-                 input_dim,
-                 conv_architecture,
-                 init_length_scale, 
-                 points_per_unit, 
-                 grid_multiplier,
-                 grid_margin):
-        
-        self.conv_input_channels = conv_architecture.in_channels
-        self.conv_output_channels = conv_architecture.out_channels // 2
-        
-        super().__init__(input_dim=input_dim, 
-                         out_channels=self.conv_input_channels, 
-                         init_length_scale=init_length_scale, 
-                         points_per_unit=points_per_unit, 
-                         grid_multiplier=grid_multiplier,
-                         grid_margin=grid_margin)
-        
-        self.conv_architecture = conv_architecture
-        
-        
-    def forward(self, x_context, y_context, x_target):
-        
-        r = super().forward(x_context, y_context, x_context)
-        r = self.conv_architecture(r)
-        
-        mean = r[:, ::2]
-        scale = torch.exp(r[:, 1::2])
-        
-        distribution = torch.distributions.Normal(loc=mean, scale=scale)
-        
-        return distribution
+
+
+# =============================================================================
+# Standard Convolutional Encoder for ConvCNPs
+# =============================================================================
     
 
 class ConvEncoder(nn.Module):
@@ -187,13 +168,16 @@ class ConvEncoder(nn.Module):
                  grid_multiplier,
                  grid_margin,
                  density_normalize=True):
+        
         super().__init__()
+        
         self.activation = nn.ReLU()
         self.out_channels = out_channels
         self.input_dim = input_dim
         self.linear_model = self.build_weight_model()
         self.sigma = nn.Parameter(np.log(init_length_scale) *
-                                  torch.ones(self.input_dim), requires_grad=True)
+                                  torch.ones(self.input_dim),
+                                  requires_grad=True)
         self.grid_multiplier = grid_multiplier
         self.grid_margin = grid_margin
         self.points_per_unit = points_per_unit
@@ -282,3 +266,45 @@ class ConvEncoder(nn.Module):
         r = move_channel_idx(r,to_last=False, num_dims=c)
 
         return r
+
+
+
+# =============================================================================
+# Standard Latent Convolutional Encoder for ConvNPs
+# =============================================================================
+        
+        
+class StandardLatentConvEncoder(ConvEncoder):
+
+    def __init__(self,
+                 input_dim,
+                 conv_architecture,
+                 init_length_scale, 
+                 points_per_unit, 
+                 grid_multiplier,
+                 grid_margin):
+        
+        self.conv_input_channels = conv_architecture.in_channels
+        self.conv_output_channels = conv_architecture.out_channels // 2
+        
+        super().__init__(input_dim=input_dim, 
+                         out_channels=self.conv_input_channels, 
+                         init_length_scale=init_length_scale, 
+                         points_per_unit=points_per_unit, 
+                         grid_multiplier=grid_multiplier,
+                         grid_margin=grid_margin)
+        
+        self.conv_architecture = conv_architecture
+        
+        
+    def forward(self, x_context, y_context, x_target):
+        
+        r = super().forward(x_context, y_context, x_context)
+        r = self.conv_architecture(r)
+        
+        mean = r[:, ::2]
+        scale = torch.exp(r[:, 1::2])
+        
+        distribution = torch.distributions.Normal(loc=mean, scale=scale)
+        
+        return distribution
