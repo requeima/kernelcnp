@@ -26,16 +26,19 @@ from cnp.architectures import UNet, HalfUNet
 class LatentNeuralProcess(nn.Module):
     
     
-    def __init__(self, encoder, decoder, add_noise):
+    def __init__(self, encoder, decoder, add_noise, num_samples):
         
         super().__init__()
         
         self.encoder = encoder
         self.decoder = decoder
         self.add_noise = add_noise
+        self.num_samples = num_samples
 
     
-    def forward(self, x_context, y_context, x_target, num_samples):
+    def forward(self, x_context, y_context, x_target, num_samples=None):
+        
+        num_samples = self.num_samples if num_samples is None else num_samples
         
         # Pass context set and target inputs through the encoder to obtain
         # the distribution of the representation
@@ -49,11 +52,12 @@ class LatentNeuralProcess(nn.Module):
             r = r_dist.rsample()
             z = self.decoder(r, x_context, y_context, x_target)
             
+            zeros = torch.zeros(size=(z.shape[0],
+                                      z.shape[1],
+                                      z.shape[1])).to(z.device)
+            
             means.append(z[..., :1])
-            noise_vars.append(self.add_noise(torch.zeros(size=(z.shape[0],
-                                                               z.shape[1],
-                                                               z.shape[1])),
-                                             z[..., 1:]))
+            noise_vars.append(self.add_noise(zeros, z[..., 1:]))
             
         means = torch.stack(means, dim=0)
         noise_vars = torch.stack(noise_vars, dim=0)
@@ -61,9 +65,9 @@ class LatentNeuralProcess(nn.Module):
         return means, noise_vars
 
     
-    def loss(self, x_context, y_context, x_target, y_target, num_samples):
+    def loss(self, x_context, y_context, x_target, y_target):
         
-        S = num_samples
+        S = self.num_samples
         B = y_target.shape[0]
         N = y_target.shape[1]
         D = y_target.shape[2]
@@ -72,7 +76,7 @@ class LatentNeuralProcess(nn.Module):
         means, noise_vars = self.forward(x_context,
                                          y_context,
                                          x_target,
-                                         num_samples)
+                                         num_samples=self.num_samples)
         
         means = means[:, :, :, 0]
         idx = torch.arange(noise_vars.shape[2])
@@ -85,7 +89,7 @@ class LatentNeuralProcess(nn.Module):
         normal = torch.distributions.Independent(normal, 2)
         
         # Categorical to use for mixing components
-        logits = torch.ones(size=(num_samples,))
+        logits = torch.ones(size=(self.num_samples,)).to(means.device)
         categorical = torch.distributions.Categorical(logits=logits)
         
         mixture = torch.distributions.MixtureSameFamily(categorical, normal)
@@ -116,7 +120,7 @@ class LatentNeuralProcess(nn.Module):
 class StandardANP(LatentNeuralProcess):
     
     
-    def __init__(self, input_dim, add_noise):
+    def __init__(self, input_dim, add_noise, num_samples):
         
         # Standard input/output dim and latent representation dim
         # latent_dim is common to stochastic and deterministic paths, and
@@ -138,7 +142,8 @@ class StandardANP(LatentNeuralProcess):
 
         super().__init__(encoder=encoder,
                          decoder=decoder,
-                         add_noise=add_noise)
+                         add_noise=add_noise,
+                         num_samples=num_samples)
         
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -154,7 +159,7 @@ class StandardANP(LatentNeuralProcess):
         
 class StandardConvNP(LatentNeuralProcess):
     
-    def __init__(self, input_dim, add_noise):
+    def __init__(self, input_dim, add_noise, num_samples):
         
         # Dimension of output is 1 for scalar outputs -- do not change
         output_dim = 1
@@ -207,7 +212,8 @@ class StandardConvNP(LatentNeuralProcess):
 
         super().__init__(encoder=encoder,
                          decoder=decoder,
-                         add_noise=add_noise)
+                         add_noise=add_noise,
+                         num_samples=num_samples)
         
         self.input_dim = input_dim
         self.output_dim = output_dim

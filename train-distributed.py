@@ -16,13 +16,17 @@ data_generators = ['eq',
                    'weakly-periodic',
                    'sawtooth']
 
-models = ['GNP',
-          'AGNP',
-          'convGNP']
+# models = ['GNP',
+#           'AGNP',
+#           'convGNP']
 
-covs = ['innerprod-homo',
-        'kvv-homo',
-        'meanfield']
+models = ['convNP'] # 'ANP', 
+
+# covs = ['innerprod-homo',
+#         'kvv-homo',
+#         'meanfield']
+
+covs = ['meanfield']
 
 x_dims = ['1', '2']
 
