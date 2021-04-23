@@ -25,10 +25,7 @@ from cnp.experiment import (
 from cnp.cnp import (
     StandardGNP,
     StandardAGNP,
-    StandardMeanTEGNP,
-    StandardMeanTEAGNP,
-    StandardConvGNP,
-    StandardFullyConnectedTEGNP
+    StandardConvGNP
 )
 
 from cnp.cov import (
@@ -245,10 +242,8 @@ parser.add_argument('--epochs',
 parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
-                             'MeanTEGNP',
-                             'MeanTEAGNP',
                              'convGNP',
-                             'TEGNP'],
+                             'StandardNDConvGNP'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
@@ -478,21 +473,10 @@ elif args.model == 'AGNP':
     model = StandardAGNP(covariance=cov,
                          add_noise=noise)
     
-elif args.model == 'MeanTEGNP':
-    model = StandardMeanTEGNP(covariance=cov,
-                              add_noise=noise)
-    
-elif args.model == 'MeanTEAGNP':
-    model = StandardMeanTEAGNP(covariance=cov,
-                               add_noise=noise)
-    
 elif args.model == 'convGNP':
     model = StandardConvGNP(covariance=cov,
-                            add_noise=noise)
-    
-elif args.model == 'TEGNP':
-    model = StandardFullyConnectedTEGNP(covariance=cov,
-                                        add_noise=noise)
+                            add_noise=noise,
+                            input_dim=1)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
@@ -585,13 +569,13 @@ if args.train:
             
             plot_marginals = args.covtype == 'meanfield'
             
-            plot_samples_and_data(model=model,
-                                  gen_plot=gen_plot,
-                                  xmin=args.x_range[0],
-                                  xmax=args.x_range[1],
-                                  root=working_directory.root,
-                                  epoch=epoch,
-                                  plot_marginals=plot_marginals)
+            # plot_samples_and_data(model=model,
+            #                       gen_plot=gen_plot,
+            #                       xmin=args.x_context_range[0],
+            #                       xmax=args.x_context_range[1],
+            #                       root=working_directory.root,
+            #                       epoch=epoch,
+            #                       plot_marginals=plot_marginals)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,
