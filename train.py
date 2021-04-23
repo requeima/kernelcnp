@@ -25,7 +25,9 @@ from cnp.experiment import (
 from cnp.cnp import (
     StandardGNP,
     StandardAGNP,
-    StandardConvGNP
+    StandardConvGNP,
+    StandardANP,
+    StandardConvNP
 )
 
 from cnp.cov import (
@@ -488,6 +490,14 @@ elif args.model == 'convGNP':
     model = StandardConvGNP(input_dim=args.x_dim,
                             covariance=cov,
                             add_noise=noise)
+    
+elif args.model == 'ANP':
+    model = StandardANP(input_dim=args.x_dim,
+                        add_noise=noise)
+    
+elif args.model == 'convNP':
+    model = StandardConvNP(input_dim=args.x_dim,
+                        add_noise=noise)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
