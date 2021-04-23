@@ -28,6 +28,11 @@ from cnp.cnp import (
     StandardConvGNP
 )
 
+from cnp.lnp import (
+    StandardANP,
+    StandardConvNP
+)
+
 from cnp.cov import (
     InnerProdCov,
     KvvCov,
@@ -249,7 +254,8 @@ parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
                              'convGNP',
-                             'StandardNDConvGNP'],
+                             'ANP',
+                             'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
@@ -259,6 +265,12 @@ parser.add_argument('covtype',
                              'kvv-hetero',
                              'meanfield'],
                     help='Choice of covariance method.')
+
+parser.add_argument('--np_loss_samples',
+                    default=16,
+                    type=int,
+                    help='Number of latent samples for evaluating the loss, '
+                         'used for ANP and ConvNP.')
 
 parser.add_argument('--num_basis_dim',
                     default=512,
@@ -489,6 +501,20 @@ elif args.model == 'convGNP':
                             covariance=cov,
                             add_noise=noise)
     
+elif args.model == 'ANP':
+    
+    noise = AddHomoNoise()
+    model = StandardANP(input_dim=args.x_dim,
+                        add_noise=noise,
+                        num_samples=args.np_loss_samples)
+    
+elif args.model == 'convNP':
+    
+    noise = AddHomoNoise()
+    model = StandardConvNP(input_dim=args.x_dim,
+                           add_noise=noise,
+                           num_samples=args.np_loss_samples)
+    
 else:
     raise ValueError(f'Unknown model {args.model}.')
 print('created model')
@@ -509,6 +535,8 @@ if args.num_params:
 # Load model to appropriate device
 model = model.to(device)
 
+latent_model = args.model in ['ANP', 'convNP']
+
 
 # =============================================================================
 # Load data
@@ -522,6 +550,7 @@ if args.train:
     file = open(data_directory.file('valid-data.pkl'), 'rb')
     data_val = pickle.load(file)
     file.close()
+    
 if args.test:
     file = open(data_directory.file('test-data.pkl'), 'rb')
     data_test = pickle.load(file)
@@ -566,10 +595,10 @@ if args.train:
             
             # Compute validation negative log-likelihood
             val_nll, _, val_oracle, _ = validate(data_val[epoch // args.validate_every],
-                                           gen_val,
-                                           model,
-                                           args=args,
-                                           device=device)
+                                                 gen_val,
+                                                 model,
+                                                 args=args,
+                                                 device=device)
             
             writer.add_scalar('Valid log-lik.', - val_nll, epoch)
             writer.add_scalar('Valid oracle log-lik.', - val_oracle, epoch)
@@ -588,6 +617,7 @@ if args.train:
                                       xmax=args.x_context_range[1],
                                       root=working_directory.root,
                                       epoch=epoch,
+                                      latent_model=latent_model,
                                       plot_marginals=plot_marginals)
             
         save_checkpoint(working_directory,

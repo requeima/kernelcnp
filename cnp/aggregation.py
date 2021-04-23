@@ -60,11 +60,11 @@ class DotProdAttention(nn.Module):
 
         Args:
             keys (tensor): Keys of shape
-                `(num_functions, num_keys, dim_key)`.
+                `(num_functions, num_keys, dim_key)`. dim_key = dim_query
             queries (tensor): Queries of shape
-                `(num_functions, num_queries, dim_query)`.
+                `(num_functions, num_queries, dim_query)`. dim_key = dim_query
             values (tensor): Values of shape
-                `(num_functions, num_values, dim_value)`.
+                `(num_functions, num_values, dim_value)`. num_values = num_keys
 
         Returns:
             tensor: Output of shape `(num_functions, num_queries, dim_value)`.
