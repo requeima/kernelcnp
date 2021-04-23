@@ -274,7 +274,7 @@ class ConvEncoder(nn.Module):
 # =============================================================================
         
         
-class StandardLatentConvEncoder(ConvEncoder):
+class StandardConvNPEncoder(ConvEncoder):
 
     def __init__(self,
                  input_dim,

@@ -5,11 +5,13 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
-    StandardANPEncoder
+    StandardANPEncoder,
+    StandardConvNPEncoder
 )
 
 from cnp.decoders import (
-    StandardDecoder
+    StandardDecoder,
+    ConvDecoder
 )
 
 from cnp.architectures import UNet, HalfUNet
@@ -185,12 +187,12 @@ class StandardConvNP(LatentNeuralProcess):
         init_length_scale = 2.0 / points_per_unit
         grid_margin = 0.2
         
-        encoder = LatentConvEncoder(input_dim=input_dim,
-                                    conv_architecture=encoder_conv,
-                                    init_length_scale=init_length_scale, 
-                                    points_per_unit=points_per_unit, 
-                                    grid_multiplier=grid_multiplier,
-                                    grid_margin=grid_margin)
+        encoder = StandardConvNPEncoder(input_dim=input_dim,
+                                        conv_architecture=encoder_conv,
+                                        init_length_scale=init_length_scale, 
+                                        points_per_unit=points_per_unit, 
+                                        grid_multiplier=grid_multiplier,
+                                        grid_margin=grid_margin)
         
         decoder = ConvDecoder(input_dim=input_dim,
                               conv_architecture=decoder_conv,

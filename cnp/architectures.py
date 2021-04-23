@@ -7,12 +7,12 @@ from cnp.utils import (
     pad_concat
 )
 
-__all__ = ['SimpleConv', 'UNet']
+__all__ = ['StandardDepthwiseSeparableCNN', 'HalfUNet', 'UNet']
 
 
 
 # =============================================================================
-# General depthwise separable CNN
+# Depthwise separable convolution layer
 # =============================================================================
 
 
