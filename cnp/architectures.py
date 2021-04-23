@@ -185,9 +185,6 @@ class UNet(nn.Module):
         self.activation = nn.ReLU()
         self.in_channels = in_channels
         self.num_halving_layers = 6
-        
-        # This cannot currently be changed
-        self.out_channels = 16
 
         self.l1 = conv(in_channels=self.in_channels,
                        out_channels=self.in_channels,
@@ -331,44 +328,47 @@ class HalfUNet(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.num_halving_layers = 6
+        
+        kernel_size = 5
+        padding = kernel_size // 2
 
         self.l1 = conv(in_channels=self.in_channels,
                        out_channels=self.in_channels,
-                       kernel_size=5,
+                       kernel_size=kernel_size,
                        stride=2,
-                       padding=2)
+                       padding=padding)
         
         self.l2 = conv(in_channels=self.in_channels,
                        out_channels=2*self.in_channels,
-                       kernel_size=5,
+                       kernel_size=kernel_size,
                        stride=2,
-                       padding=2)
+                       padding=padding)
         
         self.l3 = conv(in_channels=2*self.in_channels,
                        out_channels=2*self.in_channels,
-                       kernel_size=5,
+                       kernel_size=kernel_size,
                        stride=2,
-                       padding=2)
+                       padding=padding)
             
         self.l4 = convt(in_channels=2*self.in_channels,
                         out_channels=2*self.in_channels,
-                        kernel_size=5,
+                        kernel_size=kernel_size,
                         stride=2,
-                        padding=2,
+                        padding=padding,
                         output_padding=1)
         
         self.l5 = convt(in_channels=4*self.in_channels,
                         out_channels=self.in_channels,
-                        kernel_size=5,
+                        kernel_size=kernel_size,
                         stride=2,
-                        padding=2,
+                        padding=padding,
                         output_padding=1)
         
         self.l6 = convt(in_channels=2*self.in_channels,
                         out_channels=self.in_channels,
-                        kernel_size=5,
+                        kernel_size=kernel_size,
                         stride=2,
-                        padding=2,
+                        padding=padding,
                         output_padding=1)
 
 

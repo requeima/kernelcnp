@@ -165,14 +165,14 @@ class StandardConvNP(LatentNeuralProcess):
         output_dim = 1
         
         # Num channels of input passed to encoder CNN
-        encoder_conv_input_channels = 8
+        encoder_conv_input_channels = 16
         
         # Num channels of latent function
         # Outputted by encoder, expected by decoder
-        latent_function_channels = 1
+        latent_function_channels = 16
         
         # Num channels of output of decoder CNN
-        decoder_conv_output_channels = 8
+        decoder_conv_output_channels = 16
         
         # Num channels of output of decoder
         decoder_out_channels = 32

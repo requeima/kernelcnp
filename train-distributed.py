@@ -18,9 +18,11 @@ data_generators = ['eq',
 
 # models = ['GNP',
 #           'AGNP',
-#           'convGNP']
+#           'convGNP',
+#           'ANP',
+#           'convNP']
 
-models = ['convNP'] # 'ANP', 
+models = ['ANP', 'convNP']
 
 # covs = ['innerprod-homo',
 #         'kvv-homo',
