@@ -41,7 +41,10 @@ class StandardEncoder(nn.Module):
         self.input_dim = input_dim
         self.use_attention = use_attention
 
-        pre_pooling_fn = stacked_batch_mlp(self.input_dim, self.latent_dim, self.latent_dim)
+        pre_pooling_fn = stacked_batch_mlp(self.input_dim,
+                                           self.latent_dim,
+                                           self.latent_dim)
+        
         self.pre_pooling_fn = init_sequential_weights(pre_pooling_fn)
         
         if self.use_attention:
@@ -87,10 +90,16 @@ class StandardANPEncoder(nn.Module):
         self.latent_dim = latent_dim
         self.input_dim = input_dim
 
-        pre_pooling_fn_det = stacked_batch_mlp(self.input_dim, self.latent_dim, self.latent_dim // 2)
+        pre_pooling_fn_det = stacked_batch_mlp(self.input_dim,
+                                               self.latent_dim,
+                                               self.latent_dim // 2)
+        
         self.pre_pooling_fn_det = init_sequential_weights(pre_pooling_fn_det)
         
-        pre_pooling_fn_stoch = stacked_batch_mlp(self.input_dim, self.latent_dim, self.latent_dim)
+        pre_pooling_fn_stoch = stacked_batch_mlp(self.input_dim,
+                                                 self.latent_dim,
+                                                 self.latent_dim)
+        
         self.pre_pooling_fn_stoch = init_sequential_weights(pre_pooling_fn_stoch)
 
         self.pooling_fn_det = MeanPooling(pooling_dim=1)
@@ -130,6 +139,7 @@ class StandardANPEncoder(nn.Module):
         dist = torch.distributions.Normal(loc=mean, scale=scale)
         
         return dist
+    
 
 class ConvEncoder(nn.Module):
 

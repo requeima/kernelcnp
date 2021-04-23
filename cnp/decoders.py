@@ -91,7 +91,9 @@ class ConvDecoder(nn.Module):
         self.grid_margin =grid_margin
         self.points_per_unit = points_per_unit
         self.linear_model = self.build_weight_model()
-        self.sigma = nn.Parameter(np.log(init_length_scale) * torch.ones(self.input_dim), requires_grad=True)
+        self.sigma = nn.Parameter(np.log(init_length_scale) * \
+                                  torch.ones(self.input_dim),
+                                  requires_grad=True)
         self.sigma_fn = torch.exp
 
     def build_weight_model(self):
