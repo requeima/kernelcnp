@@ -139,6 +139,42 @@ class StandardANPEncoder(nn.Module):
         dist = torch.distributions.Normal(loc=mean, scale=scale)
         
         return dist
+        
+        
+class LatentConvEncoder(ConvEncoder):
+
+    def __init__(self,
+                 input_dim,
+                 conv_architecture,
+                 init_length_scale, 
+                 points_per_unit, 
+                 grid_multiplier,
+                 grid_margin):
+        
+        self.conv_input_channels = conv_architecture.in_channels
+        self.conv_output_channels = conv_architecture.out_channels // 2
+        
+        super().__init__(input_dim=input_dim, 
+                         out_channels=self.conv_input_channels, 
+                         init_length_scale=init_length_scale, 
+                         points_per_unit=points_per_unit, 
+                         grid_multiplier=grid_multiplier,
+                         grid_margin=grid_margin)
+        
+        self.conv_architecture = conv_architecture
+        
+        
+    def forward(self, x_context, y_context, x_target):
+        
+        r = super().forward(x_context, y_context, x_context)
+        r = self.conv_architecture(r)
+        
+        mean = r[:, ::2]
+        scale = torch.exp(r[:, 1::2])
+        
+        distribution = torch.distributions.Normal(loc=mean, scale=scale)
+        
+        return distribution
     
 
 class ConvEncoder(nn.Module):

@@ -10,6 +10,12 @@ from cnp.utils import (
 __all__ = ['SimpleConv', 'UNet']
 
 
+
+# =============================================================================
+# General depthwise separable CNN
+# =============================================================================
+
+
 class DepthwiseSeparableConv(nn.Module):
     
     def __init__(self,
@@ -84,6 +90,12 @@ class DepthwiseSeparableConv(nn.Module):
         return tensor
 
 
+
+# =============================================================================
+# Standard depthwise separable CNN
+# =============================================================================
+
+
 class StandardDepthwiseSeparableCNN(nn.Module):
     
     def __init__(self, in_channels, out_channels, num_dims):
@@ -144,53 +156,12 @@ class StandardDepthwiseSeparableCNN(nn.Module):
         tensor = conv(tensor)
             
         return tensor
-        
-        
-        
-class SimpleConv(nn.Module):
-    """Small convolutional architecture from 1d experiments in the paper.
-    This is a 4-layer convolutional network with fixed stride and channels,
-    using ReLU activations.
 
-    Args:
-        in_channels (int, optional): Number of channels on the input to the
-            network. Defaults to 8.
-        out_channels (int, optional): Number of channels on the output by the
-            network. Defaults to 8.
-    """
+    
 
-    def __init__(self, in_channels=8, out_channels=8):
-        super(SimpleConv, self).__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.activation = nn.ReLU()
-        self.conv_net = nn.Sequential(
-            nn.Conv1d(in_channels=self.in_channels, out_channels=16,
-                      kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=16, out_channels=32,
-                      kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=32, out_channels=16,
-                      kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=16, out_channels=self.out_channels,
-                      kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-        )
-        init_sequential_weights(self.conv_net)
-        self.num_halving_layers = 0
-
-    def forward(self, x):
-        """Forward pass through the convolutional structure.
-
-        Args:
-            x (tensor): Inputs of shape `(batch, n_in, in_channels)`.
-
-        Returns:
-            tensor: Outputs of shape `(batch, n_out, out_channels)`.
-        """
-        return self.conv_net(x)
+# =============================================================================
+# UNet CNN architecture
+# =============================================================================
 
 
 class UNet(nn.Module):
@@ -220,53 +191,88 @@ class UNet(nn.Module):
 
         self.l1 = conv(in_channels=self.in_channels,
                        out_channels=self.in_channels,
-                       kernel_size=5, stride=2, padding=2)
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
         self.l2 = conv(in_channels=self.in_channels,
-                       out_channels=2 * self.in_channels,
-                       kernel_size=5, stride=2, padding=2)
-        self.l3 = conv(in_channels=2 * self.in_channels,
-                       out_channels=2 * self.in_channels,
-                       kernel_size=5, stride=2, padding=2)
-        self.l4 = conv(in_channels=2 * self.in_channels,
-                       out_channels=4 * self.in_channels,
-                       kernel_size=5, stride=2, padding=2)
-        self.l5 = conv(in_channels=4 * self.in_channels,
-                       out_channels=4 * self.in_channels,
-                       kernel_size=5, stride=2, padding=2)
-        self.l6 = conv(in_channels=4 * self.in_channels,
-                       out_channels=8 * self.in_channels,
-                       kernel_size=5, stride=2, padding=2)
+                       out_channels=2*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
+        self.l3 = conv(in_channels=2*self.in_channels,
+                       out_channels=2*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
+        self.l4 = conv(in_channels=2*self.in_channels,
+                       out_channels=4*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
+        self.l5 = conv(in_channels=4*self.in_channels,
+                       out_channels=4*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
+        self.l6 = conv(in_channels=4*self.in_channels,
+                       out_channels=8*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
 
         for layer in [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6]:
             init_layer_weights(layer)
 
-        self.l7 = convt(in_channels=8 * self.in_channels,
-                        out_channels=4 * self.in_channels,
-                        kernel_size=5, stride=2, padding=2,
+        self.l7 = convt(in_channels=8*self.in_channels,
+                        out_channels=4*self.in_channels,
+                        kernel_size=5,
+                        stride=2,
+                        padding=2,
                         output_padding=1)
-        self.l8 = convt(in_channels=8 * self.in_channels,
-                        out_channels=4 * self.in_channels,
-                        kernel_size=5, stride=2, padding=2,
+        
+        self.l8 = convt(in_channels=8*self.in_channels,
+                        out_channels=4*self.in_channels,
+                        kernel_size=5,
+                        stride=2,
+                        padding=2,
                         output_padding=1)
-        self.l9 = convt(in_channels=8 * self.in_channels,
-                        out_channels=2 * self.in_channels,
-                        kernel_size=5, stride=2, padding=2,
+        
+        self.l9 = convt(in_channels=8*self.in_channels,
+                        out_channels=2*self.in_channels,
+                        kernel_size=5,
+                        stride=2,
+                        padding=2,
                         output_padding=1)
-        self.l10 = convt(in_channels=4 * self.in_channels,
-                         out_channels=2 * self.in_channels,
-                         kernel_size=5, stride=2, padding=2,
+        
+        self.l10 = convt(in_channels=4*self.in_channels,
+                         out_channels=2*self.in_channels,
+                         kernel_size=5,
+                         stride=2,
+                         padding=2,
                          output_padding=1)
-        self.l11 = convt(in_channels=4 * self.in_channels,
+        
+        self.l11 = convt(in_channels=4*self.in_channels,
                          out_channels=self.in_channels,
-                         kernel_size=5, stride=2, padding=2,
+                         kernel_size=5,
+                         stride=2,
+                         padding=2,
                          output_padding=1)
-        self.l12 = convt(in_channels=2 * self.in_channels,
+        
+        self.l12 = convt(in_channels=2*self.in_channels,
                          out_channels=self.in_channels,
-                         kernel_size=5, stride=2, padding=2,
+                         kernel_size=5,
+                         stride=2,
+                         padding=2,
                          output_padding=1)
 
         for layer in [self.l7, self.l8, self.l9, self.l10, self.l11, self.l12]:
             init_layer_weights(layer)
+            
 
     def forward(self, x):
         """Forward pass through the convolutional structure.
@@ -300,7 +306,107 @@ class UNet(nn.Module):
         h11 = torch.cat([h1, h11], dim=1)
         h12 = self.activation(self.l12(h11))
 
-        return pad_concat(x, h12)
+        return torch.cat([x, h12], dim=1)
+    
+    
+
+# =============================================================================
+# HalfUNet CNN architecture
+# =============================================================================
+    
+    
+class HalfUNet(nn.Module):
+
+    def __init__(self,
+                 input_dim,
+                 in_channels,
+                 out_channels):
+        
+        super().__init__()
+        
+        conv = getattr(nn, f'Conv{input_dim}d')
+        convt = getattr(nn, f'ConvTranspose{input_dim}d')
+        
+        self.activation = nn.ReLU()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.num_halving_layers = 6
+
+        self.l1 = conv(in_channels=self.in_channels,
+                       out_channels=self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
+        self.l2 = conv(in_channels=self.in_channels,
+                       out_channels=2*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+        
+        self.l3 = conv(in_channels=2*self.in_channels,
+                       out_channels=2*self.in_channels,
+                       kernel_size=5,
+                       stride=2,
+                       padding=2)
+            
+        self.l4 = convt(in_channels=2*self.in_channels,
+                        out_channels=2*self.in_channels,
+                        kernel_size=5,
+                        stride=2,
+                        padding=2,
+                        output_padding=1)
+        
+        self.l5 = convt(in_channels=4*self.in_channels,
+                        out_channels=self.in_channels,
+                        kernel_size=5,
+                        stride=2,
+                        padding=2,
+                        output_padding=1)
+        
+        self.l6 = convt(in_channels=2*self.in_channels,
+                        out_channels=self.in_channels,
+                        kernel_size=5,
+                        stride=2,
+                        padding=2,
+                        output_padding=1)
+
+
+        self.last_layer_multiplier = conv(in_channels=2*self.in_channels,
+                                          out_channels=self.out_channels,
+                                          kernel_size=1,
+                                          stride=1,
+                                          padding=0)
+            
+
+    def forward(self, x):
+        """Forward pass through the convolutional structure.
+
+        Args:
+            x (tensor): Inputs of shape `(batch, n_in, in_channels)`.
+
+        Returns:
+            tensor: Outputs of shape `(batch, n_out, out_channels)`.
+        """
+        
+        h1 = self.activation(self.l1(x))
+        h2 = self.activation(self.l2(h1))
+        h3 = self.activation(self.l3(h2))
+        h4 = self.activation(self.l4(h3))
+
+        h4 = torch.cat([h4, h2], dim=1)
+        h5 = self.activation(self.l5(h4))
+
+        h5 = torch.cat([h5, h1], dim=1)
+        h6 = self.activation(self.l6(h5))
+        h6 = torch.cat([x, h6], dim=1)
+
+        return self.last_layer_multiplier(h6)
+    
+
+# =============================================================================
+# BatchMLP architecture
+# =============================================================================
 
 
 class BatchMLP(nn.Module):

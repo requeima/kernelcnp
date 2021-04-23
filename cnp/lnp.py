@@ -12,7 +12,7 @@ from cnp.decoders import (
     StandardDecoder
 )
 
-from cnp.architectures import UNet
+from cnp.architectures import UNet, HalfUNet
 
 
 
@@ -141,3 +141,70 @@ class StandardANP(LatentNeuralProcess):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.latent_dim = latent_dim
+        
+        
+        
+
+# =============================================================================
+# Convolutional Latent Neural Process
+# =============================================================================
+        
+        
+class StandardConvNP(LatentNeuralProcess):
+    
+    def __init__(self, input_dim, add_noise):
+        
+        # Dimension of output is 1 for scalar outputs -- do not change
+        output_dim = 1
+        
+        # Num channels of input passed to encoder CNN
+        encoder_conv_input_channels = 8
+        
+        # Num channels of latent function -- outputted by encoder, expected by decoder
+        latent_function_channels = 1
+        
+        # Num channels of output of decoder CNN
+        decoder_conv_output_channels = 8
+        
+        # Num channels of output of decoder
+        decoder_out_channels = 32
+        
+        # Encoder convolutional architecture
+        encoder_conv = HalfUNet(input_dim=input_dim,
+                                in_channels=encoder_conv_input_channels,
+                                out_channels=2*latent_function_channels)
+        
+        # Encoder convolutional architecture
+        decoder_conv = HalfUNet(input_dim=input_dim,
+                                in_channels=latent_function_channels,
+                                out_channels=decoder_conv_output_channels)
+
+        # Construct the convolutional encoder
+        grid_multiplier =  2 ** encoder_conv.num_halving_layers
+        points_per_unit = 32
+        init_length_scale = 2.0 / points_per_unit
+        grid_margin = 0.2
+        
+        encoder = LatentConvEncoder(input_dim=input_dim,
+                                    conv_architecture=encoder_conv,
+                                    init_length_scale=init_length_scale, 
+                                    points_per_unit=points_per_unit, 
+                                    grid_multiplier=grid_multiplier,
+                                    grid_margin=grid_margin)
+        
+        decoder = ConvDecoder(input_dim=input_dim,
+                              conv_architecture=decoder_conv,
+                              conv_out_channels=decoder_conv.out_channels,
+                              out_channels=2*decoder_out_channels,
+                              init_length_scale=init_length_scale,
+                              points_per_unit=points_per_unit,
+                              grid_multiplier=grid_multiplier,
+                              grid_margin=grid_margin)
+
+
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         add_noise=add_noise)
+        
+        self.input_dim = input_dim
+        self.output_dim = output_dim
