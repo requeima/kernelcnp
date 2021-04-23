@@ -52,10 +52,10 @@ def validate(data, data_generator, model, args, device, oracle=True):
     
     with torch.no_grad():
         for step, batch in enumerate(data):
-            nll = model.loss(batch['x_context'].to(device),
-                             batch['y_context'].to(device),
-                             batch['x_target'].to(device),
-                             batch['y_target'].to(device))
+            nll = model.loss(batch['x_context'][:50].to(device),
+                             batch['y_context'][:50].to(device),
+                             batch['x_target'][:50].to(device),
+                             batch['y_target'][:50].to(device))
             
             oracle_nll = np.array(0.)
             if oracle:
@@ -95,10 +95,10 @@ def train(data, model, optimiser, log, device):
     
     for step, batch in enumerate(data):
 
-        nll = nll + model.loss(batch['x_context'].to(device),
-                                 batch['y_context'].to(device),
-                                 batch['x_target'].to(device),
-                                 batch['y_target'].to(device))
+        nll = nll + model.loss(batch['x_context'][:50].to(device),
+                                 batch['y_context'][:50].to(device),
+                                 batch['x_target'][:50].to(device),
+                                 batch['y_target'][:50].to(device))
         
     # Scale objective by number of iterations
     nll = nll / (step + 1)
@@ -129,6 +129,12 @@ parser.add_argument('data',
                              'weakly-periodic',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
+
+parser.add_argument('--x_dim',
+                    default=1,
+                    choices=[1, 2, 3],
+                    type=int,
+                    help='Input dimension of data.')
 
 parser.add_argument('--seed',
                     default=0,
@@ -324,7 +330,7 @@ data_root = os.path.join('_experiments',
                          f'{args.data}',
                          'data',
                          f'seed-{args.seed}',
-                         f'dim-1')
+                         f'dim-{args.x_dim}')
 
 # Load working directory
 if args.root:
@@ -339,7 +345,8 @@ else:
                                    f'models',
                                    f'{args.model}',
                                    f'{args.covtype}',
-                                   f'{args.seed}')
+                                   f'seed-{args.seed}',
+                                   f'dim-{args.x_dim}')
     working_directory = WorkingDirectory(root=experiment_name)
     data_directory = WorkingDirectory(root=data_root)
     
@@ -355,11 +362,12 @@ file.close()
 # Create data generators
 # =============================================================================
 
+x_context_ranges = [args.x_context_range] * args.x_dim
 
 # Training data generator parameters -- used for both Sawtooth and GP
 gen_params = {
     'batch_size'                : args.batch_size,
-    'x_context_ranges'          : args.x_context_range,
+    'x_context_ranges'          : x_context_ranges,
     'max_num_context'           : args.max_num_context,
     'max_num_target'            : args.max_num_target,
     'device'                    : device
@@ -464,22 +472,26 @@ elif args.covtype == 'meanfield':
 else:
     raise ValueError(f'Unknown covariance method {args.covtype}.')
     
+print('creating model')
 # Create model architecture
 if args.model == 'GNP':
-    model = StandardGNP(covariance=cov,
+    model = StandardGNP(input_dim=args.x_dim,
+                        covariance=cov,
                         add_noise=noise)
     
 elif args.model == 'AGNP':
-    model = StandardAGNP(covariance=cov,
+    model = StandardAGNP(input_dim=args.x_dim,
+                         covariance=cov,
                          add_noise=noise)
     
 elif args.model == 'convGNP':
-    model = StandardConvGNP(covariance=cov,
-                            add_noise=noise,
-                            input_dim=1)
+    model = StandardConvGNP(input_dim=args.x_dim,
+                            covariance=cov,
+                            add_noise=noise)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
+print('created model')
 
 
 print(f'{args.model} '
@@ -569,13 +581,14 @@ if args.train:
             
             plot_marginals = args.covtype == 'meanfield'
             
-            # plot_samples_and_data(model=model,
-            #                       gen_plot=gen_plot,
-            #                       xmin=args.x_context_range[0],
-            #                       xmax=args.x_context_range[1],
-            #                       root=working_directory.root,
-            #                       epoch=epoch,
-            #                       plot_marginals=plot_marginals)
+            if args.x_dim == 1:
+                plot_samples_and_data(model=model,
+                                      gen_plot=gen_plot,
+                                      xmin=args.x_context_range[0],
+                                      xmax=args.x_context_range[1],
+                                      root=working_directory.root,
+                                      epoch=epoch,
+                                      plot_marginals=plot_marginals)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,
