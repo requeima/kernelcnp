@@ -209,10 +209,6 @@ class ConvEncoder(nn.Module):
             tensor: Outputs of evaluated function at z of shape
                 (Batch, out_channels, x_grid_1,..., x_grid_n).
         """
-        
-        
-        print('In ConvEncoder')
-        print('===============================================')
 
         # Number of input dimensions, d
         # x_grid shape: (x_grid_1, ..., x_grid_d, d)
@@ -221,15 +217,6 @@ class ConvEncoder(nn.Module):
                             self.points_per_unit, 
                             self.grid_multiplier,
                             self.grid_margin)
-        
-        print('x_grid.shape', x_grid.shape)
-        print('self.points_per_unit, self.grid_multiplier, self.grid_margin',
-              self.points_per_unit, self.grid_multiplier, self.grid_margin)
-        
-        print('x_context.shape, x_target.shape',
-              x_context.shape, x_target.shape)
-        
-        print('===============================================')
 
 
         # convert to (1, n_context, x_grid_1, ..., x_grid_d, x_dims)
@@ -312,20 +299,12 @@ class StandardConvNPEncoder(ConvEncoder):
         
     def forward(self, x_context, y_context, x_target):
         
-        
-        print('In StandardConvEncoder')
-        print('===============================================')
-        
-        r = super().forward(x_context, y_context, x_context)
-        print('r.shape')
+        r = super().forward(x_context, y_context, x_target)
         r = self.conv_architecture(r)
-        print('r.shape')
         
         mean = r[:, ::2]
         scale = torch.exp(r[:, 1::2])
         
         distribution = torch.distributions.Normal(loc=mean, scale=scale)
-        print(distribution)
-        print('===============================================')
         
         return distribution

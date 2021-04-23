@@ -175,12 +175,6 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier, grid_margi
         x_mins.append(x_min)
         x_maxs.append(x_max)
         
-        print('Util ~~~~~~~~~~~~~~~~',
-              torch.min(x_context[..., d]).cpu().numpy(),
-              torch.max(x_context[..., d]).cpu().numpy(),
-              torch.min(x_target[..., d]).cpu().numpy(),
-              torch.max(x_target[..., d]).cpu().numpy())
-        
         n = int(to_multiple(points_per_unit * (x_max - x_min),
                                     grid_multiplier))
         

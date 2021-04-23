@@ -7,7 +7,7 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 5.
+GPU_MEMORY_PERCENTAGE = 10.
 
 # Model and data generator configurations
 data_generators = ['eq',

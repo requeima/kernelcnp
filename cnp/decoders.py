@@ -116,10 +116,6 @@ class ConvDecoder(nn.Module):
                 (m, out_channels).
         """
         
-        print('Decoder')
-        print('===============================================')
-        print('r.shape', r.shape)
-        
         # Put the channels in the last dimension
         # (batch, r_out, x_grid_1, ..., x_grid_d)
         r = self.conv(r)
@@ -130,10 +126,6 @@ class ConvDecoder(nn.Module):
                             self.points_per_unit, 
                             self.grid_multiplier,
                             self.grid_margin)
-        
-        
-        print('x_grid.shape', x_grid.shape)
-        print(self.points_per_unit, self.grid_multiplier, self.grid_margin)
         
         # convert to (batch, n_target, x_grid_1, ..., x_grid_d, x_dims)
         x_grid = x_grid[None, None, ...]
@@ -146,14 +138,8 @@ class ConvDecoder(nn.Module):
 
         # Compute RBF
         # Shape: (batch, n_target, x_grid_1, ..., x_grid_d)
-        print('x_target.shape', x_target.shape)
-        
         rbf = (x_grid - x_target) / scales
         rbf = torch.exp(-0.5 * (rbf ** 2).sum(dim=-1))
-
-        print('rbf.shape', rbf.shape)
-        print('r.shape', r.shape)
-        print('===============================================')
 
         # Perform the weighting.
         # Shape: (batch, n_target, r_out).
