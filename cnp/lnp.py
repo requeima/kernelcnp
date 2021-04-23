@@ -56,8 +56,8 @@ class LatentNeuralProcess(nn.Module):
                                       z.shape[1],
                                       z.shape[1])).to(z.device)
             
-            means.append(z[..., :1])
-            noise_vars.append(self.add_noise(zeros, z[..., 1:]))
+            means.append(z)
+            noise_vars.append(self.add_noise(zeros, None))
             
         means = torch.stack(means, dim=0)
         noise_vars = torch.stack(noise_vars, dim=0)
@@ -175,7 +175,7 @@ class StandardConvNP(LatentNeuralProcess):
         decoder_conv_output_channels = 16
         
         # Num channels of output of decoder
-        decoder_out_channels = 2
+        decoder_out_channels = 1
         
         # Encoder convolutional architecture
         encoder_conv = HalfUNet(input_dim=input_dim,
