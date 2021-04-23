@@ -29,7 +29,10 @@ class StandardDecoder(nn.Module):
         self.latent_dim = latent_dim
         self.output_dim = output_dim
 
-        post_pooling_fn = stacked_batch_mlp(self.input_dim, self.latent_dim, self.output_dim)
+        post_pooling_fn = stacked_batch_mlp(self.input_dim,
+                                            self.latent_dim,
+                                            self.output_dim)
+        
         self.post_pooling_fn = init_sequential_weights(post_pooling_fn)
 
     def forward(self, r, x_context, y_context, x_target):
@@ -88,7 +91,9 @@ class ConvDecoder(nn.Module):
         self.grid_margin = grid_margin
         self.points_per_unit = points_per_unit
         self.linear_model = self.build_weight_model()
-        self.sigma = nn.Parameter(np.log(init_length_scale) * torch.ones(self.input_dim), requires_grad=True)
+        self.sigma = nn.Parameter(np.log(init_length_scale) * \
+                                  torch.ones(self.input_dim),
+                                  requires_grad=True)
         self.sigma_fn = torch.exp
 
     def build_weight_model(self):
@@ -135,7 +140,6 @@ class ConvDecoder(nn.Module):
         # Shape: (batch, n_target, x_grid_1, ..., x_grid_d)
         rbf = (x_grid - x_target) / scales
         rbf = torch.exp(-0.5 * (rbf ** 2).sum(dim=-1))
-
 
         # Perform the weighting.
         # Shape: (batch, n_target, r_out).

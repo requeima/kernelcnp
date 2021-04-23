@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+
 __all__ = ['to_multiple',
            'BatchLinear',
            'init_layer_weights',
@@ -158,6 +159,7 @@ def pad_concat(t1, t2):
 
 
 def build_grid(x_context, x_target, points_per_unit, grid_multiplier, grid_margin):
+    
     x_mins = []
     x_maxs = []
     x_grids = []
@@ -169,11 +171,12 @@ def build_grid(x_context, x_target, points_per_unit, grid_multiplier, grid_margi
                     torch.min(x_target[..., d]).cpu().numpy()) - grid_margin
         x_max = max(torch.max(x_context[..., d]).cpu().numpy(),
                     torch.max(x_target[..., d]).cpu().numpy()) + grid_margin
-        n = int(to_multiple(points_per_unit * (x_max - x_min),
-                                    grid_multiplier))
         # update the lists
         x_mins.append(x_min)
         x_maxs.append(x_max)
+        
+        n = int(to_multiple(points_per_unit * (x_max - x_min),
+                                    grid_multiplier))
         
         # compute the x_grid
         x_grids.append(torch.linspace(x_min, x_max, n).to(x_context.device))
@@ -204,6 +207,7 @@ def plot_samples_and_data(model,
                           xmax,
                           root,
                           epoch,
+                          latent_model,
                           plot_marginals):
 
     # Sample datasets from generator
@@ -224,8 +228,13 @@ def plot_samples_and_data(model,
     plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
 
     # Make predictions 
-    tensors = model(ctx_in, ctx_out, plot_inputs)
-    mean, cov, cov_plus_noise = [tensor.detach().cpu() for tensor in tensors]
+    if latent_model:
+        tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=100)
+        sample_means = tensors[0].detach().cpu()
+    
+    else:
+        tensors = model(ctx_in, ctx_out, plot_inputs)
+        mean, cov, cov_plus_noise = [tensor.detach().cpu() for tensor in tensors]
 
     plt.figure(figsize=(16, 3))
 
@@ -235,40 +244,49 @@ def plot_samples_and_data(model,
 
         # Plot samples from predictive distribution
         # Try samlping and plotting with jitter -- if error is raised, plot marginals
-        try:
-            
-            if plot_marginals:
+        if latent_model:
+
+            for j in range(100):
+                plt.plot(plot_inputs[i, :, 0].cpu(),
+                         sample_means[j, i, :, 0],
+                         color='blue',
+                         alpha=0.05,
+                         zorder=2)
+        
+        else:
+            try:
+
+                if plot_marginals:
+                    plt.fill_between(plot_inputs[i, :, 0].cpu(),
+                                     mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
+                                     mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
+                                     color='blue',
+                                     alpha=0.3,
+                                     zorder=1)
+
+                else:
+                    cov_plus_jitter = cov[i, :, :].double() + \
+                                      1e-4 * torch.eye(cov.shape[-1]).double()
+                    dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
+                                                                  covariance_matrix=cov_plus_jitter)
+
+                    for j in range(100):
+                        sample = dist.sample()
+                        plt.plot(plot_inputs[i, :, 0].cpu(), sample, color='blue', alpha=0.05, zorder=2)
+
+            except Exception as e:
+                
                 plt.fill_between(plot_inputs[i, :, 0].cpu(),
                                  mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
                                  mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
                                  color='blue',
                                  alpha=0.3,
                                  zorder=1)
-            
-            else:
-                cov_plus_jitter = cov[i, :, :].double() + \
-                                  1e-4 * torch.eye(cov.shape[-1]).double()
-                dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
-                                                              covariance_matrix=cov_plus_jitter)
 
-                for j in range(100):
-                    sample = dist.sample()
-                    plt.plot(plot_inputs[i, :, 0].cpu(), sample, color='blue', alpha=0.05, zorder=2)
-                
-        except Exception as e:
-            print(e)
-            plt.fill_between(plot_inputs[i, :, 0].cpu(),
-                             mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
-                             mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
-                             color='blue',
-                             alpha=0.3,
-                             zorder=1)
-
-
-        plt.plot(plot_inputs[i, :, 0].cpu(),
-                 mean[i, :, 0],
-                 '--',
-                 color='k')
+            plt.plot(plot_inputs[i, :, 0].cpu(),
+                     mean[i, :, 0],
+                     '--',
+                     color='k')
 
         plt.scatter(ctx_in[i, :, 0].cpu(),
                     ctx_out[i, :, 0].cpu(),
