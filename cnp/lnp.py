@@ -175,7 +175,7 @@ class StandardConvNP(LatentNeuralProcess):
         decoder_conv_output_channels = 16
         
         # Num channels of output of decoder
-        decoder_out_channels = 32
+        decoder_out_channels = 2
         
         # Encoder convolutional architecture
         encoder_conv = HalfUNet(input_dim=input_dim,
@@ -203,7 +203,7 @@ class StandardConvNP(LatentNeuralProcess):
         decoder = ConvDecoder(input_dim=input_dim,
                               conv_architecture=decoder_conv,
                               conv_out_channels=decoder_conv.out_channels,
-                              out_channels=2*decoder_out_channels,
+                              out_channels=decoder_out_channels,
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplier,
