@@ -104,9 +104,9 @@ def stacked_batch_mlp(input_features_dim, latent_features_dim, output_features_d
     """
     """
     mlp = nn.Sequential(BatchLinear(input_features_dim, latent_features_dim),
-                        nn.ReLU(),
+                        nn.Tanh(),
                         BatchLinear(latent_features_dim, latent_features_dim),
-                        nn.ReLU(),
+                        nn.Tanh(),
                         BatchLinear(latent_features_dim, output_features_dim))
     return mlp
 

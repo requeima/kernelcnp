@@ -6,7 +6,7 @@ import nvsmi
 import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
-GPUS_TO_USE = ['0'] # [str(i) for i in range(torch.cuda.device_count())]
+GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 5.
 
 # Model and data generator configurations
@@ -16,15 +16,15 @@ data_generators = ['eq',
                    'weakly-periodic',
                    'sawtooth']
 
-models = ['convGNP']
+models = ['GNP',
+          'AGNP',
+          'convGNP']
 
-# covs = ['innerprod-homo',
-#         'kvv-homo',
-#         'meanfield']
+covs = ['innerprod-homo',
+        'kvv-homo',
+        'meanfield']
 
-covs = ['innerprod-homo']
-
-x_dims = ['2', '3']
+x_dims = ['1', '2']
 
 seeds = [str(i) for i in range(0, 1)]
 
@@ -54,6 +54,14 @@ if __name__ == '__main__':
 
                 seed, x_dim, gen, model, cov = configs[0]
                 
+                if str(seed) == '0' and         \
+                   str(x_dim) == '2' and        \
+                   str(gen) == 'eq' and         \
+                   str(model) == 'convGNP' and  \
+                   str(cov) == 'innerprod-homo':
+                    
+                    continue
+                
                 command = ['python',
                            'train.py',
                            gen,
@@ -72,7 +80,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.call(command)
+                process = subprocess.Popen(command)
 
                 configs = configs[1:]
 
