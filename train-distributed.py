@@ -7,37 +7,28 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 35.
+GPU_MEMORY_PERCENTAGE = 5.
 
 # Model and data generator configurations
-# data_generators = ['eq',
-#                    'matern',
-#                    'noisy-mixture',
-#                    'weakly-periodic',
-#                    'sawtooth']
-
 data_generators = ['eq',
-                   'matern']
+                   'matern',
+                   'noisy-mixture',
+                   'weakly-periodic',
+                   'sawtooth']
 
+models = ['GNP',
+          'AGNP',
+          'convGNP']
 
-# models = ['GNP',
-#           'AGNP',
-#           'MeanTEGNP',
-#           'MeanTEAGNP',
-#           'convGNP',
-#           'TEGNP']
+covs = ['innerprod-homo',
+        'kvv-homo',
+        'meanfield']
 
-models = ['TEGNP']
-
-# covs = ['innerprod-homo',
-#         'kvv-homo',
-#         'meanfield']
-
-covs = ['kvv-homo']
+x_dims = ['1', '2']
 
 seeds = [str(i) for i in range(0, 1)]
 
-configs = list(product(seeds, data_generators, models, covs))
+configs = list(product(seeds, x_dims, data_generators, models, covs))
 
 # Other experiment parameters
 optional_params = {
@@ -61,9 +52,29 @@ if __name__ == '__main__':
 
             if percent_memory_used < GPU_MEMORY_PERCENTAGE:
 
-                seed, gen, moodel, cov = configs[0]
+                seed, x_dim, gen, model, cov = configs[0]
                 
-                command = ['python', 'train.py', gen, moodel, cov, '--train', '--seed', seed, '--gpu', gpu_id]
+                if str(seed) == '0' and         \
+                   str(x_dim) == '2' and        \
+                   str(gen) == 'eq' and         \
+                   str(model) == 'convGNP' and  \
+                   str(cov) == 'innerprod-homo':
+                    
+                    continue
+                
+                command = ['python',
+                           'train.py',
+                           gen,
+                           model,
+                           cov,
+                           '--x_dim',
+                           x_dim,
+                           '--train',
+                           '--seed',
+                           seed,
+                           '--gpu',
+                           gpu_id]
+                
                 command = command + optional_params
                 
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '

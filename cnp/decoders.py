@@ -88,7 +88,7 @@ class ConvDecoder(nn.Module):
         self.conv_out_channels = conv_out_channels
         self.out_channels = out_channels
         self.grid_multiplier = grid_multiplier
-        self.grid_margin =grid_margin
+        self.grid_margin = grid_margin
         self.points_per_unit = points_per_unit
         self.linear_model = self.build_weight_model()
         self.sigma = nn.Parameter(np.log(init_length_scale) * \

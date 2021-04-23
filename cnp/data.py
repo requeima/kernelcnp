@@ -157,8 +157,6 @@ class DataGenerator(metaclass=abc.ABCMeta):
             batch['x_target'].append(x_target)
             batch['y_target'].append(y_target)
             
-#             print(x_context.shape, y_context.shape, x_target.shape, y_target.shape)
-
         # Stack batch and convert to PyTorch
         batch = {k: torch.tensor(_uprank(np.stack(v, axis=0)),
                                  dtype=torch.float32).to(self.device)
