@@ -161,7 +161,8 @@ for seed in seeds:
             
             x_context_ranges = x_dim * [args.x_context_range]
             
-            x_target_ranges = x_dim * [args.x_context_range] if args.x_target_range is None else \
+            x_target_ranges = x_dim * [args.x_context_range] \
+                                    if args.x_target_range is None else \
                               x_dim * [args.x_target_range]
 
             # =================================================================
@@ -204,6 +205,8 @@ for seed in seeds:
             if data_kind == 'sawtooth':
                 
                 if x_dim > 1: continue
+
+                else:
 
                     gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
                                                            batch_size=args.batch_size,
@@ -270,30 +273,14 @@ for seed in seeds:
             
 
             wd = WorkingDirectory(root=path)
+            
+            train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
+            valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
 
             with open(wd.file('train-data.pkl'), 'wb') as file:
                 pickle.dump(train_data, file)
                 file.close()
 
-                
-            if args.test:
-                test_data = [batch for batch in gen_test]
-
-                with open(wd.file('test-data.pkl'), 'wb') as file:
-                    pickle.dump(test_data, file)
-                    file.close()
-                    
-            else:
-              
-                log_args(wd, args)
-                
-                train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
-                valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
-
-                with open(wd.file('train-data.pkl'), 'wb') as file:
-                    pickle.dump(train_data, file)
-                    file.close()
-
-                with open(wd.file('valid-data.pkl'), 'wb') as file:
-                    pickle.dump(valid_data, file)
-                    file.close()
+            with open(wd.file('valid-data.pkl'), 'wb') as file:
+                pickle.dump(valid_data, file)
+                file.close()
