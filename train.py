@@ -63,9 +63,10 @@ def validate(data, data_generator, model, args, device, oracle=True):
                              batch['y_target'][:50].to(device))
             
             oracle_nll = np.array(0.)
+            
             if oracle:
                 if (type(data_generator) == cnp.data.GPGenerator):
-                    for b in range(batch['x_context'].shape[0]):
+                    for b in range(batch['x_context'][:50].shape[0]):
                         oracle_nll =  - data_generator.log_like(batch['x_context'][b],
                                                                 batch['y_context'][b],
                                                                 batch['x_target'][b],
@@ -73,8 +74,8 @@ def validate(data, data_generator, model, args, device, oracle=True):
                         
 
             # Scale by the maximum number of target points            
-            nll_list.append(nll.item()/args.max_num_target)
-            oracle_nll_list.append(oracle_nll.item()/args.max_num_target)
+            nll_list.append(nll.item() / args.max_num_target)
+            oracle_nll_list.append(oracle_nll.item() / args.max_num_target)
                 
     mean_nll = np.mean(nll_list)
     std_nll = (np.var(nll_list) ** 0.5) / np.sqrt(len(nll_list))

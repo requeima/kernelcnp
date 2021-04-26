@@ -56,7 +56,7 @@ class GaussianNeuralProcess(nn.Module):
         y_mean, _, y_cov = self.forward(x_context, y_context, x_target)
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
-                                    covariance_matrix=y_cov)
+                                  covariance_matrix=y_cov)
         
         nll = - torch.mean(dist.log_prob(y_target[:, :, 0]))
         return nll

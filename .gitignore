@@ -136,3 +136,5 @@ dmypy.json
 *.png
 _experiments/*
 __experiments/*
+_np-buggy-experiments
+climate-data

@@ -50,13 +50,13 @@ class LatentNeuralProcess(nn.Module):
         for i in range(num_samples):
             
             r = r_dist.rsample()
-            z = self.decoder(r, x_context, y_context, x_target)
+            mean = self.decoder(r, x_context, y_context, x_target)
             
-            zeros = torch.zeros(size=(z.shape[0],
-                                      z.shape[1],
-                                      z.shape[1])).to(z.device)
+            zeros = torch.zeros(size=(mean.shape[0],
+                                      mean.shape[1],
+                                      mean.shape[1])).to(mean.device)
             
-            means.append(z)
+            means.append(mean)
             noise_vars.append(self.add_noise(zeros, None))
             
         means = torch.stack(means, dim=0)
@@ -65,7 +65,7 @@ class LatentNeuralProcess(nn.Module):
         return means, noise_vars
 
     
-    def loss(self, x_context, y_context, x_target, y_target):
+    def _loss(self, x_context, y_context, x_target, y_target):
         
         S = self.num_samples
         B = y_target.shape[0]
@@ -82,10 +82,10 @@ class LatentNeuralProcess(nn.Module):
         idx = torch.arange(noise_vars.shape[2])
         noise_vars = noise_vars[:, :, idx, idx]
         
-        # Normal with batch shape (S, B, N, D), event shape ()
+        # Normal with batch shape (S, B, N), event shape ()
         normal = torch.distributions.Normal(loc=means, scale=noise_vars ** 0.5)
         
-        # Normal with batch shape (S), event shape (B, N, D)
+        # Normal with batch shape (S), event shape (B, N)
         normal = torch.distributions.Independent(normal, 2)
         
         # Categorical to use for mixing components
@@ -94,9 +94,47 @@ class LatentNeuralProcess(nn.Module):
         
         mixture = torch.distributions.MixtureSameFamily(categorical, normal)
         
-        logprob = mixture.log_prob(y_target[:, :, 0]) / (B * N * D)
+        logprob = mixture.log_prob(y_target[:, :, 0]) / B
         
         return - logprob
+    
+    
+    def loss(self, x_context, y_context, x_target, y_target):
+        
+        B = y_target.shape[0]
+        
+        # Compute mean and variance tensors, each of shape (S, B, N, D)
+        means, noise_vars = self.forward(x_context,
+                                         y_context,
+                                         x_target,
+                                         num_samples=self.num_samples)
+        
+        means = means[:, :, :, 0]
+        idx = torch.arange(noise_vars.shape[2])
+        noise_vars = noise_vars[:, :, idx, idx]
+        
+        logprobs = []
+        
+        for mean, noise_var in zip(means, noise_vars):
+            
+            distribution = torch.distributions.Normal(loc=mean, scale=noise_var ** 0.5)
+            logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]), axis=-1)
+            
+            logprobs.append(logprob)
+            
+        logprobs = torch.stack(logprobs, axis=1)
+        logprob = 0
+        
+        for i, batch_logprobs in enumerate(logprobs):
+            
+            max_batch_logprob = torch.max(batch_logprobs)
+            batch_logprobs = batch_logprobs - max_batch_logprob
+            batch_mix_logprob = torch.log(torch.mean(torch.exp(batch_logprobs)))
+            batch_mix_logprob = batch_mix_logprob + max_batch_logprob
+            
+            logprob = logprob + batch_mix_logprob
+        
+        return - logprob / B
     
 
     def mean_and_marginals(self, x_context, y_context, x_target):
