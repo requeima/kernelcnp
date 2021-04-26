@@ -78,6 +78,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  batch_size,
                  x_context_ranges,
                  max_num_context,
+                 min_num_target,
                  max_num_target,
                  device,
                  x_target_ranges=None):
@@ -89,6 +90,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
         self.iterations_per_epoch = iterations_per_epoch
         self.batch_size = batch_size
         self.max_num_context = max_num_context
+        self.min_num_target = min_num_target
         self.max_num_target = max_num_target
         self.device = device
         
@@ -126,7 +128,8 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
         # Determine number of test and train points.
         num_context_points = np.random.randint(3, self.max_num_context + 1)
-        num_target_points = np.random.randint(3, self.max_num_target + 1)
+        num_target_points = np.random.randint(max(self.min_num_target, 3),
+                                              self.max_num_target + 1)
 
         for i in range(self.batch_size):
             

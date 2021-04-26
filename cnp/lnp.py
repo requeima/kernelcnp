@@ -52,12 +52,16 @@ class LatentNeuralProcess(nn.Module):
             r = r_dist.rsample()
             mean = self.decoder(r, x_context, y_context, x_target)
             
-            zeros = torch.zeros(size=(mean.shape[0],
-                                      mean.shape[1],
-                                      mean.shape[1])).to(mean.device)
+#             zeros = torch.zeros(size=(mean.shape[0],
+#                                       mean.shape[1],
+#                                       mean.shape[1])).to(mean.device)
+            
+            noise_var = 1e-2 * torch.eye(mean.shape[1]).to(mean.device)
+            noise_var = noise_var[None, :, :].repeat(mean.shape[0], 1, 1)
             
             means.append(mean)
-            noise_vars.append(self.add_noise(zeros, None))
+#             noise_vars.append(self.add_noise(zeros, None))
+            noise_vars.append(noise_var)
             
         means = torch.stack(means, dim=0)
         noise_vars = torch.stack(noise_vars, dim=0)

@@ -57,16 +57,16 @@ def validate(data, data_generator, model, args, device, oracle=True):
     
     with torch.no_grad():
         for step, batch in enumerate(data):
-            nll = model.loss(batch['x_context'][:50].to(device),
-                             batch['y_context'][:50].to(device),
-                             batch['x_target'][:50].to(device),
-                             batch['y_target'][:50].to(device))
+            nll = model.loss(batch['x_context'].to(device),
+                             batch['y_context'].to(device),
+                             batch['x_target'].to(device),
+                             batch['y_target'].to(device))
             
             oracle_nll = np.array(0.)
             
             if oracle:
                 if (type(data_generator) == cnp.data.GPGenerator):
-                    for b in range(batch['x_context'][:50].shape[0]):
+                    for b in range(batch['x_context'].shape[0]):
                         oracle_nll =  - data_generator.log_like(batch['x_context'][b],
                                                                 batch['y_context'][b],
                                                                 batch['x_target'][b],
@@ -101,10 +101,10 @@ def train(data, model, optimiser, log, device):
     
     for step, batch in enumerate(data):
 
-        nll = nll + model.loss(batch['x_context'][:50].to(device),
-                                 batch['y_context'][:50].to(device),
-                                 batch['x_target'][:50].to(device),
-                                 batch['y_target'][:50].to(device))
+        nll = nll + model.loss(batch['x_context'].to(device),
+                                 batch['y_context'].to(device),
+                                 batch['x_target'].to(device),
+                                 batch['y_target'].to(device))
         
     # Scale objective by number of iterations
     nll = nll / (step + 1)

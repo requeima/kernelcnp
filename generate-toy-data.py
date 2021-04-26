@@ -34,7 +34,7 @@ parser.add_argument('--test',
                          'experimental root.')
 
 parser.add_argument('--x_dims',
-                    default=[1, 2, 3],
+                    default=[1, 2],
                     nargs='+',
                     type=int,
                     help='Dimensions of x to loop over.')
@@ -57,7 +57,7 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=128,
+                    default=50,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
