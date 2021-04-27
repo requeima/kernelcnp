@@ -137,6 +137,8 @@ class LatentNeuralProcess(nn.Module):
             batch_mix_logprob = batch_mix_logprob + max_batch_logprob
             
             logprob = logprob + batch_mix_logprob
+            
+        logprob = logprob / self.num_samples
         
         return - logprob / B
     

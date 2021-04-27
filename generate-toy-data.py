@@ -221,13 +221,7 @@ for seed in seeds:
                                                            x_target_ranges=x_target_ranges,
                                                            **gen_train_sawtooth_params,
                                                            **gen_params)
-
-                    gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
-                                                          batch_size=args.batch_size,
-                                                          x_context_ranges=x_context_ranges,
-                                                          x_target_ranges=x_target_ranges,
-                                                          **gen_train_sawtooth_params,
-                                                          **gen_params)
+                    
             else:
 
                 if data_kind == 'eq':
@@ -263,14 +257,6 @@ for seed in seeds:
                                                  x_target_ranges=x_target_ranges,
                                                  **gen_params)
 
-                gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
-                                                 batch_size=args.batch_size,
-                                                 kernel=kernel,
-                                                 std_noise=args.std_noise,
-                                                 x_context_ranges=x_context_ranges,
-                                                 x_target_ranges=x_target_ranges,
-                                                 **gen_params)
-            
 
             wd = WorkingDirectory(root=path)
             

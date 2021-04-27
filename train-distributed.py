@@ -7,30 +7,27 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 15.
+GPU_MEMORY_PERCENTAGE = 30.
 
 # Model and data generator configurations
 data_generators = ['eq',
                    'matern',
                    'noisy-mixture',
-                   'weakly-periodic',
-                   'sawtooth']
+                   'weakly-periodic']
 
-# models = ['GNP',
-#           'AGNP',
-#           'convGNP',
-#           'ANP',
-#           'convNP']
+models = ['GNP',
+          'AGNP',
+          'convGNP']
 
 models = ['ANP', 'convNP']
 
-# covs = ['innerprod-homo',
-#         'kvv-homo',
-#         'meanfield']
+covs = ['innerprod-homo',
+        'kvv-homo',
+        'meanfield']
 
 covs = ['meanfield']
 
-x_dims = ['1', '2']
+x_dims = ['1']
 
 seeds = [str(i) for i in range(0, 2)]
 
@@ -59,14 +56,6 @@ if __name__ == '__main__':
             if percent_memory_used < GPU_MEMORY_PERCENTAGE:
 
                 seed, x_dim, gen, model, cov = configs[0]
-                
-                if str(seed) == '0' and         \
-                   str(x_dim) == '2' and        \
-                   str(gen) == 'eq' and         \
-                   str(model) == 'convGNP' and  \
-                   str(cov) == 'innerprod-homo':
-                    
-                    continue
                 
                 command = ['python',
                            'train.py',
