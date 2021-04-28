@@ -100,21 +100,23 @@ class StandardANPEncoder(nn.Module):
 
         self.latent_dim = latent_dim
         self.input_dim = input_dim
+        self.stoch_dim = 4
+        self.det_dim = self.latent_dim - self.stoch_dim
 
         pre_pooling_fn_det = stacked_batch_mlp(self.input_dim,
                                                self.latent_dim,
-                                               self.latent_dim // 2)
+                                               self.det_dim)
         
         self.pre_pooling_fn_det = init_sequential_weights(pre_pooling_fn_det)
         
         pre_pooling_fn_stoch = stacked_batch_mlp(self.input_dim,
                                                  self.latent_dim,
-                                                 self.latent_dim)
+                                                 2*self.stoch_dim)
         
         self.pre_pooling_fn_stoch = init_sequential_weights(pre_pooling_fn_stoch)
 
-        self.pooling_fn_det = CrossAttention(embedding_dim=self.latent_dim//2,
-                                             values_dim=self.latent_dim//2)
+        self.pooling_fn_det = CrossAttention(embedding_dim=self.det_dim,
+                                             values_dim=self.det_dim)
         self.pooling_fn_stoch = MeanPooling(pooling_dim=1)
 
 
@@ -141,8 +143,8 @@ class StandardANPEncoder(nn.Module):
         r_stoch = self.pooling_fn_stoch(r_stoch, x_context, x_target)
         r_stoch = r_stoch.repeat(1, x_target.shape[1], 1)
         
-        r_stoch_mean = r_stoch[:, :, :self.latent_dim//2]
-        r_stoch_scale = r_stoch[:, :, self.latent_dim//2:]
+        r_stoch_mean = r_stoch[:, :, :self.stoch_dim]
+        r_stoch_scale = r_stoch[:, :, self.stoch_dim:]
         r_stoch_scale = torch.nn.Sigmoid()(r_stoch_scale)
         
         # Create distribution

@@ -96,22 +96,32 @@ class MultiHeadAttention(nn.Module):
                  embedding_dim,
                  value_dim,
                  num_heads):
+        
         super(MultiHeadAttention, self).__init__()
+        
+        assert embedding_dim % num_heads == 0
 
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
         self.value_dim = value_dim
         self.head_size = self.embedding_dim // self.num_heads
 
-        self.key_transform = BatchLinear(self.embedding_dim, self.embedding_dim,
+        self.key_transform = BatchLinear(self.embedding_dim,
+                                         self.embedding_dim,
                                          bias=False)
+        
         self.query_transform = BatchLinear(self.embedding_dim,
-                                           self.embedding_dim, bias=False)
+                                           self.embedding_dim,
+                                           bias=False)
+        
         self.value_transform = BatchLinear(self.embedding_dim,
-                                           self.embedding_dim, bias=False)
+                                           self.embedding_dim,
+                                           bias=False)
+        
         self.attention = DotProdAttention(embedding_dim=self.embedding_dim,
                                           values_dim=self.embedding_dim,
                                           linear_transform=False)
+        
         self.head_combine = BatchLinear(self.embedding_dim, self.embedding_dim)
 
     def forward(self, keys, queries, values):
@@ -175,6 +185,7 @@ class CrossAttention(nn.Module):
                  embedding_dim=128,
                  values_dim=128,
                  num_heads=8):
+        
         super(CrossAttention, self).__init__()
 
         self.input_dim = input_dim
@@ -185,6 +196,7 @@ class CrossAttention(nn.Module):
         self._attention = MultiHeadAttention(embedding_dim=self.embedding_dim,
                                              value_dim=self.values_dim,
                                              num_heads=self.num_heads)
+        
         self.embedding = BatchMLP(in_features=self.input_dim,
                                   out_features=self.embedding_dim)
 
@@ -210,7 +222,7 @@ class CrossAttention(nn.Module):
         keys = self.embedding(x_context)
         queries = self.embedding(x_target)
         attn = self._attention(keys, queries, h)
-        out = self.ln1(attn + queries)
+        out = self.ln1(attn + queries) # (B, T)
         return self.ln2(out + self.ff(out))
 
         
