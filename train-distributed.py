@@ -7,7 +7,7 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 30.
+GPU_MEMORY_PERCENTAGE = 5.
 
 # Model and data generator configurations
 data_generators = ['eq',
@@ -15,23 +15,24 @@ data_generators = ['eq',
                    'noisy-mixture',
                    'weakly-periodic']
 
-models = ['GNP',
-          'AGNP',
-          'convGNP']
+#models = ['GNP',
+#          'AGNP',
+#          'convGNP']
 
-models = ['ANP', 'convNP']
+#models = ['ANP', 'convNP']
 
-covs = ['innerprod-homo',
-        'kvv-homo',
-        'meanfield']
+# models = ['convNP']
 
-covs = ['meanfield']
+# covs = ['innerprod-homo',
+#         'kvv-homo',
+#         'meanfield']
 
 x_dims = ['1']
 
-seeds = [str(i) for i in range(0, 2)]
+seeds = [str(i) for i in range(0, 1)]
 
-configs = list(product(seeds, x_dims, data_generators, models, covs))
+# configs = list(product(seeds, x_dims, data_generators, ['convGNP'], covs))
+configs = list(product(seeds, x_dims, data_generators, ['ANP'], ['meanfield']))
 
 # Other experiment parameters
 optional_params = {

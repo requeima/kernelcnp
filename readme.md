@@ -46,13 +46,16 @@
 
 
 # Tasks
-- ~~Investigate losses (oracle and model) reported for the NP models on toy data. It is possible that the NP models were trained on incorrectly scaled values of the objective.~~
-- Investigate poor fits for the ANP and ConvNP. Possibly related to the incorrect scaling of the objectives.
-    - Figure out why ANP produces jagged samples -- probably a bug.
-    - Does the ConvNP have a bug?
+- Include mean field oracle GP.
+- Run toy experiments on 50-large target sets.
+
 - Run all 1D and 2D experiments and consolidate results.
 - Write training scripts for environmental data.
 
 - ~~Implement: 2D and 3D convolutional models~~
 - ~~Implement: ANP, ConvNP~~
+- ~~Investigate losses (oracle and model) reported for the NP models on toy data. It is possible that the NP models were trained on incorrectly scaled values of the objective.~~
+- ~~Investigate poor fits for the ANP and ConvNP. Possibly related to the incorrect scaling of the objectives.~~
+    - ~~Figure out why ANP produces jagged samples -- probably a bug.~~ (Mixed up attetntion and mean aggregation on deterministic and stochastic paths)
+    - ~~Does the ConvNP have a bug?~~ (Probably not, fixed the jaggedness by initilising the SetConv lengthscale to a larger value)
 

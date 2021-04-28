@@ -113,8 +113,9 @@ class StandardANPEncoder(nn.Module):
         
         self.pre_pooling_fn_stoch = init_sequential_weights(pre_pooling_fn_stoch)
 
-        self.pooling_fn_det = MeanPooling(pooling_dim=1)
-        self.pooling_fn_stoch = CrossAttention()
+        self.pooling_fn_det = CrossAttention(embedding_dim=self.latent_dim//2,
+                                             values_dim=self.latent_dim//2)
+        self.pooling_fn_stoch = MeanPooling(pooling_dim=1)
 
 
     def forward(self, x_context, y_context, x_target):
@@ -130,14 +131,15 @@ class StandardANPEncoder(nn.Module):
         
         # Deterministic path
         r_det = self.pre_pooling_fn_det(tensor)
+        r_det = self.pooling_fn_det(r_det, x_context, x_target)
         
-        r_det_mean = self.pooling_fn_det(r_det, x_context, x_target)
-        r_det_mean = r_det_mean.repeat(1, x_target.shape[1], 1)
-        r_det_scale = 1e-9 * torch.ones_like(r_det_mean)
+        r_det_mean = r_det
+        r_det_scale = 1e-9 * torch.ones_like(r_det)
         
         # Stochastic path
         r_stoch = self.pre_pooling_fn_stoch(tensor)
         r_stoch = self.pooling_fn_stoch(r_stoch, x_context, x_target)
+        r_stoch = r_stoch.repeat(1, x_target.shape[1], 1)
         
         r_stoch_mean = r_stoch[:, :, :self.latent_dim//2]
         r_stoch_scale = r_stoch[:, :, self.latent_dim//2:]

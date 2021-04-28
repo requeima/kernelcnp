@@ -142,11 +142,11 @@ class ConvDecoder(nn.Module):
         rbf = torch.exp(-0.5 * (rbf ** 2).sum(dim=-1))
 
         # Perform the weighting.
-        # Shape: (batch, n_target, r_out).
+        # Shape: (batch, n_target, r_out)
         z = torch.einsum('bt..., br... -> btr', rbf, r)
 
-        # Apply the point-wise function.
-        # Shape: (batch, n_out, out_channels).
+        # Apply the point-wise function
+        # Shape: (batch, n_out, out_channels)
         z = self.linear_model(z)
 
         return z

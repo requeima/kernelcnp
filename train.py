@@ -356,7 +356,7 @@ else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'models',
-                                   f'{args.model}',
+                                   f'd-{args.model}',
                                    f'{args.covtype}',
                                    f'seed-{args.seed}',
                                    f'dim-{args.x_dim}')
