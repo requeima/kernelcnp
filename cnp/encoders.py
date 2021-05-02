@@ -337,7 +337,7 @@ class ConvPDEncoder(nn.Module):
 
         # Compute interpolation weights.
         dists2 = B.pw_dists2(xz, x_grid[None, :])
-        weights = B.exp(-0.5 * dists2 / B.exp(self.log_scale))
+        weights = B.exp(-0.5 * dists2 / B.exp(2 * self.log_scale))
         weights = weights[:, None, :, :]  # Insert channel dimension.
 
         # Interpolate to grid.

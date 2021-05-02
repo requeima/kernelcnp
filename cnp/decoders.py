@@ -167,7 +167,7 @@ class ConvPDDecoder(nn.Module):
     def forward(self, xz, z, x):
         # Compute interpolation weights.
         dists2 = B.pw_dists2(xz[None, :], x)
-        weights = B.exp(-0.5 * dists2 / B.exp(self.log_scale))
+        weights = B.exp(-0.5 * dists2 / B.exp(2 * self.log_scale))
         weights = weights[:, None, :, :]  # Insert channel dimension.
 
         # Interpolate to `x`.
