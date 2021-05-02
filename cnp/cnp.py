@@ -89,10 +89,10 @@ class FullConvGNP(nn.Module):
         nn.Module.__init__(self)
 
         points_per_unit_mean = points_per_unit
-        points_per_unit_kernel = points_per_unit // 3
+        points_per_unit_kernel = points_per_unit
 
         num_channels_mean = num_channels
-        num_channels_kernel = num_channels // 2
+        num_channels_kernel = num_channels
 
         self.log_sigma = nn.Parameter(B.log(torch.tensor(0.1)), requires_grad=True)
 
