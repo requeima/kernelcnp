@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import lab.torch as B
 
 from cnp.utils import (
     init_sequential_weights, 
@@ -151,3 +152,25 @@ class ConvDecoder(nn.Module):
 
         return z
         
+
+class ConvPDDecoder(nn.Module):
+    def __init__(self, points_per_unit=20):
+        nn.Module.__init__(self)
+        self.log_scale = nn.Parameter(
+            B.log(torch.tensor(2 / points_per_unit)),
+            requires_grad=True,
+        )
+
+    def forward(self, xz, z, x):
+        # Compute interpolation weights.
+        dists2 = B.pw_dists2(xz[None, :], x)
+        weights = B.exp(-0.5 * dists2 / B.exp(self.log_scale))
+        weights = weights[:, None, :, :]  # Insert channel dimension.
+
+        # Interpolate to `x`.
+        z = B.matmul(weights, z, tr_a=True)
+
+        # Perform PD transform.
+        z = B.matmul(z, z, tr_b=True)
+
+        return xz, z

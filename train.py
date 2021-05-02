@@ -25,7 +25,8 @@ from cnp.experiment import (
 from cnp.cnp import (
     StandardGNP,
     StandardAGNP,
-    StandardConvGNP
+    StandardConvGNP,
+    FullConvGNP
 )
 
 from cnp.lnp import (
@@ -255,6 +256,7 @@ parser.add_argument('model',
                     choices=['GNP',
                              'AGNP',
                              'convGNP',
+                             'fullconvGNP',
                              'ANP',
                              'convNP'],
                     help='Choice of model. ')
@@ -501,7 +503,11 @@ elif args.model == 'convGNP':
     model = StandardConvGNP(input_dim=args.x_dim,
                             covariance=cov,
                             add_noise=noise)
-    
+
+elif args.model == 'fullconvGNP':
+    assert args.x_dim == 1
+    model = FullConvGNP()
+
 elif args.model == 'ANP':
     
     noise = AddHomoNoise()

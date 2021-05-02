@@ -1,20 +1,23 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import lab.torch as B
 
 from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
     StandardEncoder,
-    ConvEncoder
+    ConvEncoder,
+    ConvPDEncoder,
 )
 
 from cnp.decoders import (
     StandardDecoder,
-    ConvDecoder
+    ConvDecoder,
+    ConvPDDecoder,
 )
 
-from cnp.architectures import StandardDepthwiseSeparableCNN, UNet
+from cnp.architectures import StandardDepthwiseSeparableCNN, UNet, build_dws_net
 
 
 
@@ -72,10 +75,114 @@ class GaussianNeuralProcess(nn.Module):
     @property
     def num_params(self):
         """Number of parameters."""
-    
         return np.sum([torch.tensor(param.shape).prod() \
                        for param in self.parameters()])
 
+
+class FullConvGNP(nn.Module):
+    def __init__(
+        self,
+        num_channels=64,
+        receptive_field=4,
+        points_per_unit=64
+    ):
+        nn.Module.__init__(self)
+
+        points_per_unit_mean = points_per_unit
+        points_per_unit_kernel = points_per_unit // 3
+
+        num_channels_mean = num_channels
+        num_channels_kernel = num_channels // 2
+
+        self.log_sigma = nn.Parameter(B.log(torch.tensor(0.1)), requires_grad=True)
+
+        input_dim = 1
+        margin = 0.1
+
+        # Build architectures:
+        self.mean_arch = build_dws_net(
+            receptive_field=receptive_field,
+            points_per_unit=points_per_unit_mean,
+            num_in_channels=num_channels_mean,
+            num_channels=num_channels_mean,
+            num_out_channels=1,
+            dimensionality=input_dim
+        )
+        self.kernel_arch = build_dws_net(
+            receptive_field=receptive_field,
+            points_per_unit=points_per_unit_kernel,
+            num_in_channels=num_channels_kernel,
+            num_channels=num_channels_kernel,
+            num_out_channels=1,
+            dimensionality=2 * input_dim
+        )
+
+        # Build encoders:
+        self.mean_encoder = ConvEncoder(
+            input_dim=input_dim,
+            out_channels=num_channels_mean,
+            init_length_scale=2 / points_per_unit_mean,
+            points_per_unit=points_per_unit_mean,
+            grid_multiplier=1,
+            grid_margin=margin,
+        )
+        self.kernel_encoder = ConvPDEncoder(
+            out_channels=num_channels_kernel,
+            points_per_unit=points_per_unit_kernel,
+            grid_multiplier=1,
+            grid_margin=margin
+        )
+
+        # Build decoders:
+        self.mean_decoder = ConvDecoder(
+            input_dim=input_dim,
+            conv_architecture=self.mean_arch,
+            conv_out_channels=1,
+            out_channels=1,
+            init_length_scale=2 / points_per_unit_mean,
+            points_per_unit=points_per_unit_mean,
+            grid_multiplier=1,
+            grid_margin=margin,
+        )
+        self.kernel_decoder = ConvPDDecoder(
+            points_per_unit=points_per_unit_kernel,
+        )
+
+    def forward(self, x_context, y_context, x_target):
+        # Run mean.
+        r = self.mean_encoder(x_context, y_context, x_target)
+        mean = self.mean_decoder(r, x_context, y_context, x_target)
+
+        # Run kernel.
+        xz, z = self.kernel_encoder(x_context, y_context, x_target)
+        z = self.kernel_arch(z)
+        cov = self.kernel_decoder(xz, z, x_target)[1]
+        cov = cov[:, 0, ...]  # Suppress the channels dimension.
+
+        # Add noise to the kernel.
+        with B.device(str(cov.device)):
+            eye = B.eye(B.dtype(cov), B.shape(cov)[-1])
+            cov_noisy = cov + B.exp(self.log_sigma) * eye[None, ...]
+
+        return mean, cov, cov_noisy
+
+    @property
+    def num_params(self):
+        return sum([int(np.prod(p.shape)) for p in self.parameters()])
+
+    def loss(self, x_context, y_context, x_target, y_target):
+        return GaussianNeuralProcess.loss(
+            self,
+            x_context,
+            y_context,
+            x_target,
+            y_target
+        )
+
+    def mean_and_marginals(self, x_context, y_context, x_target):
+        mean, cov, noisy_cov = self.forward(x_context, y_context, x_target)
+        print(mean.shape)
+        return mean, B.diag_extract(cov), B.diag_extract(noisy_cov)
 
 
 # =============================================================================
