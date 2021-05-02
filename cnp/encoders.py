@@ -293,13 +293,13 @@ class ConvPDEncoder(nn.Module):
 
         if out_channels:
             # Build final linear layer.
-            linear = nn.Sequential(nn.Linear(3, out_channels))
-            init_sequential_weights(linear)
+            self.linear = nn.Sequential(nn.Linear(3, out_channels))
+            init_sequential_weights(self.linear)
 
             def final_linear(x):
                 # Put channels last, apply linear, and undo permutation.
                 x = B.transpose(x, perm=(0, 2, 3, 1))
-                x = linear(x)
+                x = self.linear(x)
                 x = B.transpose(x, perm=(0, 3, 1, 2))
                 return x
 
