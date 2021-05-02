@@ -288,7 +288,8 @@ def build_dws_net(
             in_channels=num_channels,
             out_channels=num_channels,
             kernel_size=kernel_size,
-            padding=padding
+            padding=padding,
+            groups=num_channels,
         ))
         layers.append(conv(
             in_channels=num_channels,
