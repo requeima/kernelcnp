@@ -274,7 +274,7 @@ class ConvEncoder(nn.Module):
         return r
 
 
-class GNPEncoder(nn.Module):
+class ConvPDEncoder(nn.Module):
     def __init__(
         self,
         out_channels=None,
