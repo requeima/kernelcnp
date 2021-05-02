@@ -181,7 +181,6 @@ class FullConvGNP(nn.Module):
 
     def mean_and_marginals(self, x_context, y_context, x_target):
         mean, cov, noisy_cov = self.forward(x_context, y_context, x_target)
-        print(mean.shape)
         return mean, B.diag_extract(cov), B.diag_extract(noisy_cov)
 
 
