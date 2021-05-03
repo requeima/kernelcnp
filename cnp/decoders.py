@@ -144,10 +144,12 @@ class ConvDecoder(nn.Module):
 
         # Perform the weighting.
         # Shape: (batch, n_target, r_out)
-        z = torch.sum(rbf[:, :, None, ...] * r[:, None, :, ...],
-                      dim=tuple(range(3, 3 + c)))
-        # `torch.einsum` gives an error for Torch 1.7.1
-        # z = torch.einsum('bt..., br... -> btr', rbf, r)
+        # `torch.einsum` gives an error for Torch 1.7.1, so we provide an
+        # alternative implementation for the 1D case.
+        if c == 1:
+            z = B.matmul(rbf, r, tr_b=True)
+        else:
+            z = torch.einsum('bt..., br... -> btr', rbf, r)
 
         # Apply the point-wise function
         # Shape: (batch, n_out, out_channels)
