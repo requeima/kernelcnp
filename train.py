@@ -98,25 +98,26 @@ def validate(data, data_generator, model, args, device, oracle=True):
 def train(data, model, optimiser, log, device):
     """ Perform a training epoch. """
 
-    nll = 0.
+    total_nlls = []
     
     for step, batch in enumerate(data):
+        nll = model.loss(batch['x_context'].to(device),
+                         batch['y_context'].to(device),
+                         batch['x_target'].to(device),
+                         batch['y_target'].to(device))
+        n_target = batch['x_target'].shape[1]
+        nll = nll / n_target
+        total_nlls.append(nll)
 
-        nll = nll + model.loss(batch['x_context'].to(device),
-                                 batch['y_context'].to(device),
-                                 batch['x_target'].to(device),
-                                 batch['y_target'].to(device))
-        
-    # Scale objective by number of iterations
-    nll = nll / (step + 1)
-    
+        # Compute gradients and apply them
+        nll.backward()
+        optimiser.step()
+        optimiser.zero_grad()
+
+    nll = sum(total_nlls) / len(total_nlls)
+
     if log:
         print(f"Training   neg. log-lik: {nll:.2f}")
-
-    # Compute gradients and apply them
-    nll.backward()
-    optimiser.step()
-    optimiser.zero_grad()
 
     return nll
 
