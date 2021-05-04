@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 
 from cnp.aggregation import (
-    MeanPooling,
-    FullyConnectedDeepSet
+    FullyConnectedDeepSet,
+    MultiHeadAttention
 )
 
 from cnp.architectures import FullyConnectedNetwork
@@ -89,7 +89,7 @@ class StandardEncoder(nn.Module):
                len(x_target.shape) == 3,
             f'Context inputs and outputs, and target inputs must all have '
             f'three dimensions. Found {len(x_context.shape)} '
-            f'{len(y_context.shape)} and {len(x_target.shape)}'
+            f'{len(y_context.shape)} and {len(x_target.shape)}.'
 
         xy_context = torch.cat([x_context, y_context], dim=-1)
         
@@ -163,7 +163,7 @@ class StandardANPEncoder(nn.Module):
                len(x_target.shape) == 3,
             f'Context inputs and outputs, and target inputs must all have '
             f'three dimensions. Found {len(x_context.shape)} '
-            f'{len(y_context.shape)} and {len(x_target.shape)}'
+            f'{len(y_context.shape)} and {len(x_target.shape)}.'
 
         tensor = torch.cat((x_context, y_context), dim=-1)
         
