@@ -12,12 +12,10 @@ from cnp.architectures import FullyConnectedNetwork
 from cnp.utils import (
     init_sequential_weights, 
     compute_dists, 
-    to_multiple, 
-    stacked_batch_mlp,
+    to_multiple,
     build_grid,
     move_channel_idx
 )
-
 
 
 # =============================================================================
@@ -26,60 +24,78 @@ from cnp.utils import (
 
 
 class StandardEncoder(nn.Module):
-    """Encoder used for standard CNP model.
+    """
+    Encoder used for standard CNP model
 
     Args:
-        input_dim (int): Dimensionality of the input.
-        latent_dim (int): Dimensionality of the hidden representation.
-        use_attention (bool, optional): Use attention. Defaults to `False`.
+        input_dim     (int) : Dimensionality of the input.
+        latent_dim    (int) : Dimensionality of the hidden representation.
+        use_attention (bool): Whether to use attention.
     """
 
     def __init__(self,
                  input_dim,
                  latent_dim,
-                 use_attention=False):
+                 use_attention):
         
         super(StandardEncoder, self).__init__()
 
         self.latent_dim = latent_dim
         self.input_dim = input_dim
         self.use_attention = use_attention
-
-        pre_pooling_fn = stacked_batch_mlp(self.input_dim,
-                                           self.latent_dim,
-                                           self.latent_dim)
         
-        self.pre_pooling_fn = init_sequential_weights(pre_pooling_fn)
+        # Hidden dimensions and nonlinearity type for fully-connected network
+        hidden_dims = [latent_dim]
+        nonlinearity = 'Tanh'
+        
+        # Number of attentive heads - used only if use_attention is True
+        num_heads = 8
+        
+        self.pre_pooling_fn = FullyConnectedNetwork(input_dim=input_dim,
+                                                    output_dim=latent_dim,
+                                                    hidden_dims=hidden_dims,
+                                                    nonlinearity=nonlinearity)
         
         if self.use_attention:
-            self.pooling_fn = CrossAttention()
+            self.pooling_fn = MultiHeadAttention(key_input_dim=latent_dim,
+                                                 key_embedding_dim=latent_dim,
+                                                 value_input_dim=latent_dim,
+                                                 value_embedding_dim=latent_dim,
+                                                 output_embedding_dim=latent_dim,
+                                                 num_heads=num_heads)
+            
         else:
-            self.pooling_fn = MeanPooling(pooling_dim=1)
+            self.pooling_fn = lambda tensor, y, x : torch.mean(tensor,
+                                                               dim=1,
+                                                               keepdim=True)
+            
 
     def forward(self, x_context, y_context, x_target):
-        """Forward pass through the decoder.
+        """
+        Forward pass through the decoder.
 
         Args:
-            x_context (tensor): Context locations of shape
-                `(batch, num_context, input_dim_x)`.
-            y_context (tensor): Context values of shape
-                `(batch, num_context, input_dim_y)`.
-            x_target (tensor, optional): Target locations of shape
-                `(batch, num_target, input_dim_x)`.
+            x_context (tensor): Context inputs,              (B, C, Din)
+            y_context (tensor): Context outputs,             (B, C, Dout)
+            x_target  (tensor): Target inputs for attention, (B, C, Din)
 
         Returns:
-            tensor: Latent representation of each context set of shape
-                `(batch, 1, latent_dim)`.
+            r         (tensor): Latent representation        (B, 1, R)
         """
-        assert len(x_context.shape) == 3, \
-            'Incorrect shapes: ensure x_context is a rank-3 tensor.'
-        assert len(y_context.shape) == 3, \
-            'Incorrect shapes: ensure y_context is a rank-3 tensor.'
+        assert len(x_context.shape) ==   \
+               len(y_context.shape) ==   \
+               len(x_target.shape) == 3,
+            f'Context inputs and outputs, and target inputs must all have '
+            f'three dimensions. Found {len(x_context.shape)} '
+            f'{len(y_context.shape)} and {len(x_target.shape)}'
 
-        decoder_input = torch.cat((x_context, y_context), dim=-1)
+        xy_context = torch.cat([x_context, y_context], dim=-1)
         
-        h = self.pre_pooling_fn(decoder_input)
-        return self.pooling_fn(h, x_context, x_target)
+        tensor = self.pre_pooling_fn(xy_context)
+        
+        r = self.pooling_fn(tensor, x_context, x_target)
+        
+        return r
 
 
 
@@ -115,7 +131,7 @@ class StandardANPEncoder(nn.Module):
 
         self.pooling_fn_det = CrossAttention(embedding_dim=self.det_dim,
                                              values_dim=self.det_dim)
-        self.pooling_fn_stoch = MeanPooling(pooling_dim=1)
+        self.pooling_fn_stoch = lambda h : torch.mean(h, dim=1, keepdim=True)
 
 
     def forward(self, x_context, y_context, x_target):

@@ -5,31 +5,6 @@ import torch.nn as nn
 from cnp.architectures import FullyConnectedNetwork
 
 
-class MeanPooling(nn.Module):
-    """
-    Helper class for performing mean pooling in CNPs.
-
-    Args:
-        pooling_dim (int, optional): Dimension to pool over.
-    """
-
-    def __init__(self, pooling_dim):
-        
-        super(MeanPooling, self).__init__()
-        
-        self.pooling_dim = pooling_dim
-        
-
-    def forward(self, h, *args, **kwargs):
-        """
-        Performs mean pooling.
-
-        Args:
-            h (tensor): Tensor to pool over.
-        """
-        return torch.mean(h, dim=self.pooling_dim, keepdim=True)
-
-
 class DotProdAttention(nn.Module):
     """
     Args:
