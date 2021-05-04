@@ -57,7 +57,7 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=50,
+                    default=64,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
@@ -72,14 +72,15 @@ parser.add_argument('--max_num_target',
                     help='Maximum number of target points.')
 
 parser.add_argument('--num_train_iters',
-                    default=1,
+                    default=256,
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=10,
+                    default=16,
                     type=int,
-                    help='Iterations (# batches sampled) for validation.')
+                    help='Iterations (# batches sampled) for validation.'
+                         'Only used if generate_data_at_traintime is set to True.')
 
 parser.add_argument('--num_test_iters',
                     default=2048,
@@ -87,12 +88,12 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=1000,
+                    default=10,
                     type=int,
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=10000,
+                    default=100,
                     type=int,
                     help='Number of epochs to train for.')
 

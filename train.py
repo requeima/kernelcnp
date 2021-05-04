@@ -49,14 +49,15 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, data_generator, model, args, device, oracle=True):
-    """ Compute the validation loss. """
+def validate(data, data_generator, model, args, device, writer, oracle=True):
     
     nll_list = []
     oracle_nll_list = []
     
     with torch.no_grad():
+        
         for step, batch in enumerate(data):
+            
             nll = model.loss(batch['x_context'].to(device),
                              batch['y_context'].to(device),
                              batch['x_target'].to(device),
@@ -73,7 +74,7 @@ def validate(data, data_generator, model, args, device, oracle=True):
                                                                 batch['y_target'][b])
                         
 
-            # Scale by the maximum number of target points            
+            # Scale by the maximum number of target points
             nll_list.append(nll.item() / args.max_num_target)
             oracle_nll_list.append(oracle_nll.item() / args.max_num_target)
                 
@@ -84,41 +85,42 @@ def validate(data, data_generator, model, args, device, oracle=True):
 
 
     print(f"Validation neg. log-lik: "
-        f"{mean_nll:.2f} +/- "
-        f"{std_nll:.2f}")
+          f"{mean_nll:.2f} +/- "
+          f"{std_nll:.2f}")
 
     print(f"Oracle     neg. log-lik: "
-        f"{mean_oracle:.2f} +/- "
-        f"{std_oracle:.2f}")
+          f"{mean_oracle:.2f} +/- "
+          f"{std_oracle:.2f}")
 
     return mean_nll, std_nll, mean_oracle, std_oracle
 
 
-def train(data, model, optimiser, log, device):
-    """ Perform a training epoch. """
 
-    nll = 0.
+
+def train(data, model, optimiser, log_every, device, writer, training_iteration):
     
     for step, batch in enumerate(data):
 
-        nll = nll + model.loss(batch['x_context'].to(device),
-                                 batch['y_context'].to(device),
-                                 batch['x_target'].to(device),
-                                 batch['y_target'].to(device))
+        nll = model.loss(batch['x_context'].to(device),
+                         batch['y_context'].to(device),
+                         batch['x_target'].to(device),
+                         batch['y_target'].to(device))
+
+        if step % log_every == 0:
+            print(f"Training   neg. log-lik: {nll:.2f}")
+
+        # Compute gradients and apply them
+        nll.backward()
+        optimiser.step()
+        optimiser.zero_grad()
+
+        # Write to tensorboard
+        writer.add_scalar('Train log-lik.', - nll, training_iteration)
         
-    # Scale objective by number of iterations
-    nll = nll / (step + 1)
-    
-    if log:
-        print(f"Training   neg. log-lik: {nll:.2f}")
-
-    # Compute gradients and apply them
-    nll.backward()
-    optimiser.step()
-    optimiser.zero_grad()
-
-    return nll
-
+        training_iteration = training_iteration + 1
+        
+    return training_iteration
+        
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
@@ -153,7 +155,7 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=128,
+                    default=64,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
@@ -168,24 +170,37 @@ parser.add_argument('--max_num_target',
                     help='Maximum number of target points.')
 
 parser.add_argument('--num_train_iters',
-                    default=1,
+                    default=256,
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=25,
+                    default=16,
                     type=int,
-                    help='Iterations (# batches sampled) for validation.')
+                    help='Iterations (# batches sampled) for validation.'
+                         'Only used if generate_data_at_traintime is set to True.')
 
 parser.add_argument('--num_test_iters',
-                    default=2048,
+                    default=1024,
                     type=int,
-                    help='Iterations (# batches sampled) for testing.')
+                    help='Iterations (# batches sampled) for validation.'
+                         'Only used if generate_data_at_traintime is set to True.')
+
+parser.add_argument('--generate_data_at_traintime',
+                    default=False,
+                    action='store_true',
+                    help='Set this to true to generate data at traintime. If'
+                         'this is not set, then pre-generated data will be used.')
+
+parser.add_argument('--epochs',
+                    default=100,
+                    type=int,
+                    help='Number of epochs to train for.')
 
 parser.add_argument('--validate_every',
-                    default=1000,
+                    default=10,
                     type=int,
-                    help='.')
+                    help='Number of epochs between validations.')
 
 parser.add_argument('--eq_params',
                     default=[1.],
@@ -240,11 +255,6 @@ parser.add_argument('--trunc_range',
                     nargs='+',
                     type=float,
                     help='Range of truncations for sawtooth data.')
-
-parser.add_argument('--epochs',
-                    default=10000,
-                    type=int,
-                    help='Number of epochs to train for.')
 
 
 # =============================================================================
@@ -356,7 +366,7 @@ else:
     experiment_name = os.path.join('_experiments',
                                    f'{args.data}',
                                    f'models',
-                                   f'd-{args.model}',
+                                   f'{args.model}',
                                    f'{args.covtype}',
                                    f'seed-{args.seed}',
                                    f'dim-{args.x_dim}')
@@ -543,26 +553,41 @@ latent_model = args.model in ['ANP', 'convNP']
 # Load data
 # =============================================================================
 
-if args.train:
-    file = open(data_directory.file('train-data.pkl'), 'rb')
-    data_train = pickle.load(file)
-    file.close()
-
-    file = open(data_directory.file('valid-data.pkl'), 'rb')
-    data_val = pickle.load(file)
-    file.close()
+if args.generate_data_at_traintime:
     
-if args.test:
-    file = open(data_directory.file('test-data.pkl'), 'rb')
-    data_test = pickle.load(file)
-    file.close()
+    if args.train:
+        
+        data_train = gen_train
+        data_val = gen_val
+        
+    if args.test:
+        
+        data_test = gen_test
+        
+else:
+    
+    if args.train:
+        file = open(data_directory.file('train-data.pkl'), 'rb')
+        data_train = pickle.load(file)
+        file.close()
+
+        file = open(data_directory.file('valid-data.pkl'), 'rb')
+        data_val = pickle.load(file)
+        file.close()
+
+    if args.test:
+        file = open(data_directory.file('test-data.pkl'), 'rb')
+        data_test = pickle.load(file)
+        file.close()
+        
 
 # =============================================================================
 # Train or test model
 # =============================================================================
 
 # Number of epochs between validations
-LOG_EVERY = 1
+train_iteration = 0
+log_every = 100
 
 if args.train:
     
@@ -578,28 +603,29 @@ if args.train:
     
     for epoch in range(args.epochs + 1):
         
-        log = epoch % LOG_EVERY == 0
-        
-        if log:
+        if train_iteration % log_every == 0:
             print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+            
+            
+        train_epoch = data_train if args.generate_data_at_traintime else \
+                      data_train[epoch]
 
         # Compute training negative log-likelihood
-        train_nll = train(data_train[epoch],
-                          model,
-                          optimiser,
-                          log,
-                          device)
-
-        writer.add_scalar('Train log-lik.', - train_nll, epoch)
+        train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
 
         if epoch % args.validate_every == 0:
             
+            valid_epoch = data_val if args.generate_data_at_traintime else \
+                          data_val[epoch // args.validate_every]
+            
             # Compute validation negative log-likelihood
-            val_nll, _, val_oracle, _ = validate(data_val[epoch // args.validate_every],
+            val_nll, _, val_oracle, _ = validate(valid_epoch,
                                                  gen_val,
                                                  model,
-                                                 args=args,
-                                                 device=device)
+                                                 args,
+                                                 device,
+                                                 writer,
+                                                 oracle=True)
             
             writer.add_scalar('Valid log-lik.', - val_nll, epoch)
             writer.add_scalar('Valid oracle log-lik.', - val_oracle, epoch)
@@ -612,6 +638,7 @@ if args.train:
             plot_marginals = args.covtype == 'meanfield'
             
             if args.x_dim == 1:
+                
                 plot_samples_and_data(model=model,
                                       gen_plot=gen_plot,
                                       xmin=args.x_context_range[0],
