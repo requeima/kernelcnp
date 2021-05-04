@@ -86,10 +86,7 @@ class StandardEncoder(nn.Module):
         
         assert len(x_context.shape) ==   \
                len(y_context.shape) ==   \
-               len(x_target.shape) == 3,
-            f'Context inputs and outputs, and target inputs must all have '
-            f'three dimensions. Found {len(x_context.shape)} '
-            f'{len(y_context.shape)} and {len(x_target.shape)}.'
+               len(x_target.shape) == 3
 
         xy_context = torch.cat([x_context, y_context], dim=-1)
         
@@ -160,10 +157,7 @@ class StandardANPEncoder(nn.Module):
         
         assert len(x_context.shape) ==   \
                len(y_context.shape) ==   \
-               len(x_target.shape) == 3,
-            f'Context inputs and outputs, and target inputs must all have '
-            f'three dimensions. Found {len(x_context.shape)} '
-            f'{len(y_context.shape)} and {len(x_target.shape)}.'
+               len(x_target.shape) == 3
 
         tensor = torch.cat((x_context, y_context), dim=-1)
         

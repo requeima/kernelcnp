@@ -85,7 +85,7 @@ class GaussianNeuralProcess(nn.Module):
 
 class StandardGNP(GaussianNeuralProcess):
     
-    def __init__(self, input_dim, covariance, add_noise, use_attention=False):
+    def __init__(self, input_dim, covariance, add_noise):
         
         # Standard input/output dimensions and latent representation dimension
         output_dim = 1
@@ -100,7 +100,7 @@ class StandardGNP(GaussianNeuralProcess):
         # Construct the standard encoder
         encoder = StandardEncoder(input_dim=input_dim + output_dim,
                                   latent_dim=latent_dim,
-                                  use_attention=use_attention)
+                                  use_attention=False)
         
         # Construct the standard decoder
         decoder = StandardDecoder(input_dim=input_dim + latent_dim,
@@ -116,7 +116,7 @@ class StandardGNP(GaussianNeuralProcess):
         self.output_dim = output_dim
         self.latent_dim = latent_dim
         self.num_out_channels = decoder_output_dim
-        self.use_attention = use_attention
+        self.use_attention = False
 
 
 

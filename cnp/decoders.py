@@ -7,7 +7,7 @@ from cnp.utils import (
     compute_dists, 
     build_grid
 )
-from cnp.aggregation import MeanPooling, FullyConnectedDeepSet
+from cnp.aggregation import FullyConnectedDeepSet
 from cnp.architectures import FullyConnectedNetwork
 
 
