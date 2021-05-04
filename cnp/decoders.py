@@ -31,11 +31,15 @@ class StandardDecoder(nn.Module):
         
         super().__init__()
         
+        self.input_dim = input_dim
+        self.latent_dim = latent_dim
+        self.output_dim = output_dim
+        
         hidden_dims = [latent_dim]
         nonlinearity = 'Tanh'
         
-        self.post_pooling_fn = FullyConnectedNetwork(input_dim=input_dim + hidden_dims,
-                                                     output_dim=self.output_dim,
+        self.post_pooling_fn = FullyConnectedNetwork(input_dim=input_dim+latent_dim,
+                                                     output_dim=output_dim,
                                                      hidden_dims=hidden_dims,
                                                      nonlinearity=nonlinearity)
 
