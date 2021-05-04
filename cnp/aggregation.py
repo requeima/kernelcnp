@@ -48,27 +48,23 @@ class DotProdAttention(nn.Module):
         Forward pass of dot-product attention. Given keys K, queries Q and
         values V, this layer computes
         
-            DotProdAttention(K, Q, V) = V * softmax(Q K.T / D1^0.5)
+            DotProdAttention(K, Q, V) = V * softmax(Q K.T / D1^0.5).
             
-        where the following dimensions are assumed
-        
-            Q : (..., C, D1)
-            K : (..., T, D1)
-            V : (..., T, D2)
+        Keys and queries must have the same last dimension.
 
         Args:
-            keys     (tensor): Keys K, shape (..., C, D1)
-            queries  (tensor): Queries Q, shape (..., T, D1)
-            values   (tensor): Queries V, shape (..., C, D2)
+            keys     (tensor): Keys,    shape (..., C, Dk)
+            queries  (tensor): Queries, shape (..., T, Dk)
+            values   (tensor): Values,  shape (..., C, Dv)
 
         Returns:
-            attended (tensor): Attended values A, shape (B, T, D2)
+            attended (tensor): Attended values A, shape (B, T, Dv)
         """
         
-        D = keys.shape[-1]
+        Dk = keys.shape[-1]
         
-        # Compute dot product between keys and queries, normalise by D^0.5
-        dot = torch.einsum('...cd, ...td -> ...ct', keys, queries) / D ** 0.5
+        # Compute dot product between keys and queries, normalise by Dkq^0.5
+        dot = torch.einsum('...cd, ...td -> ...ct', keys, queries) / Dk ** 0.5
         
         # Apply softmax to get attention weights
         attn_weights = nn.functional.softmax(dot, dim=-1)
@@ -83,8 +79,8 @@ class DotProdAttention(nn.Module):
 class MultiHeadAttention(nn.Module):
 
     def __init__(self,
-                 key_query_input_dim,
-                 key_query_embedding_dim,
+                 key_input_dim,
+                 key_embedding_dim,
                  value_input_dim,
                  value_embedding_dim,
                  output_embedding_dim,
@@ -92,8 +88,8 @@ class MultiHeadAttention(nn.Module):
         
         super().__init__()
         
-        self.key_query_input_dim = key_query_input_dim
-        self.key_query_embedding_dim = key_query_embedding_dim
+        self.key_input_dim = key_input_dim
+        self.key_embedding_dim = key_embedding_dim
         
         self.value_input_dim = value_input_dim
         self.value_embedding_dim = value_embedding_dim
@@ -102,12 +98,12 @@ class MultiHeadAttention(nn.Module):
         self.num_heads = num_heads
         
         # Initialise linear layers
-        self.key_linear = nn.Linear(self.key_query_input_dim,
-                                    self.key_query_embedding_dim * self.num_heads,
+        self.key_linear = nn.Linear(self.key_input_dim,
+                                    self.key_embedding_dim * self.num_heads,
                                     bias=False)
 
-        self.query_linear = nn.Linear(self.key_query_input_dim,
-                                      self.key_query_embedding_dim * self.num_heads,
+        self.query_linear = nn.Linear(self.key_input_dim,
+                                      self.key_embedding_dim * self.num_heads,
                                       bias=False)
         
         self.value_linear = nn.Linear(self.value_input_dim,
@@ -127,33 +123,34 @@ class MultiHeadAttention(nn.Module):
         values V, this layer computes
         
             MultiHeadAttention(K, Q, V)
-            
-        where the following dimensions are assumed
-        
-            Q : (B, C, D1)
-            K : (B, T, D1)
-            V : (B, T, D2)
+
+        Args:
+            keys     (tensor): Keys,    shape (..., C, Dk)
+            queries  (tensor): Queries, shape (..., T, Dk)
+            values   (tensor): Values,  shape (..., C, Dv)
         """
         
         B = queries.shape[0]
         C = queries.shape[1]
         T = values.shape[1]
-        D2 = values.shape[2]
+        
+        K = self.key_embedding_dim
+        V = self.value_embedding_dim
+        H = self.num_heads
+        
         
         key_embeddings = self.key_linear(keys)
-        key_embeddings = torch.reshape(key_embeddings,
-                                       (B, self.num_heads, self.key_query_embedding_dim, D1))
+        key_embeddings = torch.reshape(key_embeddings, (B, H, C, K))
         
         query_embeddings = self.query_linear(queries)
-        query_embeddings = torch.reshape(query_embeddings,
-                                         (B, self.num_heads, self.key_query_embedding_dim, D1))
+        query_embeddings = torch.reshape(query_embeddings, (B, H, T, K))
         
         value_embeddings = self.query_linear(values)
-        value_embeddings = torch.reshape(value_embeddings,
-                                         (B, self.num_heads, self.value_embedding_dim, D2))
+        value_embeddings = torch.reshape(value_embeddings, (B, H, C, V))
         
-        # (B, H, T, R)
+        # Apply attention to get tensor of shape (B, H, T, V)
         attended = self.attention(key_embeddings, query_embeddings, value_embeddings)
+        attended = torch.permute(attended, (0, 2, 1, 3))
         attended = torch.reshape(attended, (B, T, -1))
         
         multi_head_attended = self.head_mixer(attended)
