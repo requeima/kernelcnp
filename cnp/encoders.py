@@ -51,7 +51,7 @@ class StandardEncoder(nn.Module):
         # Number of attentive heads - used only if use_attention is True
         num_heads = 8
         
-        self.pre_pooling_fn = FullyConnectedNetwork(input_dim=input_dim,
+        self.pre_pooling_fn = FullyConnectedNetwork(input_dim=input_dim+1,
                                                     output_dim=latent_dim,
                                                     hidden_dims=hidden_dims,
                                                     nonlinearity=nonlinearity)
@@ -66,9 +66,9 @@ class StandardEncoder(nn.Module):
                                                  num_heads=num_heads)
             
         else:
-            self.pooling_fn = lambda tensor, y, x : torch.mean(tensor,
-                                                               dim=1,
-                                                               keepdim=True)
+            self.pooling_fn = lambda _, __, tensor : torch.mean(tensor,
+                                                                dim=1,
+                                                                keepdim=True)
             
 
     def forward(self, x_context, y_context, x_target):
@@ -91,6 +91,8 @@ class StandardEncoder(nn.Module):
         xy_context = torch.cat([x_context, y_context], dim=-1)
         
         tensor = self.pre_pooling_fn(xy_context)
+        
+        print(tensor.shape)
         
         r = self.pooling_fn(x_context, x_target, tensor)
         

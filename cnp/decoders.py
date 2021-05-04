@@ -43,7 +43,8 @@ class StandardDecoder(nn.Module):
                                                      hidden_dims=hidden_dims,
                                                      nonlinearity=nonlinearity)
 
-    def forward(self, r, x_context, y_context, *args, **kwargs):
+        
+    def forward(self, r, x_context, y_context, x_target):
         """
         Forward pass through standard decoder
 
