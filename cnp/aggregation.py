@@ -130,8 +130,8 @@ class MultiHeadAttention(nn.Module):
         """
         
         B = queries.shape[0]
-        C = queries.shape[1]
-        T = values.shape[1]
+        T = queries.shape[1]
+        C = values.shape[1]
         
         K = self.key_embedding_dim
         V = self.value_embedding_dim
@@ -147,7 +147,7 @@ class MultiHeadAttention(nn.Module):
         query_embeddings = torch.reshape(query_embeddings, (B, H, T, K))
         
         # Transform values (B, C, Dv) -> (B, C, H * V) -> (B, H, C, V)
-        value_embeddings = self.query_linear(values)
+        value_embeddings = self.value_linear(values)
         value_embeddings = torch.reshape(value_embeddings, (B, H, C, V))
         
         # Attend keys, values and queries to get tensor (B, H, T, V)
@@ -156,7 +156,7 @@ class MultiHeadAttention(nn.Module):
                                   value_embeddings)
         
         # Reshape attended tensor (B, H, T, V) -> (B, T, H * V)
-        attended = torch.permute(attended, (0, 2, 1, 3))
+        attended = attended.permute((0, 2, 1, 3))
         attended = torch.reshape(attended, (B, T, -1))
         
         # Apply linear mixing layer (B, T, H * V) -> (B, T, O)  where
