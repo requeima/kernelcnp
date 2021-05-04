@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 
 from cnp.aggregation import (
-    CrossAttention,
     MeanPooling,
     FullyConnectedDeepSet
 )
@@ -12,7 +11,6 @@ from cnp.architectures import FullyConnectedNetwork
 
 from cnp.utils import (
     init_sequential_weights, 
-    BatchLinear,
     compute_dists, 
     to_multiple, 
     stacked_batch_mlp,

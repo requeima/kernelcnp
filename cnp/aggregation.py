@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.utils import init_sequential_weights
 from cnp.architectures import BatchMLP, FullyConnectedNetwork
 
 

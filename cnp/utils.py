@@ -9,7 +9,6 @@ import os
 
 
 __all__ = ['to_multiple',
-           'BatchLinear',
            'init_layer_weights',
            'init_sequential_weights',
            'compute_dists',
