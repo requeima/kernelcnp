@@ -117,31 +117,32 @@ class StandardANPEncoder(nn.Module):
         self.input_dim = input_dim
         self.stoch_dim = 64
         self.det_dim = self.latent_dim - self.stoch_dim
+        self.num_heads = 8
         
-        self.det_hidden_dims = [det_dim]
-        self.stoch_hidden_dims = [stoch_dim]
+        self.det_hidden_dims = [self.det_dim]
+        self.stoch_hidden_dims = [self.stoch_dim]
         self.nonlinearity = 'Tanh'
         
-        self.pre_pooling_fn_det = FullyConnectedNetwork(input_dim=self.input_dim,
+        self.pre_pooling_fn_det = FullyConnectedNetwork(input_dim=self.input_dim+1,
                                                         output_dim=self.det_dim,
                                                         hidden_dims=self.det_hidden_dims,
                                                         nonlinearity=self.nonlinearity)
         
-        self.pre_pooling_fn_stoch = FullyConnectedNetwork(input_dim=self.input_dim,
+        self.pre_pooling_fn_stoch = FullyConnectedNetwork(input_dim=self.input_dim+1,
                                                           output_dim=2*self.stoch_dim,
                                                           hidden_dims=self.stoch_hidden_dims,
                                                           nonlinearity=self.nonlinearity)
 
-        self.pooling_fn_det = MultiHeadAttention(key_input_dim=input_dim,
-                                                 key_embedding_dim=det_dim,
-                                                 value_input_dim=det_dim,
-                                                 value_embedding_dim=det_dim,
-                                                 output_embedding_dim=det_dim,
-                                                 num_heads=num_heads)
+        self.pooling_fn_det = MultiHeadAttention(key_input_dim=self.input_dim,
+                                                 key_embedding_dim=self.input_dim,
+                                                 value_input_dim=self.det_dim,
+                                                 value_embedding_dim=self.det_dim,
+                                                 output_embedding_dim=self.det_dim,
+                                                 num_heads=self.num_heads)
         
-        self.pooling_fn_stoch = lambda tensor, y, x : torch.mean(tensor,
-                                                                 dim=1,
-                                                                 keepdim=True)
+        self.pooling_fn_stoch = lambda _, __, tensor : torch.mean(tensor,
+                                                                  dim=1,
+                                                                  keepdim=True)
 
 
     def forward(self, x_context, y_context, x_target):
@@ -154,7 +155,7 @@ class StandardANPEncoder(nn.Module):
             x_target  (tensor): Target inputs for attention, (B, C, Din)
 
         Returns:
-            dist (torch.distributions.Normal): Latent distribution (B, T, 2*R)
+            dist (torch.distribution): Latent distribution (B, T, 2*R)
         """
         
         assert len(x_context.shape) ==   \
@@ -165,14 +166,15 @@ class StandardANPEncoder(nn.Module):
         
         # Deterministic path
         r_det = self.pre_pooling_fn_det(tensor)
-        r_det = self.pooling_fn_det(r_det, x_context, x_target)
+        print(x_context.shape, x_target.shape, r_det.shape)
+        r_det = self.pooling_fn_det(x_context, x_target, r_det)
         
         r_det_mean = r_det
         r_det_scale = 1e-9 * torch.ones_like(r_det)
         
         # Stochastic path
         r_stoch = self.pre_pooling_fn_stoch(tensor)
-        r_stoch = self.pooling_fn_stoch(r_stoch, x_context, x_target)
+        r_stoch = self.pooling_fn_stoch(x_context, x_target, r_stoch)
         r_stoch = r_stoch.repeat(1, x_target.shape[1], 1)
         
         r_stoch_mean = r_stoch[:, :, :self.stoch_dim]
