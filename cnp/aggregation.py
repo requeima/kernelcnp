@@ -125,9 +125,9 @@ class MultiHeadAttention(nn.Module):
             MultiHeadAttention(K, Q, V)
 
         Args:
-            keys     (tensor): Keys,    shape (..., C, Dk)
-            queries  (tensor): Queries, shape (..., T, Dk)
-            values   (tensor): Values,  shape (..., C, Dv)
+            keys     (tensor): Keys,    shape (B, C, Dk)
+            queries  (tensor): Queries, shape (B, T, Dk)
+            values   (tensor): Values,  shape (B, C, Dv)
         """
         
         B = queries.shape[0]
@@ -138,21 +138,30 @@ class MultiHeadAttention(nn.Module):
         V = self.value_embedding_dim
         H = self.num_heads
         
-        
+        # Apply linear layer to keys (B, C, Dk) -> (B, C, K)
         key_embeddings = self.key_linear(keys)
         key_embeddings = torch.reshape(key_embeddings, (B, H, C, K))
         
+        # Apply linear layer to queries (B, C, Dk) -> (B, C, K)
+        # Note Dk and K here because queries are in the same space as the keys
         query_embeddings = self.query_linear(queries)
         query_embeddings = torch.reshape(query_embeddings, (B, H, T, K))
         
+        # Apply linear layer to values (B, C, Dv) -> (B, C, V)
         value_embeddings = self.query_linear(values)
         value_embeddings = torch.reshape(value_embeddings, (B, H, C, V))
         
-        # Apply attention to get tensor of shape (B, H, T, V)
-        attended = self.attention(key_embeddings, query_embeddings, value_embeddings)
+        # Apply attention to get tensor (B, H, T, V)
+        attended = self.attention(key_embeddings,
+                                  query_embeddings,
+                                  value_embeddings)
+        
+        # Reshape attended tensor (B, H, T, V) -> (B, T, H * V)
         attended = torch.permute(attended, (0, 2, 1, 3))
         attended = torch.reshape(attended, (B, T, -1))
         
+        # Apply linear mixing layer (B, T, H * V) -> (B, T, O)  where
+        # O = self.output_embedding_dim
         multi_head_attended = self.head_mixer(attended)
         
         return multi_head_attended
