@@ -113,7 +113,6 @@ class MultiHeadAttention(nn.Module):
         H = self.num_heads
         
         # Transform keys (B, C, Dk) -> (B, C, H * K) -> (B, H, C, K)
-        print(keys.shape, self.key_linear)
         key_embeddings = self.key_linear(keys)
         key_embeddings = torch.reshape(key_embeddings, (B, H, C, K))
         

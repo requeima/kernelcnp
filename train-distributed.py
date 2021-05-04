@@ -7,7 +7,7 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 50.
+GPU_MEMORY_PERCENTAGE = 20.
 
 # Model and data generator configurations
 data_generators = ['eq',
@@ -16,8 +16,10 @@ data_generators = ['eq',
                    'weakly-periodic']
 
 models = ['GNP',
-         'AGNP',
-         'convGNP']
+          'AGNP',
+          'convGNP']
+
+models = ['ANP']
 
 covs = ['innerprod-homo',
         'kvv-homo',
@@ -59,7 +61,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.Popen(command)
+                process = subprocess.call(command)
 
                 configs = configs[1:]
 

@@ -92,8 +92,6 @@ class StandardEncoder(nn.Module):
         
         tensor = self.pre_pooling_fn(xy_context)
         
-        print(tensor.shape)
-        
         r = self.pooling_fn(x_context, x_target, tensor)
         
         return r
@@ -115,9 +113,9 @@ class StandardANPEncoder(nn.Module):
 
         self.latent_dim = latent_dim
         self.input_dim = input_dim
-        self.stoch_dim = 64
-        self.det_dim = self.latent_dim - self.stoch_dim
         self.num_heads = 8
+        self.stoch_dim =  64
+        self.det_dim = self.latent_dim - self.stoch_dim
         
         self.det_hidden_dims = [self.det_dim]
         self.stoch_hidden_dims = [self.stoch_dim]
@@ -166,7 +164,6 @@ class StandardANPEncoder(nn.Module):
         
         # Deterministic path
         r_det = self.pre_pooling_fn_det(tensor)
-        print(x_context.shape, x_target.shape, r_det.shape)
         r_det = self.pooling_fn_det(x_context, x_target, r_det)
         
         r_det_mean = r_det
@@ -175,19 +172,30 @@ class StandardANPEncoder(nn.Module):
         # Stochastic path
         r_stoch = self.pre_pooling_fn_stoch(tensor)
         r_stoch = self.pooling_fn_stoch(x_context, x_target, r_stoch)
-        r_stoch = r_stoch.repeat(1, x_target.shape[1], 1)
         
         r_stoch_mean = r_stoch[:, :, :self.stoch_dim]
         r_stoch_scale = r_stoch[:, :, self.stoch_dim:]
         r_stoch_scale = torch.nn.Sigmoid()(r_stoch_scale)
         
-        # Create distribution
-        mean = torch.cat([r_det_mean, r_stoch_mean], dim=-1)
-        scale = torch.cat([r_det_scale, r_stoch_scale], dim=-1)
+        return r_det, r_stoch_mean, r_stoch_scale
+    
+    
+    def sample(self, forward_output):
         
-        dist = torch.distributions.Normal(loc=mean, scale=scale)
+        # Unpack outputs of forward
+        r_det, r_stoch_mean, r_stoch_scale = forward_output
         
-        return dist
+        # Create normal to sample from
+        dist = torch.distributions.Normal(loc=r_stoch_mean, scale=r_stoch_scale)
+        
+        # Sample normal, repeat sample
+        r_stoch = dist.rsample()
+        r_stoch = r_stoch.repeat(1, r_det.shape[1], 1)
+        
+        # Concatenate with deterministic path
+        r = torch.cat([r_det, r_stoch], dim=-1)
+        
+        return r
 
 
 
@@ -343,6 +351,10 @@ class StandardConvNPEncoder(ConvEncoder):
         mean = r[:, ::2]
         scale = torch.nn.Sigmoid()(r[:, 1::2])
         
-        distribution = torch.distributions.Normal(loc=mean, scale=scale)
+        dist = torch.distributions.Normal(loc=mean, scale=scale)
         
-        return distribution
+        return dist
+    
+    
+    def sample(self, forward_output):
+        return forward_output.rsample()
