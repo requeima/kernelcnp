@@ -12,8 +12,7 @@ __all__ = ['to_multiple',
            'init_layer_weights',
            'init_sequential_weights',
            'compute_dists',
-           'pad_concat',
-           'stacked_batch_mlp']
+           'pad_concat']
 
 
 def to_multiple(x, multiple):
@@ -66,16 +65,6 @@ def init_sequential_weights(model, bias=0.0):
         if hasattr(layer, 'bias'):
             nn.init.constant_(layer.bias, bias)
     return model
-
-def stacked_batch_mlp(input_features_dim, latent_features_dim, output_features_dim):
-    """
-    """
-    mlp = nn.Sequential(BatchLinear(input_features_dim, latent_features_dim),
-                        nn.Tanh(),
-                        BatchLinear(latent_features_dim, latent_features_dim),
-                        nn.Tanh(),
-                        BatchLinear(latent_features_dim, output_features_dim))
-    return mlp
 
 def compute_dists(x, y):
     """Fast computation of pair-wise distances for the 1d case.

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.architectures import BatchMLP, FullyConnectedNetwork
+from cnp.architectures import FullyConnectedNetwork
 
 
 class MeanPooling(nn.Module):
