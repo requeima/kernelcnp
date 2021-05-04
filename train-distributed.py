@@ -15,19 +15,28 @@ data_generators = ['eq',
                    'noisy-mixture',
                    'weakly-periodic']
 
-models = ['GNP',
-          'AGNP',
-          'convGNP']
+# models = ['GNP',
+#           'AGNP',
+#           'ANP',
+#           'ConvGNP',
+#           'ConvNP']
 
-models = ['ANP']
+models = ['ANP',
+          'ConvNP']
 
-covs = ['innerprod-homo',
-        'kvv-homo',
-        'meanfield']
+# models = ['GNP',
+#           'AGNP',
+#           'ConvGNP']
+
+# covs = ['innerprod-homo',
+#         'kvv-homo',
+#         'meanfield']
+
+covs = ['meanfield']
 
 x_dims = ['1']
 
-seeds = [str(i) for i in range(0, 1)]
+seeds = [str(i) for i in range(0)]
 
 configs = list(product(seeds, x_dims, data_generators, models, covs))
 
@@ -61,7 +70,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.call(command)
+                process = subprocess.Popen(command)
 
                 configs = configs[1:]
 
