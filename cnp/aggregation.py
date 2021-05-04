@@ -222,7 +222,7 @@ class CrossAttention(nn.Module):
         keys = self.embedding(x_context)
         queries = self.embedding(x_target)
         attn = self._attention(keys, queries, h)
-        out = self.ln1(attn + queries) # (B, T)
+        out = self.ln1(attn + queries)
         return self.ln2(out + self.ff(out))
 
         

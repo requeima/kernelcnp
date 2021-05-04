@@ -100,7 +100,7 @@ class StandardANPEncoder(nn.Module):
 
         self.latent_dim = latent_dim
         self.input_dim = input_dim
-        self.stoch_dim = 4
+        self.stoch_dim = 64
         self.det_dim = self.latent_dim - self.stoch_dim
 
         pre_pooling_fn_det = stacked_batch_mlp(self.input_dim,
