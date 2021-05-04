@@ -82,14 +82,14 @@ class GaussianNeuralProcess(nn.Module):
 class FullConvGNP(nn.Module):
     def __init__(
         self,
-        num_channels=64,
+        num_channels=32,
         receptive_field=4,
-        points_per_unit=64
+        points_per_unit=32
     ):
         nn.Module.__init__(self)
 
         points_per_unit_mean = points_per_unit
-        points_per_unit_kernel = 20
+        points_per_unit_kernel = points_per_unit // 2
 
         num_channels_mean = num_channels
         num_channels_kernel = num_channels
