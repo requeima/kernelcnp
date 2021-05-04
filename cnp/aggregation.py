@@ -2,228 +2,164 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from cnp.utils import init_sequential_weights, BatchLinear
+from cnp.utils import init_sequential_weights
 from cnp.architectures import BatchMLP, FullyConnectedNetwork
 
+
 class MeanPooling(nn.Module):
-    """Helper class for performing mean pooling in CNPs.
+    """
+    Helper class for performing mean pooling in CNPs.
 
     Args:
-        pooling_dim (int, optional): Dimension to pool over. Defaults to `0`.
+        pooling_dim (int, optional): Dimension to pool over.
     """
 
-    def __init__(self, pooling_dim=0):
+    def __init__(self, pooling_dim):
+        
         super(MeanPooling, self).__init__()
+        
         self.pooling_dim = pooling_dim
+        
 
-    def forward(self, h, x_context, x_target):
-        """Perform pooling operation.
+    def forward(self, h, *args, **kwargs):
+        """
+        Performs mean pooling.
 
         Args:
             h (tensor): Tensor to pool over.
-            x_context (tensor): Context locations. This is not used.
-            x_target (tensor): Target locations. This is not used.
         """
         return torch.mean(h, dim=self.pooling_dim, keepdim=True)
 
 
 class DotProdAttention(nn.Module):
     """
-    Simple dot-product attention module. Can be used multiple times for
-    multi-head attention.
-
     Args:
-        embedding_dim (int): Dimensionality of embedding for keys and queries.
-        values_dim (int): Dimensionality of embedding for values.
-        linear_transform (bool, optional): Use a linear for all embeddings
-            before operation. Defaults to `False`.
+        embedding_dim (int):
+        values_dim (int):
     """
 
-    def __init__(self, embedding_dim, values_dim, linear_transform=False):
-        super(DotProdAttention, self).__init__()
-
-        self.embedding_dim = embedding_dim
-        self.values_dim = values_dim
-        self.linear_transform = linear_transform
-
-        if self.linear_transform:
-            self.key_transform = BatchLinear(self.embedding_dim,
-                                             self.embedding_dim, bias=False)
-            self.query_transform = BatchLinear(self.embedding_dim,
-                                               self.embedding_dim, bias=False)
-            self.value_transform = BatchLinear(self.values_dim,
-                                               self.values_dim, bias=False)
+    def __init__(self):
+        
+        super().__init__()
+        
 
     def forward(self, keys, queries, values):
-        """Forward pass to implement dot-product attention. Assumes that
-        everything is in batch mode.
+        """
+        Forward pass of dot-product attention. Given keys K, queries Q and
+        values V, this layer computes
+        
+            DotProdAttention(K, Q, V) = V * softmax(Q K.T / D1^0.5)
+            
+        where the following dimensions are assumed
+        
+            Q : (..., C, D1)
+            K : (..., T, D1)
+            V : (..., T, D2)
 
         Args:
-            keys (tensor): Keys of shape
-                `(num_functions, num_keys, dim_key)`. dim_key = dim_query
-            queries (tensor): Queries of shape
-                `(num_functions, num_queries, dim_query)`. dim_key = dim_query
-            values (tensor): Values of shape
-                `(num_functions, num_values, dim_value)`. num_values = num_keys
+            keys     (tensor): Keys K, shape (..., C, D1)
+            queries  (tensor): Queries Q, shape (..., T, D1)
+            values   (tensor): Queries V, shape (..., C, D2)
 
         Returns:
-            tensor: Output of shape `(num_functions, num_queries, dim_value)`.
+            attended (tensor): Attended values A, shape (B, T, D2)
         """
-        if self.linear_transform:
-            keys = self.key_transform(keys)
-            queries = self.query_transform(queries)
-            values = self.value_transform(values)
-
-        dk = keys.shape[-1]
-        attn_logits = torch.bmm(queries, keys.permute(0, 2, 1)) / np.sqrt(dk)
-        attn_weights = nn.functional.softmax(attn_logits, dim=-1)
-        return torch.bmm(attn_weights, values)
+        
+        D = keys.shape[-1]
+        
+        # Compute dot product between keys and queries, normalise by D^0.5
+        dot = torch.einsum('...cd, ...td -> ...ct', keys, queries) / D ** 0.5
+        
+        # Apply softmax to get attention weights
+        attn_weights = nn.functional.softmax(dot, dim=-1)
+        
+        # Weight values by attention, to get attended values
+        attended = torch.einsum('...ct, ...cd -> ...td', attn_weights, values)
+        
+        return attended
+    
 
 
 class MultiHeadAttention(nn.Module):
-    """Implementation of multi-head attention in a batch way. Wraps around the
-    dot-product attention module.
-
-    Args:
-        embedding_dim (int): Dimensionality of embedding for keys, values,
-            queries.
-        value_dim (int): Dimensionality of values representation. Is same as
-            above.
-        num_heads (int): Number of dot-product attention heads in module.
-    """
 
     def __init__(self,
-                 embedding_dim,
-                 value_dim,
+                 key_query_input_dim,
+                 key_query_embedding_dim,
+                 value_input_dim,
+                 value_embedding_dim,
+                 output_embedding_dim,
                  num_heads):
         
-        super(MultiHeadAttention, self).__init__()
+        super().__init__()
         
-        assert embedding_dim % num_heads == 0
-
-        self.embedding_dim = embedding_dim
+        self.key_query_input_dim = key_query_input_dim
+        self.key_query_embedding_dim = key_query_embedding_dim
+        
+        self.value_input_dim = value_input_dim
+        self.value_embedding_dim = value_embedding_dim
+        
+        self.output_embedding_dim = output_embedding_dim
         self.num_heads = num_heads
-        self.value_dim = value_dim
-        self.head_size = self.embedding_dim // self.num_heads
+        
+        # Initialise linear layers
+        self.key_linear = nn.Linear(self.key_query_input_dim,
+                                    self.key_query_embedding_dim * self.num_heads,
+                                    bias=False)
 
-        self.key_transform = BatchLinear(self.embedding_dim,
-                                         self.embedding_dim,
-                                         bias=False)
+        self.query_linear = nn.Linear(self.key_query_input_dim,
+                                      self.key_query_embedding_dim * self.num_heads,
+                                      bias=False)
         
-        self.query_transform = BatchLinear(self.embedding_dim,
-                                           self.embedding_dim,
-                                           bias=False)
+        self.value_linear = nn.Linear(self.value_input_dim,
+                                      self.value_embedding_dim * self.num_heads,
+                                      bias=False)
         
-        self.value_transform = BatchLinear(self.embedding_dim,
-                                           self.embedding_dim,
-                                           bias=False)
+        self.attention = DotProdAttention()
         
-        self.attention = DotProdAttention(embedding_dim=self.embedding_dim,
-                                          values_dim=self.embedding_dim,
-                                          linear_transform=False)
+        self.head_mixer = nn.Linear(self.value_embedding_dim * self.num_heads,
+                                    self.output_embedding_dim,
+                                    bias=True)
         
-        self.head_combine = BatchLinear(self.embedding_dim, self.embedding_dim)
 
     def forward(self, keys, queries, values):
-        """Forward pass through multi-head attention module.
-
-        Args:
-            keys (tensor): Keys of shape
-                `(num_functions, num_keys, dim_key)`.
-            queries (tensor): Queries of shape
-                `(num_functions, num_queries, dim_query)`.
-            values (tensor): Values of shape
-                `(num_functions, num_values, dim_value)`.
-
-        Returns:
-            tensor: Output of shape `(num_functions, num_queries, dim_value)`.
         """
-        keys = self.key_transform(keys)
-        queries = self.query_transform(queries)
-        values = self.value_transform(values)
-
-        # Reshape keys, queries, values into shape
-        #     (batch_size * n_heads, num_points, head_size).
-        keys = self._reshape_objects(keys)
-        queries = self._reshape_objects(queries)
-        values = self._reshape_objects(values)
-
-        # Compute attention mechanism, reshape, process, and return.
-        attn = self.attention(keys, queries, values)
-        attn = self._concat_head_outputs(attn)
-        return self.head_combine(attn)
-
-    def _reshape_objects(self, o):
-        num_functions = o.shape[0]
-        o = o.view(num_functions, -1, self.num_heads, self.head_size)
-        o = o.permute(2, 0, 1, 3).contiguous()
-        return o.view(num_functions * self.num_heads, -1, self.head_size)
-
-    def _concat_head_outputs(self, attn):
-        num_functions = attn.shape[0] // self.num_heads
-        attn = attn.view(self.num_heads, num_functions, -1, self.head_size)
-        attn = attn.permute(1, 2, 0, 3).contiguous()
-        return attn.view(num_functions, -1, self.num_heads * self.head_size)
-
-
-class CrossAttention(nn.Module):
-    """Module for transformer-style cross attention to be used by the AttnCNP.
-
-    Args:
-        input_dim (int, optional): Dimensionality of the input locations.
-            Defaults to `1`.
-        embedding_dim (int, optional): Dimensionality of the embeddings (keys).
-            Defaults to `128`.
-        values_dim (int, optional): Dimensionality of the embeddings (values).
-            Defaults to `128`.
-        num_heads (int, optional): Number of attention heads to use. Defaults
-            to `8`.
-    """
-
-    def __init__(self,
-                 input_dim=1,
-                 embedding_dim=128,
-                 values_dim=128,
-                 num_heads=8):
+        Forward pass of dot-product attention. Given keys K, queries Q and
+        values V, this layer computes
         
-        super(CrossAttention, self).__init__()
-
-        self.input_dim = input_dim
-        self.embedding_dim = embedding_dim
-        self.values_dim = values_dim
-        self.num_heads = num_heads
-
-        self._attention = MultiHeadAttention(embedding_dim=self.embedding_dim,
-                                             value_dim=self.values_dim,
-                                             num_heads=self.num_heads)
+            MultiHeadAttention(K, Q, V)
+            
+        where the following dimensions are assumed
         
-        self.embedding = BatchMLP(in_features=self.input_dim,
-                                  out_features=self.embedding_dim)
-
-        # Additional modules for transformer-style computations:
-        self.ln1 = nn.LayerNorm(self.embedding_dim)
-        self.ln2 = nn.LayerNorm(self.embedding_dim)
-        self.ff = BatchLinear(self.embedding_dim, self.embedding_dim)
-
-    def forward(self, h, x_context, x_target):
-        """Forward pass through the cross-attentional mechanism.
-
-        Args:
-            h (tensor): Embeddings for context points of shape
-                `(batch, num_context, embedding_dim)`.
-            x_context (tensor): Context locations of shape
-                `(batch, num_context, input_dim)`.
-            x_target (tensor): Target locations of shape
-                `(batch, num_target, input_dim)`.
-
-        Returns:
-            tensor: Result of forward pass.
+            Q : (B, C, D1)
+            K : (B, T, D1)
+            V : (B, T, D2)
         """
-        keys = self.embedding(x_context)
-        queries = self.embedding(x_target)
-        attn = self._attention(keys, queries, h)
-        out = self.ln1(attn + queries)
-        return self.ln2(out + self.ff(out))
+        
+        B = queries.shape[0]
+        C = queries.shape[1]
+        T = values.shape[1]
+        D2 = values.shape[2]
+        
+        key_embeddings = self.key_linear(keys)
+        key_embeddings = torch.reshape(key_embeddings,
+                                       (B, self.num_heads, self.key_query_embedding_dim, D1))
+        
+        query_embeddings = self.query_linear(queries)
+        query_embeddings = torch.reshape(query_embeddings,
+                                         (B, self.num_heads, self.key_query_embedding_dim, D1))
+        
+        value_embeddings = self.query_linear(values)
+        value_embeddings = torch.reshape(value_embeddings,
+                                         (B, self.num_heads, self.value_embedding_dim, D2))
+        
+        # (B, H, T, R)
+        attended = self.attention(key_embeddings, query_embeddings, value_embeddings)
+        attended = torch.reshape(attended, (B, T, -1))
+        
+        multi_head_attended = self.head_mixer(attended)
+        
+        return multi_head_attended
+
 
         
 # =============================================================================
