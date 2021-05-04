@@ -138,20 +138,20 @@ class MultiHeadAttention(nn.Module):
         V = self.value_embedding_dim
         H = self.num_heads
         
-        # Apply linear layer to keys (B, C, Dk) -> (B, C, K)
+        # Transform keys (B, C, Dk) -> (B, C, H * K) -> (B, H, C, K)
         key_embeddings = self.key_linear(keys)
         key_embeddings = torch.reshape(key_embeddings, (B, H, C, K))
         
-        # Apply linear layer to queries (B, C, Dk) -> (B, C, K)
+        # Transform queries (B, C, Dk) -> (B, C, H * K) -> (B, H, C, K)
         # Note Dk and K here because queries are in the same space as the keys
         query_embeddings = self.query_linear(queries)
         query_embeddings = torch.reshape(query_embeddings, (B, H, T, K))
         
-        # Apply linear layer to values (B, C, Dv) -> (B, C, V)
+        # Transform values (B, C, Dv) -> (B, C, H * V) -> (B, H, C, V)
         value_embeddings = self.query_linear(values)
         value_embeddings = torch.reshape(value_embeddings, (B, H, C, V))
         
-        # Apply attention to get tensor (B, H, T, V)
+        # Attend keys, values and queries to get tensor (B, H, T, V)
         attended = self.attention(key_embeddings,
                                   query_embeddings,
                                   value_embeddings)
