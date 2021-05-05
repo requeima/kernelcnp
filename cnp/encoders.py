@@ -57,8 +57,13 @@ class StandardEncoder(nn.Module):
                                                     nonlinearity=nonlinearity)
         
         if self.use_attention:
+        
+            self.key_query_fn = FullyConnectedNetwork(input_dim=input_dim,
+                                                      output_dim=latent_dim,
+                                                      hidden_dims=hidden_dims,
+                                                      nonlinearity=nonlinearity)
             
-            self.pooling_fn = MultiHeadAttention(key_input_dim=input_dim,
+            self.pooling_fn = MultiHeadAttention(key_input_dim=latent_dim,
                                                  key_embedding_dim=latent_dim,
                                                  value_input_dim=latent_dim,
                                                  value_embedding_dim=latent_dim,
@@ -92,6 +97,11 @@ class StandardEncoder(nn.Module):
         
         tensor = self.pre_pooling_fn(xy_context)
         
+        if self.use_attention:
+            
+            x_context = self.key_query_fn(x_context)
+            x_target = self.key_query_fn(x_target)
+        
         r = self.pooling_fn(x_context, x_target, tensor)
         
         return r
@@ -117,30 +127,35 @@ class StandardANPEncoder(nn.Module):
         self.stoch_dim =  64
         self.det_dim = self.latent_dim - self.stoch_dim
         
-        self.det_hidden_dims = [self.det_dim]
-        self.stoch_hidden_dims = [self.stoch_dim]
-        self.nonlinearity = 'Tanh'
+        self.nonlinearity = 'ReLU'
         
         self.pre_pooling_fn_det = FullyConnectedNetwork(input_dim=self.input_dim+1,
                                                         output_dim=self.det_dim,
-                                                        hidden_dims=self.det_hidden_dims,
+                                                        hidden_dims=6*[self.det_dim],
                                                         nonlinearity=self.nonlinearity)
         
-        self.pre_pooling_fn_stoch = FullyConnectedNetwork(input_dim=self.input_dim+1,
-                                                          output_dim=2*self.stoch_dim,
-                                                          hidden_dims=self.stoch_hidden_dims,
-                                                          nonlinearity=self.nonlinearity)
+        self.key_query_fn = FullyConnectedNetwork(input_dim=input_dim,
+                                                  output_dim=self.det_dim,
+                                                  hidden_dims=2*[self.det_dim],
+                                                  nonlinearity=self.nonlinearity)
 
-        self.pooling_fn_det = MultiHeadAttention(key_input_dim=self.input_dim,
-                                                 key_embedding_dim=self.input_dim,
+        self.pooling_fn_det = MultiHeadAttention(key_input_dim=self.det_dim,
+                                                 key_embedding_dim=self.det_dim,
                                                  value_input_dim=self.det_dim,
                                                  value_embedding_dim=self.det_dim,
                                                  output_embedding_dim=self.det_dim,
                                                  num_heads=self.num_heads)
         
-        self.pooling_fn_stoch = lambda _, __, tensor : torch.mean(tensor,
-                                                                  dim=1,
-                                                                  keepdim=True)
+        
+        self.pre_pooling_fn_stoch = FullyConnectedNetwork(input_dim=self.input_dim+1,
+                                                          output_dim=self.stoch_dim,
+                                                          hidden_dims=3*[self.stoch_dim],
+                                                          nonlinearity=self.nonlinearity)
+        
+        self.post_pooling_fn_stoch = FullyConnectedNetwork(input_dim=self.stoch_dim,
+                                                           output_dim=2*self.stoch_dim,
+                                                           hidden_dims=2*[self.stoch_dim],
+                                                           nonlinearity=self.nonlinearity)
 
 
     def forward(self, x_context, y_context, x_target):
@@ -164,14 +179,17 @@ class StandardANPEncoder(nn.Module):
         
         # Deterministic path
         r_det = self.pre_pooling_fn_det(tensor)
-        r_det = self.pooling_fn_det(x_context, x_target, r_det)
+        r_det = self.pooling_fn_det(self.key_query_fn(x_context),
+                                    self.key_query_fn(x_target),
+                                    r_det)
         
         r_det_mean = r_det
         r_det_scale = 1e-9 * torch.ones_like(r_det)
         
         # Stochastic path
         r_stoch = self.pre_pooling_fn_stoch(tensor)
-        r_stoch = self.pooling_fn_stoch(x_context, x_target, r_stoch)
+        r_stoch = torch.mean(r_stoch, dim=1, keepdim=True)
+        r_stoch = self.post_pooling_fn_stoch(r_stoch)
         
         r_stoch_mean = r_stoch[:, :, :self.stoch_dim]
         r_stoch_scale = r_stoch[:, :, self.stoch_dim:]

@@ -60,7 +60,11 @@ class LatentNeuralProcess(nn.Module):
                                       mean.shape[1],
                                       mean.shape[1])).to(mean.device)
             
+#             noise = torch.eye(size=(mean.shape[1],)).to(mean.device)
+#             noise = 1e-2 * noise[None, :, :].repeat(mean.shape[0], 1, 1)
+            
             means.append(mean)
+#             noise_vars.append(noise)
             noise_vars.append(self.add_noise(zeros, None))
             
         means = torch.stack(means, dim=0)
@@ -69,15 +73,17 @@ class LatentNeuralProcess(nn.Module):
         return means, noise_vars
     
     
-    def loss(self, x_context, y_context, x_target, y_target):
+    def loss(self, x_context, y_context, x_target, y_target, num_samples=None):
         
         B = y_target.shape[0]
+        
+        num_samples = self.num_samples if num_samples is None else num_samples
         
         # Compute mean and variance tensors, each of shape (S, B, N, D)
         means, noise_vars = self.forward(x_context,
                                          y_context,
                                          x_target,
-                                         num_samples=self.num_samples)
+                                         num_samples=num_samples)
         
         means = means[:, :, :, 0]
         idx = torch.arange(noise_vars.shape[2])

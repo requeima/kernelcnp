@@ -18,16 +18,20 @@ data_generators = ['eq',
 # models = ['GNP',
 #           'AGNP',
 #           'ANP',
-#           'ConvGNP',
-#           'ConvNP']
+#           'convGNP',
+#           'convNP']
 
-models = ['ANP']
+# models = ['ANP']
+
+models = ['convNP']
 
 # covs = ['innerprod-homo',
 #         'kvv-homo',
 #         'meanfield']
 
-covs = ['meanfield']
+covs = ['innerprod-homo']
+
+# covs = ['meanfield']
 
 x_dims = ['1']
 

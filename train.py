@@ -49,10 +49,14 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, data_generator, model, args, device, writer, oracle=True):
+def validate(data, data_generator, model, args, device, writer, latent_model, oracle=True):
     
     nll_list = []
     oracle_nll_list = []
+    
+    loss_kwargs = {'num_samples' : args.np_validation_samples} if latent_model else {}
+    
+    print(loss_kwargs)
     
     with torch.no_grad():
         
@@ -61,7 +65,8 @@ def validate(data, data_generator, model, args, device, writer, oracle=True):
             nll = model.loss(batch['x_context'].to(device),
                              batch['y_context'].to(device),
                              batch['x_target'].to(device),
-                             batch['y_target'].to(device))
+                             batch['y_target'].to(device),
+                             **loss_kwargs)
             
             oracle_nll = np.array(0.)
             
@@ -282,6 +287,12 @@ parser.add_argument('--np_loss_samples',
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
+
+parser.add_argument('--np_validation_samples',
+                    default=1024,
+                    type=int,
+                    help='Number of latent samples for evaluating the loss, '
+                         'when validating, used for ANP and ConvNP.')
 
 parser.add_argument('--num_basis_dim',
                     default=512,
@@ -618,6 +629,7 @@ if args.train:
                                                  args,
                                                  device,
                                                  writer,
+                                                 latent_model,
                                                  oracle=True)
             
             writer.add_scalar('Valid log-lik.', - val_nll, epoch)
