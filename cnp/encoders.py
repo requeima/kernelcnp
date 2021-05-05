@@ -46,7 +46,7 @@ class StandardEncoder(nn.Module):
         
         # Hidden dimensions and nonlinearity type for fully-connected network
         hidden_dims = [latent_dim]
-        nonlinearity = 'Tanh'
+        nonlinearity = 'ReLU'
         
         # Number of attentive heads - used only if use_attention is True
         num_heads = 8

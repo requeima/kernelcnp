@@ -36,7 +36,7 @@ class StandardDecoder(nn.Module):
         self.output_dim = output_dim
         
         hidden_dims = [latent_dim]
-        nonlinearity = 'Tanh'
+        nonlinearity = 'ReLU'
         
         self.post_pooling_fn = FullyConnectedNetwork(input_dim=input_dim+latent_dim,
                                                      output_dim=output_dim,

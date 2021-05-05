@@ -67,40 +67,6 @@ class LatentNeuralProcess(nn.Module):
         noise_vars = torch.stack(noise_vars, dim=0)
         
         return means, noise_vars
-
-    
-    def _loss(self, x_context, y_context, x_target, y_target):
-        
-        S = self.num_samples
-        B = y_target.shape[0]
-        N = y_target.shape[1]
-        D = y_target.shape[2]
-        
-        # Compute mean and variance tensors, each of shape (S, B, N, D)
-        means, noise_vars = self.forward(x_context,
-                                         y_context,
-                                         x_target,
-                                         num_samples=self.num_samples)
-        
-        means = means[:, :, :, 0]
-        idx = torch.arange(noise_vars.shape[2])
-        noise_vars = noise_vars[:, :, idx, idx]
-        
-        # Normal with batch shape (S, B, N), event shape ()
-        normal = torch.distributions.Normal(loc=means, scale=noise_vars ** 0.5)
-        
-        # Normal with batch shape (S), event shape (B, N)
-        normal = torch.distributions.Independent(normal, 2)
-        
-        # Categorical to use for mixing components
-        logits = torch.ones(size=(self.num_samples,)).to(means.device)
-        categorical = torch.distributions.Categorical(logits=logits)
-        
-        mixture = torch.distributions.MixtureSameFamily(categorical, normal)
-        
-        logprob = mixture.log_prob(y_target[:, :, 0]) / B
-        
-        return - logprob
     
     
     def loss(self, x_context, y_context, x_target, y_target):
@@ -121,7 +87,8 @@ class LatentNeuralProcess(nn.Module):
         
         for mean, noise_var in zip(means, noise_vars):
             
-            distribution = torch.distributions.Normal(loc=mean, scale=noise_var ** 0.5)
+            distribution = torch.distributions.Normal(loc=mean,
+                                                      scale=noise_var ** 0.5)
             logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]), axis=-1)
             
             logprobs.append(logprob)
@@ -132,13 +99,13 @@ class LatentNeuralProcess(nn.Module):
         for i, batch_logprobs in enumerate(logprobs):
             
             max_batch_logprob = torch.max(batch_logprobs)
+        
             batch_logprobs = batch_logprobs - max_batch_logprob
+            
             batch_mix_logprob = torch.log(torch.mean(torch.exp(batch_logprobs)))
             batch_mix_logprob = batch_mix_logprob + max_batch_logprob
             
             logprob = logprob + batch_mix_logprob
-            
-        logprob = logprob / self.num_samples
         
         return - logprob / B
     
