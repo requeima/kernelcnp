@@ -45,27 +45,23 @@ class LatentNeuralProcess(nn.Module):
         num_samples = self.num_samples if num_samples is None else num_samples
         
         # Pass context set and target inputs through the encoder to obtain
-        # the distribution of the representation
-        r_dist = self.encoder(x_context, y_context, x_target)
+        # the encoder output, as expected by encoder.sample
+        encoder_forward_output = self.encoder(x_context, y_context, x_target)
         
         means = []
         noise_vars = []
         
         for i in range(num_samples):
             
-            r = r_dist.rsample()
+            r = self.encoder.sample(encoder_forward_output)
             mean = self.decoder(r, x_context, y_context, x_target)
             
-#             zeros = torch.zeros(size=(mean.shape[0],
-#                                       mean.shape[1],
-#                                       mean.shape[1])).to(mean.device)
-            
-            noise_var = 1e-2 * torch.eye(mean.shape[1]).to(mean.device)
-            noise_var = noise_var[None, :, :].repeat(mean.shape[0], 1, 1)
+            zeros = torch.zeros(size=(mean.shape[0],
+                                      mean.shape[1],
+                                      mean.shape[1])).to(mean.device)
             
             means.append(mean)
-#             noise_vars.append(self.add_noise(zeros, None))
-            noise_vars.append(noise_var)
+            noise_vars.append(self.add_noise(zeros, None))
             
         means = torch.stack(means, dim=0)
         noise_vars = torch.stack(noise_vars, dim=0)
@@ -180,11 +176,11 @@ class StandardANP(LatentNeuralProcess):
         decoder_output_dim = output_dim + add_noise.extra_noise_dim
 
         # Construct the standard encoder
-        encoder = StandardANPEncoder(input_dim=input_dim + output_dim,
+        encoder = StandardANPEncoder(input_dim=input_dim,
                                      latent_dim=latent_dim)
         
         # Construct the standard decoder
-        decoder = StandardDecoder(input_dim=input_dim+latent_dim,
+        decoder = StandardDecoder(input_dim=input_dim,
                                   latent_dim=latent_dim,
                                   output_dim=decoder_output_dim)
 

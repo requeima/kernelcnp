@@ -4,68 +4,87 @@ import torch.nn as nn
 
 from cnp.utils import (
     init_sequential_weights, 
-    BatchLinear, 
     compute_dists, 
-    stacked_batch_mlp,
     build_grid
 )
-from cnp.aggregation import CrossAttention, MeanPooling, FullyConnectedDeepSet
+from cnp.aggregation import FullyConnectedDeepSet
 from cnp.architectures import FullyConnectedNetwork
 
 
+
+# =============================================================================
+# Standard fully connected decoder architecture
+# =============================================================================
+
+
 class StandardDecoder(nn.Module):
-    """Decoder used for standard CNP model.
+    """
+    Decoder used for standard CNP model.
 
     Args:
-        input_dim (int): Dimensionality of the input.
-        latent_dim (int): Dimensionality of the hidden representation.
-        output_dim (int): Dimensionality of the output.
+        input_dim  (int): Dimension of the input
+        latent_dim (int): Dimension of the hidden representation
+        output_dim (int): Dimension of the output
     """
 
     def __init__(self, input_dim, latent_dim, output_dim):
-        super(StandardDecoder, self).__init__()
-
+        
+        super().__init__()
+        
         self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.output_dim = output_dim
-
-        post_pooling_fn = stacked_batch_mlp(self.input_dim,
-                                            self.latent_dim,
-                                            self.output_dim)
         
-        self.post_pooling_fn = init_sequential_weights(post_pooling_fn)
+        hidden_dims = [latent_dim]
+        nonlinearity = 'Tanh'
+        
+        self.post_pooling_fn = FullyConnectedNetwork(input_dim=input_dim+latent_dim,
+                                                     output_dim=output_dim,
+                                                     hidden_dims=hidden_dims,
+                                                     nonlinearity=nonlinearity)
 
+        
     def forward(self, r, x_context, y_context, x_target):
-        """Forward pass through the decoder.
+        """
+        Forward pass through standard decoder
 
         Args:
-            r (torch.tensor): Hidden representation for each task of shape
-                `(batch, None, latent_dim)`.
-            x_target (tensor): Target locations of shape
-                `(batch, num_targets, input_dim)`.
+            r        (tensor): Hidden representation (B, 1, R)
+            x_target (tensor): Target locations      (B, T, Din)
 
         Returns:
-            tensor: Output values at each query point of shape
-                `(batch, num_targets, output_dim)`
+            z        (tensor): Output features       (B, T, Dout)
         """
-        # Reshape inputs to model.
-        num_functions, num_evaluations = r.shape[0], x_target.shape[1]
+        
+        assert len(r.shape) ==           \
+               len(x_context.shape) ==   \
+               len(y_context.shape) == 3
+        
+        # Reshape inputs to model
+        B = r.shape[0]
+        T = x_target.shape[1]
 
-        # If latent representation is global, repeat once for each input.
+        # If latent representation is global, repeat for every target point
+        # to get tensor (B, T, R)
         if r.shape[1] == 1:
-            r = r.repeat(1, num_evaluations, 1)
+            r = r.repeat(1, T, 1)
 
-        # Concatenate latents with inputs and pass through decoder.
-        # Shape: (batch, num_targets, input_dim + latent_dim).
+        # Concatenate inputs with representation to get (B, T, R + Din)
         z = torch.cat([x_target, r], -1)
         z = self.post_pooling_fn(z)
 
-        # Separate mean and standard deviations and return.
         return z
 
 
+
+# =============================================================================
+# Standard convolutional decoder architecture
+# =============================================================================
+
+
 class ConvDecoder(nn.Module):
-    """One-dimensional Set convolution layer. Uses an RBF kernel for psi(x, x').
+    """
+    One-dimensional Set convolution layer. Uses an RBF kernel for psi(x, x').
 
     Args:
         in_channels (int): Number of inputs channels.
@@ -83,6 +102,7 @@ class ConvDecoder(nn.Module):
                  grid_margin):
 
         super().__init__()
+        
         self.conv = conv_architecture
         self.input_dim = input_dim
         self.conv_out_channels = conv_out_channels

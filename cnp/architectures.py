@@ -496,50 +496,6 @@ class HalfUNet(nn.Module):
         h6 = torch.cat([x, h6], dim=1)
 
         return self.last_layer_multiplier(h6)
-    
-
-# =============================================================================
-# BatchMLP architecture
-# =============================================================================
-
-
-class BatchMLP(nn.Module):
-    """Helper class for a simple MLP operating on order-3 tensors. Stacks
-    several `BatchLinear` modules.
-
-    Args:
-        in_features (int): Dimensionality of inputs to MLP.
-        out_features (int): Dimensionality of outputs of MLP.
-    """
-
-    def __init__(self, in_features, out_features):
-        super(BatchMLP, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.net = nn.Sequential(
-            nn.Linear(in_features=self.in_features,
-                      out_features=self.out_features),
-            nn.ReLU(),
-            nn.Linear(in_features=self.out_features,
-                      out_features=self.out_features)
-        )
-
-    def forward(self, x):
-        """Forward pass through the network. Assumes a batch of tasks as input
-        to the network.
-
-        Args:
-            x (tensor): Inputs of shape
-                `(num_functions, num_points, input_dim)`.
-
-        Returns:
-            tensor: Representation of shape
-                `(num_functions, num_points, output_dim)`.
-        """
-        num_functions, num_points = x.shape[0], x.shape[1]
-        x = x.view(num_functions * num_points, -1)
-        rep = self.net(x)
-        return rep.view(num_functions, num_points, self.out_features)
 
 
 

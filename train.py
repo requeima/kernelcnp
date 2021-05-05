@@ -605,13 +605,6 @@ if args.train:
         
         if train_iteration % log_every == 0:
             print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
-            
-            
-        train_epoch = data_train if args.generate_data_at_traintime else \
-                      data_train[epoch]
-
-        # Compute training negative log-likelihood
-        train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
 
         if epoch % args.validate_every == 0:
             
@@ -647,6 +640,13 @@ if args.train:
                                       epoch=epoch,
                                       latent_model=latent_model,
                                       plot_marginals=plot_marginals)
+            
+            
+        train_epoch = data_train if args.generate_data_at_traintime else \
+                      data_train[epoch]
+
+        # Compute training negative log-likelihood
+        train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
             
         save_checkpoint(working_directory,
                         {'epoch'         : epoch + 1,
