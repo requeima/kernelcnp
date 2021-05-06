@@ -21,17 +21,17 @@ data_generators = ['eq',
 #           'convGNP',
 #           'convNP']
 
-# models = ['ANP']
+models = ['ANP']
 
-models = ['convNP']
+# models = ['convNP']
 
 # covs = ['innerprod-homo',
 #         'kvv-homo',
 #         'meanfield']
 
-covs = ['innerprod-homo']
+# covs = ['innerprod-homo']
 
-# covs = ['meanfield']
+covs = ['meanfield']
 
 x_dims = ['1']
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.call(command)
+                process = subprocess.Popen(command)
 
                 configs = configs[1:]
 
