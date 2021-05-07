@@ -60,11 +60,7 @@ class LatentNeuralProcess(nn.Module):
                                       mean.shape[1],
                                       mean.shape[1])).to(mean.device)
             
-#             noise = torch.eye(size=(mean.shape[1],)).to(mean.device)
-#             noise = 1e-2 * noise[None, :, :].repeat(mean.shape[0], 1, 1)
-            
             means.append(mean)
-#             noise_vars.append(noise)
             noise_vars.append(self.add_noise(zeros, None))
             
         means = torch.stack(means, dim=0)
@@ -218,7 +214,7 @@ class StandardConvNP(LatentNeuralProcess):
 
         # Construct the convolutional encoder
         grid_multiplier =  2 ** encoder_conv.num_halving_layers
-        points_per_unit = 32
+        points_per_unit = 64
         init_length_scale = 8.0 / points_per_unit
         grid_margin = 0.2
         

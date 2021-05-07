@@ -82,21 +82,20 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  iterations_per_epoch,
                  batch_size,
                  x_context_ranges,
-                 min_num_context,
                  max_num_context,
+                 min_num_target,
                  max_num_target,
                  device,
                  x_target_ranges=None):
         
-        assert min_num_context >= 3 and min_num_context <= max_num_context
-        assert max_num_context >= 3 and max_num_target >= 3
+        assert 3 <= min_num_target <= max_num_target and max_num_context >= 3
         assert (x_target_ranges is None) or \
                (len(x_context_ranges) == len(x_target_ranges))
         
         self.iterations_per_epoch = iterations_per_epoch
         self.batch_size = batch_size
-        self.min_num_context = min_num_context
         self.max_num_context = max_num_context
+        self.min_num_target = min_num_target
         self.max_num_target = max_num_target
         self.device = device
         
@@ -133,10 +132,10 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  'y_target'  : []}
 
         # Determine number of test and train points.
-        num_context_points = np.random.randint(self.min_num_context,
-                                               self.max_num_context+1)
+        num_context_points = np.random.randint(3, self.max_num_context+1)
         
-        num_target_points = np.random.randint(3, self.max_num_target+1)
+        num_target_points = np.random.randint(self.min_num_target,
+                                              self.max_num_target+1)
 
         for i in range(self.batch_size):
             

@@ -62,12 +62,12 @@ parser.add_argument('--batch_size',
                     help='Number of tasks per batch sampled.')
 
 parser.add_argument('--max_num_context',
-                    default=50,
+                    default=10,
                     type=int,
                     help='Maximum number of context points.')
 
 parser.add_argument('--min_num_target',
-                    default=50,
+                    default=10,
                     type=int,
                     help='Maximum number of target points.')
 
