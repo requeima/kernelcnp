@@ -5,23 +5,19 @@ import torch.nn as nn
 import lab.torch as B
 
 from cnp.aggregation import (
-    CrossAttention,
-    MeanPooling,
-    FullyConnectedDeepSet
+    FullyConnectedDeepSet,
+    MultiHeadAttention
 )
 
 from cnp.architectures import FullyConnectedNetwork
 
 from cnp.utils import (
     init_sequential_weights, 
-    BatchLinear,
     compute_dists, 
-    to_multiple, 
-    stacked_batch_mlp,
+    to_multiple,
     build_grid,
     move_channel_idx
 )
-
 
 
 # =============================================================================
@@ -30,60 +26,77 @@ from cnp.utils import (
 
 
 class StandardEncoder(nn.Module):
-    """Encoder used for standard CNP model.
+    """
+    Encoder used for standard CNP model
 
     Args:
-        input_dim (int): Dimensionality of the input.
-        latent_dim (int): Dimensionality of the hidden representation.
-        use_attention (bool, optional): Use attention. Defaults to `False`.
+        input_dim     (int) : Dimensionality of the input.
+        latent_dim    (int) : Dimensionality of the hidden representation.
+        use_attention (bool): Whether to use attention.
     """
 
     def __init__(self,
                  input_dim,
                  latent_dim,
-                 use_attention=False):
+                 use_attention):
         
         super(StandardEncoder, self).__init__()
 
-        self.latent_dim = latent_dim
         self.input_dim = input_dim
+        self.latent_dim = latent_dim
         self.use_attention = use_attention
-
-        pre_pooling_fn = stacked_batch_mlp(self.input_dim,
-                                           self.latent_dim,
-                                           self.latent_dim)
         
-        self.pre_pooling_fn = init_sequential_weights(pre_pooling_fn)
+        # Hidden dimensions and nonlinearity type for fully-connected network
+        hidden_dims = [latent_dim]
+        nonlinearity = 'Tanh'
+        
+        # Number of attentive heads - used only if use_attention is True
+        num_heads = 8
+        
+        self.pre_pooling_fn = FullyConnectedNetwork(input_dim=input_dim+1,
+                                                    output_dim=latent_dim,
+                                                    hidden_dims=hidden_dims,
+                                                    nonlinearity=nonlinearity)
         
         if self.use_attention:
-            self.pooling_fn = CrossAttention()
+            
+            self.pooling_fn = MultiHeadAttention(key_input_dim=input_dim,
+                                                 key_embedding_dim=latent_dim,
+                                                 value_input_dim=latent_dim,
+                                                 value_embedding_dim=latent_dim,
+                                                 output_embedding_dim=latent_dim,
+                                                 num_heads=num_heads)
+            
         else:
-            self.pooling_fn = MeanPooling(pooling_dim=1)
+            self.pooling_fn = lambda _, __, tensor : torch.mean(tensor,
+                                                                dim=1,
+                                                                keepdim=True)
+            
 
     def forward(self, x_context, y_context, x_target):
-        """Forward pass through the decoder.
+        """
+        Forward pass through the decoder
 
         Args:
-            x_context (tensor): Context locations of shape
-                `(batch, num_context, input_dim_x)`.
-            y_context (tensor): Context values of shape
-                `(batch, num_context, input_dim_y)`.
-            x_target (tensor, optional): Target locations of shape
-                `(batch, num_target, input_dim_x)`.
+            x_context (tensor): Context inputs,              (B, C, Din)
+            y_context (tensor): Context outputs,             (B, C, Dout)
+            x_target  (tensor): Target inputs for attention, (B, C, Din)
 
         Returns:
-            tensor: Latent representation of each context set of shape
-                `(batch, 1, latent_dim)`.
+            r         (tensor): Latent representation        (B, 1, R)
         """
-        assert len(x_context.shape) == 3, \
-            'Incorrect shapes: ensure x_context is a rank-3 tensor.'
-        assert len(y_context.shape) == 3, \
-            'Incorrect shapes: ensure y_context is a rank-3 tensor.'
-
-        decoder_input = torch.cat((x_context, y_context), dim=-1)
         
-        h = self.pre_pooling_fn(decoder_input)
-        return self.pooling_fn(h, x_context, x_target)
+        assert len(x_context.shape) ==   \
+               len(y_context.shape) ==   \
+               len(x_target.shape) == 3
+
+        xy_context = torch.cat([x_context, y_context], dim=-1)
+        
+        tensor = self.pre_pooling_fn(xy_context)
+        
+        r = self.pooling_fn(x_context, x_target, tensor)
+        
+        return r
 
 
 
@@ -102,60 +115,89 @@ class StandardANPEncoder(nn.Module):
 
         self.latent_dim = latent_dim
         self.input_dim = input_dim
-        self.stoch_dim = 4
+        self.num_heads = 8
+        self.stoch_dim =  64
         self.det_dim = self.latent_dim - self.stoch_dim
+        
+        self.det_hidden_dims = [self.det_dim]
+        self.stoch_hidden_dims = [self.stoch_dim]
+        self.nonlinearity = 'Tanh'
+        
+        self.pre_pooling_fn_det = FullyConnectedNetwork(input_dim=self.input_dim+1,
+                                                        output_dim=self.det_dim,
+                                                        hidden_dims=self.det_hidden_dims,
+                                                        nonlinearity=self.nonlinearity)
+        
+        self.pre_pooling_fn_stoch = FullyConnectedNetwork(input_dim=self.input_dim+1,
+                                                          output_dim=2*self.stoch_dim,
+                                                          hidden_dims=self.stoch_hidden_dims,
+                                                          nonlinearity=self.nonlinearity)
 
-        pre_pooling_fn_det = stacked_batch_mlp(self.input_dim,
-                                               self.latent_dim,
-                                               self.det_dim)
+        self.pooling_fn_det = MultiHeadAttention(key_input_dim=self.input_dim,
+                                                 key_embedding_dim=self.input_dim,
+                                                 value_input_dim=self.det_dim,
+                                                 value_embedding_dim=self.det_dim,
+                                                 output_embedding_dim=self.det_dim,
+                                                 num_heads=self.num_heads)
         
-        self.pre_pooling_fn_det = init_sequential_weights(pre_pooling_fn_det)
-        
-        pre_pooling_fn_stoch = stacked_batch_mlp(self.input_dim,
-                                                 self.latent_dim,
-                                                 2*self.stoch_dim)
-        
-        self.pre_pooling_fn_stoch = init_sequential_weights(pre_pooling_fn_stoch)
-
-        self.pooling_fn_det = CrossAttention(embedding_dim=self.det_dim,
-                                             values_dim=self.det_dim)
-        self.pooling_fn_stoch = MeanPooling(pooling_dim=1)
+        self.pooling_fn_stoch = lambda _, __, tensor : torch.mean(tensor,
+                                                                  dim=1,
+                                                                  keepdim=True)
 
 
     def forward(self, x_context, y_context, x_target):
+        """
+        Forward pass through the decoder
+
+        Args:
+            x_context (tensor): Context inputs,              (B, C, Din)
+            y_context (tensor): Context outputs,             (B, C, Dout)
+            x_target  (tensor): Target inputs for attention, (B, C, Din)
+
+        Returns:
+            dist (torch.distribution): Latent distribution (B, T, 2*R)
+        """
         
-        assert len(x_context.shape) == 3, \
-            'Incorrect shapes: ensure x_context is a rank-3 tensor.'
-        assert len(y_context.shape) == 3, \
-            'Incorrect shapes: ensure y_context is a rank-3 tensor.'
-        assert len(x_target.shape) == 3, \
-            'Incorrect shapes: ensure x_target is a rank-3 tensor.'
+        assert len(x_context.shape) ==   \
+               len(y_context.shape) ==   \
+               len(x_target.shape) == 3
 
         tensor = torch.cat((x_context, y_context), dim=-1)
         
         # Deterministic path
         r_det = self.pre_pooling_fn_det(tensor)
-        r_det = self.pooling_fn_det(r_det, x_context, x_target)
+        r_det = self.pooling_fn_det(x_context, x_target, r_det)
         
         r_det_mean = r_det
         r_det_scale = 1e-9 * torch.ones_like(r_det)
         
         # Stochastic path
         r_stoch = self.pre_pooling_fn_stoch(tensor)
-        r_stoch = self.pooling_fn_stoch(r_stoch, x_context, x_target)
-        r_stoch = r_stoch.repeat(1, x_target.shape[1], 1)
+        r_stoch = self.pooling_fn_stoch(x_context, x_target, r_stoch)
         
         r_stoch_mean = r_stoch[:, :, :self.stoch_dim]
         r_stoch_scale = r_stoch[:, :, self.stoch_dim:]
         r_stoch_scale = torch.nn.Sigmoid()(r_stoch_scale)
         
-        # Create distribution
-        mean = torch.cat([r_det_mean, r_stoch_mean], dim=-1)
-        scale = torch.cat([r_det_scale, r_stoch_scale], dim=-1)
+        return r_det, r_stoch_mean, r_stoch_scale
+    
+    
+    def sample(self, forward_output):
         
-        dist = torch.distributions.Normal(loc=mean, scale=scale)
+        # Unpack outputs of forward
+        r_det, r_stoch_mean, r_stoch_scale = forward_output
         
-        return dist
+        # Create normal to sample from
+        dist = torch.distributions.Normal(loc=r_stoch_mean, scale=r_stoch_scale)
+        
+        # Sample normal, repeat sample
+        r_stoch = dist.rsample()
+        r_stoch = r_stoch.repeat(1, r_det.shape[1], 1)
+        
+        # Concatenate with deterministic path
+        r = torch.cat([r_det, r_stoch], dim=-1)
+        
+        return r
 
 
 
@@ -388,6 +430,10 @@ class StandardConvNPEncoder(ConvEncoder):
         mean = r[:, ::2]
         scale = torch.nn.Sigmoid()(r[:, 1::2])
         
-        distribution = torch.distributions.Normal(loc=mean, scale=scale)
+        dist = torch.distributions.Normal(loc=mean, scale=scale)
         
-        return distribution
+        return dist
+    
+    
+    def sample(self, forward_output):
+        return forward_output.rsample()

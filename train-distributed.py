@@ -7,7 +7,7 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 5.
+GPU_MEMORY_PERCENTAGE = 20.
 
 # Model and data generator configurations
 data_generators = ['eq',
@@ -15,34 +15,30 @@ data_generators = ['eq',
                    'noisy-mixture',
                    'weakly-periodic']
 
-#models = ['GNP',
-#          'AGNP',
-#          'convGNP']
+# models = ['GNP',
+#           'AGNP',
+#           'ANP',
+#           'ConvGNP',
+#           'ConvNP']
 
-#models = ['ANP', 'convNP']
+models = ['ANP',
+          'ConvNP']
 
-# models = ['convNP']
+# models = ['GNP',
+#           'AGNP',
+#           'ConvGNP']
 
 # covs = ['innerprod-homo',
 #         'kvv-homo',
 #         'meanfield']
 
+covs = ['meanfield']
+
 x_dims = ['1']
 
-seeds = [str(i) for i in range(0, 1)]
+seeds = [str(i) for i in range(0)]
 
-# configs = list(product(seeds, x_dims, data_generators, ['convGNP'], covs))
-configs = list(product(seeds, x_dims, data_generators, ['ANP'], ['meanfield']))
-
-# Other experiment parameters
-optional_params = {
-    '--epochs'          : 10000,
-    '--num_train_iters' : 1,
-    '--learning_rate'   : 1e-3
-}
-
-optional_params = [(k, str(v)) for k, v in optional_params.items()]
-optional_params = [param for tup in optional_params for param in tup]
+configs = list(product(seeds, x_dims, data_generators, models, covs))
 
 FNULL = open(os.devnull, 'w')
 
@@ -70,8 +66,6 @@ if __name__ == '__main__':
                            seed,
                            '--gpu',
                            gpu_id]
-                
-                command = command + optional_params
                 
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')

@@ -9,12 +9,10 @@ import os
 
 
 __all__ = ['to_multiple',
-           'BatchLinear',
            'init_layer_weights',
            'init_sequential_weights',
            'compute_dists',
-           'pad_concat',
-           'stacked_batch_mlp']
+           'pad_concat']
 
 
 def to_multiple(x, multiple):
@@ -31,39 +29,6 @@ def to_multiple(x, multiple):
         return x
     else:
         return x + multiple - x % multiple
-
-
-class BatchLinear(nn.Linear):
-    """Helper class for linear layers on order-3 tensors.
-
-    Args:
-        in_features (int): Number of input features.
-        out_features (int): Number of output features.
-        bias (bool, optional): Use a bias. Defaults to `True`.
-    """
-
-    def __init__(self, in_features, out_features, bias=True):
-        super(BatchLinear, self).__init__(in_features=in_features,
-                                          out_features=out_features,
-                                          bias=bias)
-        nn.init.xavier_normal_(self.weight, gain=1)
-        if bias:
-            nn.init.constant_(self.bias, 0.0)
-
-    def forward(self, x):
-        """Forward pass through layer. First unroll batch dimension, then pass
-        through dense layer, and finally reshape back to a order-3 tensor.
-
-        Args:
-              x (tensor): Inputs of shape `(batch, n, in_features)`.
-
-        Returns:
-              tensor: Outputs of shape `(batch, n, out_features)`.
-        """
-        num_functions, num_inputs = x.shape[0], x.shape[1]
-        x = x.view(num_functions * num_inputs, self.in_features)
-        out = super(BatchLinear, self).forward(x)
-        return out.view(num_functions, num_inputs, self.out_features)
 
 
 def init_layer_weights(layer):
@@ -100,16 +65,6 @@ def init_sequential_weights(model, bias=0.0):
         if hasattr(layer, 'bias'):
             nn.init.constant_(layer.bias, bias)
     return model
-
-def stacked_batch_mlp(input_features_dim, latent_features_dim, output_features_dim):
-    """
-    """
-    mlp = nn.Sequential(BatchLinear(input_features_dim, latent_features_dim),
-                        nn.Tanh(),
-                        BatchLinear(latent_features_dim, latent_features_dim),
-                        nn.Tanh(),
-                        BatchLinear(latent_features_dim, output_features_dim))
-    return mlp
 
 def compute_dists(x, y):
     """Fast computation of pair-wise distances for the 1d case.
