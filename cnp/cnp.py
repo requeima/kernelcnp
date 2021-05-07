@@ -90,7 +90,7 @@ class FullConvGNP(nn.Module):
         nn.Module.__init__(self)
 
         points_per_unit_mean = points_per_unit
-        points_per_unit_kernel = points_per_unit / 2
+        points_per_unit_kernel = 30
 
         num_channels_mean = num_channels
         num_channels_kernel = num_channels // 2
