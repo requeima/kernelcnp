@@ -40,7 +40,7 @@ parser.add_argument('--x_dims',
                     help='Dimensions of x to loop over.')
 
 parser.add_argument('--x_context_range',
-                    default=[-3., 3.],
+                    default=[-2., 2.],
                     nargs='+',
                     type=float,
                     help='Range of inputs for sampled data.')
@@ -52,32 +52,37 @@ parser.add_argument('--x_target_range',
                     help='Range of inputs for sampled data.')
 
 parser.add_argument('--std_noise',
-                    default=1e-1,
+                    default=5e-2,
                     type=float,
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=64,
+                    default=16,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
+parser.add_argument('--min_num_context',
+                    default=50,
+                    type=int,
+                    help='Minimum number of context points.')
+
 parser.add_argument('--max_num_context',
-                    default=32,
+                    default=50,
                     type=int,
                     help='Maximum number of context points.')
 
 parser.add_argument('--max_num_target',
-                    default=32,
+                    default=50,
                     type=int,
                     help='Maximum number of target points.')
 
 parser.add_argument('--num_train_iters',
-                    default=256,
+                    default=1024,
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=16,
+                    default=64,
                     type=int,
                     help='Iterations (# batches sampled) for validation.'
                          'Only used if generate_data_at_traintime is set to True.')
@@ -88,12 +93,12 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=10,
+                    default=5,
                     type=int,
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=100,
+                    default=10,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -110,13 +115,13 @@ parser.add_argument('--m52_params',
                     help='.')
 
 parser.add_argument('--mixture_params',
-                    default=[1., 0.5],
+                    default=[1., 0.25],
                     nargs='+',
                     type=float,
                     help='.')
 
 parser.add_argument('--wp_params',
-                    default=[1., 0.5],
+                    default=[1., 0.25],
                     nargs='+',
                     type=float,
                     help='.')
@@ -148,11 +153,13 @@ parser.add_argument('--root',
 args = parser.parse_args()
 
 
-data_kinds = ['eq',
-              'matern',
-              'noisy-mixture',
-              'weakly-periodic',
-              'sawtooth']
+# data_kinds = ['eq',
+#               'matern',
+#               'noisy-mixture',
+#               'weakly-periodic',
+#               'sawtooth']
+
+data_kinds = ['sawtooth']
 
 seeds = list(range(0, 2))
 
@@ -190,6 +197,7 @@ for seed in seeds:
 
             # Training data generator parameters -- used for both Sawtooth and GP
             gen_params = {
+                'min_num_context'           : args.min_num_context,
                 'max_num_context'           : args.max_num_context,
                 'max_num_target'            : args.max_num_target,
                 'device'                    : device
@@ -263,6 +271,19 @@ for seed in seeds:
             
             train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
             valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
+            
+            
+            import os
+            import sys
+            import matplotlib.pyplot as plt
+            
+            xctx = train_data[0][0]['x_context'][0, :, 0]
+            yctx = train_data[0][0]['y_context'][0, :, 0]
+            
+            plt.scatter(xctx, yctx)
+            plt.savefig('./tmp/fig.pdf')
+            plt.close()
+            raise Exception
 
             with open(wd.file('train-data.pkl'), 'wb') as file:
                 pickle.dump(train_data, file)
@@ -270,4 +291,12 @@ for seed in seeds:
 
             with open(wd.file('valid-data.pkl'), 'wb') as file:
                 pickle.dump(valid_data, file)
+                file.close()
+
+            with open(wd.file('gen-train.pkl'), 'wb') as file:
+                pickle.dump(gen_train, file)
+                file.close()
+
+            with open(wd.file('gen-valid.pkl'), 'wb') as file:
+                pickle.dump(gen_valid, file)
                 file.close()

@@ -154,49 +154,6 @@ parser.add_argument('--seed',
                     type=int,
                     help='Random seed to use.')
 
-parser.add_argument('--std_noise',
-                    default=1e-1,
-                    type=float,
-                    help='Standard dev. of noise added to GP-generated data.')
-
-parser.add_argument('--batch_size',
-                    default=64,
-                    type=int,
-                    help='Number of tasks per batch sampled.')
-
-parser.add_argument('--max_num_context',
-                    default=32,
-                    type=int,
-                    help='Maximum number of context points.')
-
-parser.add_argument('--max_num_target',
-                    default=32,
-                    type=int,
-                    help='Maximum number of target points.')
-
-parser.add_argument('--num_train_iters',
-                    default=256,
-                    type=int,
-                    help='Iterations (# batches sampled) per training epoch.')
-
-parser.add_argument('--num_valid_iters',
-                    default=16,
-                    type=int,
-                    help='Iterations (# batches sampled) for validation.'
-                         'Only used if generate_data_at_traintime is set to True.')
-
-parser.add_argument('--num_test_iters',
-                    default=1024,
-                    type=int,
-                    help='Iterations (# batches sampled) for validation.'
-                         'Only used if generate_data_at_traintime is set to True.')
-
-parser.add_argument('--generate_data_at_traintime',
-                    default=False,
-                    action='store_true',
-                    help='Set this to true to generate data at traintime. If'
-                         'this is not set, then pre-generated data will be used.')
-
 parser.add_argument('--epochs',
                     default=100,
                     type=int,
@@ -206,60 +163,6 @@ parser.add_argument('--validate_every',
                     default=10,
                     type=int,
                     help='Number of epochs between validations.')
-
-parser.add_argument('--eq_params',
-                    default=[1.],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--m52_params',
-                    default=[1.],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--mixture_params',
-                    default=[1., 0.5],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--wp_params',
-                    default=[1., 0.5],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--x_context_range',
-                    default=[-3., 3.],
-                    nargs='+',
-                    type=float,
-                    help='Range of input x for sampled data.')
-
-parser.add_argument('--x_target_range',
-                    default=None,
-                    nargs='+',
-                    type=float,
-                    help='Range of inputs for sampled data.')
-
-parser.add_argument('--freq_range',
-                    default=[3., 5.],
-                    nargs='+',
-                    type=float,
-                    help='Range of frequencies for sawtooth data.')
-
-parser.add_argument('--shift_range',
-                    default=[-5., 5.],
-                    nargs='+',
-                    type=float,
-                    help='Range of frequency shifts for sawtooth data.')
-
-parser.add_argument('--trunc_range',
-                    default=[10., 20.],
-                    nargs='+',
-                    type=float,
-                    help='Range of truncations for sawtooth data.')
 
 
 # =============================================================================
@@ -300,7 +203,7 @@ parser.add_argument('--num_basis_dim',
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=1e-3,
+                    default=5e-4,
                     type=float,
                     help='Learning rate.')
 
@@ -308,7 +211,6 @@ parser.add_argument('--weight_decay',
                     default=0.,
                     type=float,
                     help='Weight decay.')
-
 
 
 # =============================================================================
@@ -390,91 +292,6 @@ else:
 file = open(working_directory.file('data_location.txt'), 'w')
 file.write(data_directory.root)
 file.close()
-    
-
-# =============================================================================
-# Create data generators
-# =============================================================================
-
-x_context_ranges = [args.x_context_range] * args.x_dim
-
-# Training data generator parameters -- used for both Sawtooth and GP
-gen_params = {
-    'batch_size'                : args.batch_size,
-    'x_context_ranges'          : x_context_ranges,
-    'max_num_context'           : args.max_num_context,
-    'max_num_target'            : args.max_num_target,
-    'device'                    : device
-}
-
-# Plotting data generator parameters -- used for both Sawtooth and GP
-gen_plot_params = deepcopy(gen_params)
-gen_plot_params['iterations_per_epoch'] = 1
-gen_plot_params['batch_size'] = 3
-gen_plot_params['max_num_context'] = 16
-
-# Training data generator parameters -- specific to Sawtooth
-gen_train_sawtooth_params = {
-    'freq_range'  : args.freq_range,
-    'shift_range' : args.shift_range,
-    'trunc_range' : args.trunc_range
-}
-
-                    
-if args.data == 'sawtooth':
-    
-    gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                           **gen_train_sawtooth_params,
-                                           **gen_params)
-    
-    gen_val = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                         **gen_train_sawtooth_params,
-                                         **gen_params)
-    
-    gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
-                                          **gen_train_sawtooth_params,
-                                          **gen_params)
-    
-    gen_plot = cnp.data.SawtoothGenerator(**gen_train_sawtooth_params,
-                                          **gen_plot_params)
-    
-else:
-    
-    if args.data == 'eq':
-        kernel = stheno.EQ().stretch(args.eq_params[0])
-        
-    elif args.data == 'matern':
-        kernel = stheno.Matern52().stretch(args.m52_params[0])
-        
-    elif args.data == 'noisy-mixture':
-        kernel = stheno.EQ().stretch(args.mixture_params[0]) + \
-                 stheno.EQ().stretch(args.mixture_params[1])
-        
-    elif args.data == 'weakly-periodic':
-        kernel = stheno.EQ().stretch(args.wp_params[0]) * \
-                 stheno.EQ().periodic(period=args.wp_params[1])
-        
-    else:
-        raise ValueError(f'Unknown generator kind "{args.data}".')
-        
-    gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
-                                     kernel=kernel,
-                                     std_noise=args.std_noise,
-                                     **gen_params)
-        
-    gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
-                                   kernel=kernel,
-                                   std_noise=args.std_noise,
-                                   **gen_params)
-        
-    gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
-                                    kernel=kernel,
-                                    std_noise=args.std_noise,
-                                    **gen_params)
-        
-    gen_plot = cnp.data.GPGenerator(kernel=kernel,
-                                    std_noise=args.std_noise,
-                                    **gen_plot_params)
     
 
 
@@ -563,33 +380,20 @@ latent_model = args.model in ['ANP', 'convNP']
 # =============================================================================
 # Load data
 # =============================================================================
-
-if args.generate_data_at_traintime:
     
-    if args.train:
-        
-        data_train = gen_train
-        data_val = gen_val
-        
-    if args.test:
-        
-        data_test = gen_test
-        
-else:
-    
-    if args.train:
-        file = open(data_directory.file('train-data.pkl'), 'rb')
-        data_train = pickle.load(file)
-        file.close()
+if args.train:
+    file = open(data_directory.file('train-data.pkl'), 'rb')
+    data_train = pickle.load(file)
+    file.close()
 
-        file = open(data_directory.file('valid-data.pkl'), 'rb')
-        data_val = pickle.load(file)
-        file.close()
+    file = open(data_directory.file('valid-data.pkl'), 'rb')
+    data_val = pickle.load(file)
+    file.close()
 
-    if args.test:
-        file = open(data_directory.file('test-data.pkl'), 'rb')
-        data_test = pickle.load(file)
-        file.close()
+if args.test:
+    file = open(data_directory.file('test-data.pkl'), 'rb')
+    data_test = pickle.load(file)
+    file.close()
         
 
 # =============================================================================
@@ -600,103 +404,76 @@ else:
 train_iteration = 0
 log_every = 100
 
-if args.train:
     
-    log_args(working_directory, args)
+log_args(working_directory, args)
 
-    # Create optimiser
-    optimiser = torch.optim.Adam(model.parameters(),
-                                 args.learning_rate,
-                                 weight_decay=args.weight_decay)
-    
-    # Run the training loop, maintaining the best objective value
-    best_nll = np.inf
-    
-    for epoch in range(args.epochs + 1):
-        
-        if train_iteration % log_every == 0:
-            print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+# Create optimiser
+optimiser = torch.optim.Adam(model.parameters(),
+                         args.learning_rate,
+                         weight_decay=args.weight_decay)
 
-        if epoch % args.validate_every == 0:
-            
-            valid_epoch = data_val if args.generate_data_at_traintime else \
-                          data_val[epoch // args.validate_every]
-            
-            # Compute validation negative log-likelihood
-            val_nll, _, val_oracle, _ = validate(valid_epoch,
-                                                 gen_val,
-                                                 model,
-                                                 args,
-                                                 device,
-                                                 writer,
-                                                 latent_model,
-                                                 oracle=True)
-            
-            writer.add_scalar('Valid log-lik.', - val_nll, epoch)
-            writer.add_scalar('Valid oracle log-lik.', - val_oracle, epoch)
-            writer.add_scalar('Oracle minus valid log-lik.', - val_oracle + val_nll, epoch)
+# Run the training loop, maintaining the best objective value
+best_nll = np.inf
 
-            # Update the best objective value and checkpoint the model
-            is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
-                                (False, best_nll)
-            
-            plot_marginals = args.covtype == 'meanfield'
-            
-            if args.x_dim == 1:
-                
-                plot_samples_and_data(model=model,
-                                      gen_plot=gen_plot,
-                                      xmin=args.x_context_range[0],
-                                      xmax=args.x_context_range[1],
-                                      root=working_directory.root,
-                                      epoch=epoch,
-                                      latent_model=latent_model,
-                                      plot_marginals=plot_marginals)
-            
-            
-        train_epoch = data_train if args.generate_data_at_traintime else \
-                      data_train[epoch]
+for epoch in range(args.epochs + 1):
 
-        # Compute training negative log-likelihood
-        train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
-            
-        save_checkpoint(working_directory,
-                        {'epoch'         : epoch + 1,
-                         'state_dict'    : model.state_dict(),
-                         'best_acc_top1' : best_obj,
-                         'optimizer'     : optimiser.state_dict()},
-                        is_best=is_best,
-                        epoch=epoch)
-        
-        
+if train_iteration % log_every == 0:
+    print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
-elif args.test:
+if epoch % args.validate_every == 0:
 
-    print('Testing...')
+    valid_epoch = data_val[epoch // args.validate_every]
+
+    # Compute validation negative log-likelihood
+    val_nll, _, val_oracle, _ = validate(valid_epoch,
+                                         gen_val,
+                                         model,
+                                         args,
+                                         device,
+                                         writer,
+                                         latent_model,
+                                         oracle=True)
+
+    # 
+    writer.add_scalar('Valid log-lik.',
+                      -val_nll,
+                      epoch)
     
-    # Load model on appropriate device
-    if device.type == 'cpu':
-        load_dict = torch.load(working_directory.file('model_best.pth.tar',
-                                                      exists=True),
-                               map_location=torch.device('cpu'))
-    else:
-        load_dict = torch.load(working_directory.file('model_best.pth.tar',
-                                                      exists=True))
-        
-    model.load_state_dict(load_dict['state_dict'])
+    writer.add_scalar('Valid oracle log-lik.',
+                      -val_oracle,
+                      epoch)
     
-    # Test model on ~2000 tasks.
-    test_obj, test_obj_std_error, _, _ = validate(data_test, 
-                                            gen_test, 
-                                            model, 
-                                            args, 
-                                            device,
-                                            oracle=False)
-    
-    print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
-    
-    with open(working_directory.file('test_log_likelihood.txt'), 'w') as f:
-        f.write(str(test_obj))
-        
-    with open(working_directory.file('test_log_likelihood_standard_error.txt'), 'w') as f:
-        f.write(str(test_obj_std_error))
+    writer.add_scalar('Oracle minus valid log-lik.',
+                      -val_oracle + val_nll,
+                      epoch)
+
+    # Update the best objective value and checkpoint the model
+    is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
+                        (False, best_nll)
+
+    plot_marginals = args.covtype == 'meanfield'
+
+    if args.x_dim == 1:
+
+        plot_samples_and_data(model=model,
+                              gen_plot=gen_plot,
+                              xmin=args.x_context_range[0],
+                              xmax=args.x_context_range[1],
+                              root=working_directory.root,
+                              epoch=epoch,
+                              latent_model=latent_model,
+                              plot_marginals=plot_marginals)
+
+
+train_epoch = data_train[epoch]
+
+# Compute training negative log-likelihood
+train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
+
+save_checkpoint(working_directory,
+                {'epoch'         : epoch + 1,
+                 'state_dict'    : model.state_dict(),
+                 'best_acc_top1' : best_obj,
+                 'optimizer'     : optimiser.state_dict()},
+                is_best=is_best,
+                epoch=epoch)
