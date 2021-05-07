@@ -102,16 +102,20 @@ class FullConvGNP(nn.Module):
 
         # Build architectures:
         if unet:
+            # Reduce number of channels.
+            num_channels_mean //= 8
+            num_channels_kernel //= 8
+
             self.mean_arch = UNet(
                 input_dim=input_dim,
-                in_channels=num_channels_mean // 8,
-                out_channels=num_channels_mean // 8,
+                in_channels=num_channels_mean,
+                out_channels=num_channels_mean,
             )
             mean_multiplier = 2 ** self.mean_arch.num_halving_layers
             self.kernel_arch = UNet(
                 input_dim=2 * input_dim,
-                in_channels=num_channels_kernel // 8,
-                out_channels=num_channels_kernel // 8,
+                in_channels=num_channels_kernel,
+                out_channels=num_channels_kernel,
             )
             kernel_multiplier = 2 ** self.kernel_arch.num_halving_layers
         else:
