@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+import lab.torch as B
+
 from cnp.aggregation import (
     FullyConnectedDeepSet,
     MultiHeadAttention
@@ -331,6 +333,83 @@ class ConvEncoder(nn.Module):
 
         return r
 
+
+class ConvPDEncoder(nn.Module):
+    def __init__(
+        self,
+        out_channels=None,
+        points_per_unit=20.0,
+        grid_multiplier=4,
+        grid_margin=1
+    ):
+        nn.Module.__init__(self)
+        self.grid_multiplier = grid_multiplier
+        self.grid_margin = grid_margin
+        self.points_per_unit = points_per_unit
+        self.log_scale = nn.Parameter(
+            B.log(torch.tensor(2 / points_per_unit)),
+            requires_grad=True,
+        )
+
+        if out_channels:
+            # Build final linear layer.
+            self.linear = nn.Sequential(nn.Linear(3, out_channels))
+            init_sequential_weights(self.linear)
+
+            def final_linear(x):
+                # Put channels last, apply linear, and undo permutation.
+                x = B.transpose(x, perm=(0, 2, 3, 1))
+                x = self.linear(x)
+                x = B.transpose(x, perm=(0, 3, 1, 2))
+                return x
+
+            self.final_linear = final_linear
+        else:
+            # Omit final linear layer.
+            self.final_linear = lambda x: x
+
+    def forward(self, xz, z, x):
+        # Discretisation:
+        x_grid = build_grid(
+            xz,
+            x,
+            self.points_per_unit,
+            self.grid_multiplier,
+            self.grid_margin
+        )
+
+        with B.device(str(z.device)):
+            # Construct density and identity channel.
+            density_channel = B.ones(B.dtype(z), *B.shape(z)[:2], 1)
+            identity_channel = B.eye(
+                B.dtype(z),
+                B.shape(z)[0],
+                1,
+                B.shape(x_grid)[0],
+                B.shape(x_grid)[0],
+            )
+
+        # Prepend density channel.
+        z = B.concat(density_channel, z, axis=2)
+
+        # Put channel dimension second.
+        z = B.transpose(z, perm=(0, 2, 1))[..., None]
+
+        # Compute interpolation weights.
+        dists2 = B.pw_dists2(xz, x_grid[None, :])
+        weights = B.exp(-0.5 * dists2 / B.exp(2 * self.log_scale))
+        weights = weights[:, None, :, :]  # Insert channel dimension.
+
+        # Interpolate to grid.
+        z = B.matmul(weights * z, weights, tr_a=True)
+
+        # Normalise by density channel.
+        z = B.concat(z[:, :1, ...], z[:, 1:, ...] / (z[:, :1, ...] + 1e-8), axis=1)
+
+        # Prepend identity channel to complete the encoding.
+        z = B.concat(identity_channel, z, axis=1)
+
+        return x_grid, self.final_linear(z)
 
 
 # =============================================================================
