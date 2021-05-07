@@ -90,7 +90,7 @@ class FullConvGNP(nn.Module):
         nn.Module.__init__(self)
 
         points_per_unit_mean = points_per_unit
-        points_per_unit_kernel = 20
+        points_per_unit_kernel = points_per_unit / 2
 
         num_channels_mean = num_channels
         num_channels_kernel = num_channels // 2
@@ -103,20 +103,22 @@ class FullConvGNP(nn.Module):
         # Build architectures:
         if unet:
             # Reduce number of channels.
-            num_channels_mean //= 8
-            num_channels_kernel //= 8
+            num_channels_mean = 8
+            num_channels_kernel = 8
 
             self.mean_arch = UNet(
                 input_dim=input_dim,
                 in_channels=num_channels_mean,
                 out_channels=num_channels_mean,
             )
+            mean_conv_out_channels = self.mean_arch.out_channels
             mean_multiplier = 2 ** self.mean_arch.num_halving_layers
             self.kernel_arch = UNet(
                 input_dim=2 * input_dim,
                 in_channels=num_channels_kernel,
                 out_channels=num_channels_kernel,
             )
+            kernel_conv_out_channels = self.kernel_arch.out_channels
             kernel_multiplier = 2 ** self.kernel_arch.num_halving_layers
         else:
             self.mean_arch = build_dws_net(
@@ -127,6 +129,7 @@ class FullConvGNP(nn.Module):
                 num_out_channels=1,
                 dimensionality=input_dim
             )
+            mean_conv_out_channels = 1
             mean_multiplier = 1
             self.kernel_arch = build_dws_net(
                 receptive_field=receptive_field,
@@ -136,6 +139,7 @@ class FullConvGNP(nn.Module):
                 num_out_channels=1,
                 dimensionality=2 * input_dim
             )
+            kernel_conv_out_channels = 1
             kernel_multiplier = 1
 
         # Build encoders:
@@ -150,7 +154,7 @@ class FullConvGNP(nn.Module):
         self.kernel_encoder = ConvPDEncoder(
             out_channels=num_channels_kernel,
             points_per_unit=points_per_unit_kernel,
-            grid_multiplier=1,
+            grid_multiplier=kernel_multiplier,
             grid_margin=margin
         )
 
@@ -158,7 +162,7 @@ class FullConvGNP(nn.Module):
         self.mean_decoder = ConvDecoder(
             input_dim=input_dim,
             conv_architecture=self.mean_arch,
-            conv_out_channels=1,
+            conv_out_channels=mean_conv_out_channels,
             out_channels=1,
             init_length_scale=2 / points_per_unit_mean,
             points_per_unit=points_per_unit_mean,

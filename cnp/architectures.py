@@ -335,7 +335,7 @@ class UNet(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.num_halving_layers = 6
-        self.kernel_size = 21
+        self.kernel_size = 5
 
         self.l1 = conv(in_channels=self.in_channels,
                        out_channels=self.in_channels,
