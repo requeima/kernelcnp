@@ -61,15 +61,15 @@ parser.add_argument('--batch_size',
                     type=int,
                     help='Number of tasks per batch sampled.')
 
-parser.add_argument('--min_num_context',
-                    default=50,
-                    type=int,
-                    help='Minimum number of context points.')
-
 parser.add_argument('--max_num_context',
                     default=50,
                     type=int,
                     help='Maximum number of context points.')
+
+parser.add_argument('--min_num_target',
+                    default=50,
+                    type=int,
+                    help='Maximum number of target points.')
 
 parser.add_argument('--max_num_target',
                     default=50,
@@ -93,12 +93,12 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=5,
+                    default=10,
                     type=int,
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=10,
+                    default=100,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -153,13 +153,11 @@ parser.add_argument('--root',
 args = parser.parse_args()
 
 
-# data_kinds = ['eq',
-#               'matern',
-#               'noisy-mixture',
-#               'weakly-periodic',
-#               'sawtooth']
-
-data_kinds = ['sawtooth']
+data_kinds = ['eq',
+              'matern',
+              'noisy-mixture',
+              'weakly-periodic',
+              'sawtooth']
 
 seeds = list(range(0, 2))
 
@@ -197,8 +195,8 @@ for seed in seeds:
 
             # Training data generator parameters -- used for both Sawtooth and GP
             gen_params = {
-                'min_num_context'           : args.min_num_context,
                 'max_num_context'           : args.max_num_context,
+                'min_num_target'            : args.min_num_target,
                 'max_num_target'            : args.max_num_target,
                 'device'                    : device
             }
@@ -300,3 +298,6 @@ for seed in seeds:
             with open(wd.file('gen-valid.pkl'), 'wb') as file:
                 pickle.dump(gen_valid, file)
                 file.close()
+                
+                
+            raise Exception

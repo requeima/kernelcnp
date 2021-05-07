@@ -61,7 +61,6 @@ if __name__ == '__main__':
                            cov,
                            '--x_dim',
                            x_dim,
-#                            '--num_params',
                            '--train',
                            '--seed',
                            seed,
