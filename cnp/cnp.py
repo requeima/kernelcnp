@@ -82,17 +82,18 @@ class GaussianNeuralProcess(nn.Module):
 class FullConvGNP(nn.Module):
     def __init__(
         self,
-        num_channels=32,
-        receptive_field=4,
-        points_per_unit=32
+        points_per_unit=64,
+        num_channels=64,
+        unet=True,
+        receptive_field=6,
     ):
         nn.Module.__init__(self)
 
         points_per_unit_mean = points_per_unit
-        points_per_unit_kernel = points_per_unit // 2
+        points_per_unit_kernel = 20
 
         num_channels_mean = num_channels
-        num_channels_kernel = num_channels
+        num_channels_kernel = num_channels // 2
 
         self.log_sigma = nn.Parameter(B.log(torch.tensor(0.1)), requires_grad=True)
 
@@ -100,22 +101,38 @@ class FullConvGNP(nn.Module):
         margin = 0.1
 
         # Build architectures:
-        self.mean_arch = build_dws_net(
-            receptive_field=receptive_field,
-            points_per_unit=points_per_unit_mean,
-            num_in_channels=num_channels_mean,
-            num_channels=num_channels_mean,
-            num_out_channels=1,
-            dimensionality=input_dim
-        )
-        self.kernel_arch = build_dws_net(
-            receptive_field=receptive_field,
-            points_per_unit=points_per_unit_kernel,
-            num_in_channels=num_channels_kernel,
-            num_channels=num_channels_kernel,
-            num_out_channels=1,
-            dimensionality=2 * input_dim
-        )
+        if unet:
+            self.mean_arch = UNet(
+                input_dim=input_dim,
+                in_channels=num_channels_mean // 8,
+                out_channels=num_channels_mean // 8,
+            )
+            mean_multiplier = 2 ** self.mean_arch.num_halving_layers
+            self.kernel_arch = UNet(
+                input_dim=2 * input_dim,
+                in_channels=num_channels_kernel // 8,
+                out_channels=num_channels_kernel // 8,
+            )
+            kernel_multiplier = 2 ** self.kernel_arch.num_halving_layers
+        else:
+            self.mean_arch = build_dws_net(
+                receptive_field=receptive_field,
+                points_per_unit=points_per_unit_mean,
+                num_in_channels=num_channels_mean,
+                num_channels=num_channels_mean,
+                num_out_channels=1,
+                dimensionality=input_dim
+            )
+            mean_multiplier = 1
+            self.kernel_arch = build_dws_net(
+                receptive_field=receptive_field,
+                points_per_unit=points_per_unit_kernel,
+                num_in_channels=num_channels_kernel,
+                num_channels=num_channels_kernel,
+                num_out_channels=1,
+                dimensionality=2 * input_dim
+            )
+            kernel_multiplier = 1
 
         # Build encoders:
         self.mean_encoder = ConvEncoder(
@@ -123,7 +140,7 @@ class FullConvGNP(nn.Module):
             out_channels=num_channels_mean,
             init_length_scale=2 / points_per_unit_mean,
             points_per_unit=points_per_unit_mean,
-            grid_multiplier=1,
+            grid_multiplier=mean_multiplier,
             grid_margin=margin,
         )
         self.kernel_encoder = ConvPDEncoder(
@@ -141,7 +158,7 @@ class FullConvGNP(nn.Module):
             out_channels=1,
             init_length_scale=2 / points_per_unit_mean,
             points_per_unit=points_per_unit_mean,
-            grid_multiplier=1,
+            grid_multiplier=kernel_multiplier,
             grid_margin=margin,
         )
         self.kernel_decoder = ConvPDDecoder(
