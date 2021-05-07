@@ -129,8 +129,8 @@ def validate(data,
                         
 
             # Scale by the average number of target points
-            nll_list.append(nll.item() / ())
-            oracle_nll_list.append(oracle_nll.item() / args.max_num_target)
+            nll_list.append(nll.item() / avg_num_target)
+            oracle_nll_list.append(oracle_nll.item() / avg_num_target)
 
     # Print validation loss and oracle loss
     print(f"Validation neg. log-lik: "
@@ -240,17 +240,6 @@ parser.add_argument('--root',
                          'the experiment will run. If it is not given, '
                          'a directory will be automatically created.')
 
-parser.add_argument('--train',
-                    action='store_true',
-                    help='Perform training. If this is not specified, '
-                         'the model will be attempted to be loaded from the '
-                         'experiment root.')
-
-parser.add_argument('--test',
-                    action='store_true',
-                    help='Test the model and record the values in the'
-                         'experimental root.')
-
 parser.add_argument('--num_params',
                     action='store_true',
                     help='Print the total number of parameters in the moodel '
@@ -275,18 +264,19 @@ torch.manual_seed(args.seed)
 # Set device
 if torch.cuda.is_available():
     torch.cuda.set_device(args.gpu)
-
-device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
-                             else torch.device('cuda')
+    
+use_cpu = not torch.cuda.is_available() and args.gpu == 0
+device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
 data_root = os.path.join('_experiments',
                          f'{args.data}',
-                         'data',
+                         f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
 
 # Load working directory
 if args.root:
+    
     working_directory = WorkingDirectory(root=args.root)
     data_directory = WorkingDirectory(root=data_root)
     
@@ -340,7 +330,6 @@ elif args.covtype == 'meanfield':
 else:
     raise ValueError(f'Unknown covariance method {args.covtype}.')
     
-print('creating model')
 # Create model architecture
 if args.model == 'GNP':
     model = StandardGNP(input_dim=args.x_dim,
@@ -373,7 +362,6 @@ elif args.model == 'convNP':
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
-print('created model')
 
 
 print(f'{args.model} '
@@ -395,22 +383,20 @@ latent_model = args.model in ['ANP', 'convNP']
 
 
 # =============================================================================
-# Load data
+# Load data and validation oracle generator
 # =============================================================================
     
-if args.train:
-    file = open(data_directory.file('train-data.pkl'), 'rb')
-    data_train = pickle.load(file)
-    file.close()
+file = open(data_directory.file('train-data.pkl'), 'rb')
+data_train = pickle.load(file)
+file.close()
 
-    file = open(data_directory.file('valid-data.pkl'), 'rb')
-    data_val = pickle.load(file)
-    file.close()
-
-if args.test:
-    file = open(data_directory.file('test-data.pkl'), 'rb')
-    data_test = pickle.load(file)
-    file.close()
+file = open(data_directory.file('valid-data.pkl'), 'rb')
+data_val = pickle.load(file)
+file.close()
+    
+file = open(data_directory.file('gen-val.pkl'), 'rb')
+gen_val = pickle.load(file)
+file.close()
         
 
 # =============================================================================
@@ -448,8 +434,7 @@ for epoch in range(args.epochs + 1):
                                              args,
                                              device,
                                              writer,
-                                             latent_model,
-                                             oracle)
+                                             latent_model)
 
         # Log information to tensorboard
         writer.add_scalar('Valid log-lik.',
