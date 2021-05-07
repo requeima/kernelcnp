@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import math
 
 from cnp.utils import (
     init_sequential_weights,
@@ -100,11 +101,10 @@ class DepthwiseSeparableConv(nn.Module):
 
 class StandardDepthwiseSeparableCNN(nn.Module):
     
-    def __init__(self, input_dim, in_channels, out_channels):
+    def __init__(self, input_dim, in_channels, out_channels, latent_channels=32):
         
         super().__init__()
         
-        latent_channels = 32
         kernel_size = 21
         stride = 1
         num_layers = 12
@@ -239,7 +239,74 @@ class StandardDepthwiseSeparableCNN(nn.Module):
             
         return tensor
 
-    
+
+def _compute_kernel_size(receptive_field, points_per_unit, num_layers):
+    receptive_points = receptive_field * points_per_unit
+    kernel_size = math.ceil(1 + (receptive_points - 1) / num_layers)
+    # Ensure that the kernel size is odd.
+    if kernel_size % 2 == 0:
+        return kernel_size + 1
+    else:
+        return kernel_size
+
+
+def _compute_padding(kernel_size):
+    return math.floor(kernel_size / 2)
+
+
+def build_dws_net(
+    receptive_field,
+    points_per_unit,
+    dimensionality,
+    num_in_channels,
+    num_out_channels,
+    num_layers=8,
+    num_channels=64,
+):
+
+    kernel_size = _compute_kernel_size(receptive_field, points_per_unit, num_layers)
+    padding = _compute_padding(kernel_size)
+
+    if dimensionality == 1:
+        conv = nn.Conv1d
+    elif dimensionality == 2:
+        conv = nn.Conv2d
+    else:
+        raise NotImplementedError(
+            f"Cannot build a net of dimensionality {dimensionality}."
+        )
+
+    layers = [
+        conv(
+            in_channels=num_in_channels,
+            out_channels=num_channels,
+            kernel_size=1
+        )
+    ]
+    for _ in range(num_layers):
+        layers.append(conv(
+            in_channels=num_channels,
+            out_channels=num_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            groups=num_channels,
+        ))
+        layers.append(conv(
+            in_channels=num_channels,
+            out_channels=num_channels,
+            kernel_size=1
+        ))
+        layers.append(nn.LeakyReLU())
+    layers.append(conv(
+        in_channels=num_channels,
+        out_channels=num_out_channels,
+        kernel_size=1
+    ))
+
+    conv_net = nn.Sequential(*layers)
+    init_sequential_weights(conv_net)
+    return conv_net
+
 
 # =============================================================================
 # UNet CNN architecture
@@ -268,7 +335,7 @@ class UNet(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.num_halving_layers = 6
-        self.kernel_size = 21
+        self.kernel_size = 5
 
         self.l1 = conv(in_channels=self.in_channels,
                        out_channels=self.in_channels,
