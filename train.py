@@ -2,7 +2,6 @@ import argparse
 
 import numpy as np
 import stheno.torch as stheno
-import torch
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
@@ -44,65 +43,23 @@ from cnp.cov import (
 
 from cnp.utils import plot_samples_and_data
 
+import torch
 from torch.distributions import MultivariateNormal
-
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, data_generator, model, args, device, writer, latent_model, oracle=True):
-    
-    nll_list = []
-    oracle_nll_list = []
-    
-    loss_kwargs = {'num_samples' : args.np_validation_samples} if latent_model else {}
-    
-    print(loss_kwargs)
-    
-    with torch.no_grad():
-        
-        for step, batch in enumerate(data):
-            
-            nll = model.loss(batch['x_context'].to(device),
-                             batch['y_context'].to(device),
-                             batch['x_target'].to(device),
-                             batch['y_target'].to(device),
-                             **loss_kwargs)
-            
-            oracle_nll = np.array(0.)
-            
-            if oracle:
-                if (type(data_generator) == cnp.data.GPGenerator):
-                    for b in range(batch['x_context'].shape[0]):
-                        oracle_nll =  - data_generator.log_like(batch['x_context'][b],
-                                                                batch['y_context'][b],
-                                                                batch['x_target'][b],
-                                                                batch['y_target'][b])
-                        
-
-            # Scale by the maximum number of target points
-            nll_list.append(nll.item() / args.max_num_target)
-            oracle_nll_list.append(oracle_nll.item() / args.max_num_target)
-                
-    mean_nll = np.mean(nll_list)
-    std_nll = (np.var(nll_list) ** 0.5) / np.sqrt(len(nll_list))
-    mean_oracle = np.mean(oracle_nll_list)
-    std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(len(oracle_nll_list)) 
+# =============================================================================
+# Training epoch helper
+# =============================================================================
 
 
-    print(f"Validation neg. log-lik: "
-          f"{mean_nll:.2f} +/- "
-          f"{std_nll:.2f}")
-
-    print(f"Oracle     neg. log-lik: "
-          f"{mean_oracle:.2f} +/- "
-          f"{std_oracle:.2f}")
-
-    return mean_nll, std_nll, mean_oracle, std_oracle
-
-
-
-
-def train(data, model, optimiser, log_every, device, writer, training_iteration):
+def train(data,
+          model,
+          optimiser,
+          log_every,
+          device,
+          writer,
+          iteration):
     
     for step, batch in enumerate(data):
 
@@ -120,11 +77,71 @@ def train(data, model, optimiser, log_every, device, writer, training_iteration)
         optimiser.zero_grad()
 
         # Write to tensorboard
-        writer.add_scalar('Train log-lik.', - nll, training_iteration)
+        writer.add_scalar('Train log-lik.', - nll, iteration)
         
-        training_iteration = training_iteration + 1
+        iteration = iteration + 1
         
-    return training_iteration
+    return iteration
+
+
+# =============================================================================
+# Validation helper
+# =============================================================================
+
+
+def validate(data,
+             data_gen,
+             model,
+             args,
+             device,
+             writer,
+             latent_model):
+    
+    # Lists for logging model's training NLL and oracle NLL
+    nll_list = []
+    oracle_nll_list = []
+    
+    # If training a latent model, set the number of latent samples accordingly
+    loss_kwargs = {'num_samples' : args.np_val_samples} if latent_model else {}
+    
+    # Average number of target points for scaling the loss when reporting
+    avg_num_target = (args.min_num_target + args.max_num_target) / 2
+    
+    with torch.no_grad():
+        
+        for step, batch in enumerate(data):
+            
+            nll = model.loss(batch['x_context'].to(device),
+                             batch['y_context'].to(device),
+                             batch['x_target'].to(device),
+                             batch['y_target'].to(device),
+                             **loss_kwargs)
+            
+            oracle_nll = np.array(0.)
+
+            # Oracle loss exists only for GP-generated data, not sawtooth
+            if (type(data_gen) == cnp.data.GPGenerator):
+                for b in range(batch['x_context'].shape[0]):
+                    oracle_nll = - data_gen.log_like(batch['x_context'][b],
+                                                     batch['y_context'][b],
+                                                     batch['x_target'][b],
+                                                     batch['y_target'][b])
+                        
+
+            # Scale by the average number of target points
+            nll_list.append(nll.item() / ())
+            oracle_nll_list.append(oracle_nll.item() / args.max_num_target)
+
+    # Print validation loss and oracle loss
+    print(f"Validation neg. log-lik: "
+          f"{np.mean(nll_list):.2f} +/- "
+          f"{(np.var(nll_list)**0.5):.2f}")
+
+    print(f"Oracle     neg. log-lik: "
+          f"{np.mean(oracle_nll_list):.2f} +/- "
+          f"{(np.var(oracle_nll_list)**0.5):.2f}")
+
+    return mean_nll, std_nll, mean_oracle, std_oracle
         
 
 # Parse arguments given to the script.
@@ -191,7 +208,7 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
-parser.add_argument('--np_validation_samples',
+parser.add_argument('--np_val_samples',
                     default=1024,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
@@ -417,63 +434,69 @@ best_nll = np.inf
 
 for epoch in range(args.epochs + 1):
 
-if train_iteration % log_every == 0:
-    print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+    if train_iteration % log_every == 0:
+        print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
-if epoch % args.validate_every == 0:
+    if epoch % args.validate_every == 0:
 
-    valid_epoch = data_val[epoch // args.validate_every]
+        valid_epoch = data_val[epoch // args.validate_every]
 
-    # Compute validation negative log-likelihood
-    val_nll, _, val_oracle, _ = validate(valid_epoch,
-                                         gen_val,
-                                         model,
-                                         args,
-                                         device,
-                                         writer,
-                                         latent_model,
-                                         oracle=True)
+        # Compute validation negative log-likelihood
+        val_nll, _, val_oracle, _ = validate(valid_epoch,
+                                             gen_val,
+                                             model,
+                                             args,
+                                             device,
+                                             writer,
+                                             latent_model,
+                                             oracle)
 
-    # 
-    writer.add_scalar('Valid log-lik.',
-                      -val_nll,
-                      epoch)
-    
-    writer.add_scalar('Valid oracle log-lik.',
-                      -val_oracle,
-                      epoch)
-    
-    writer.add_scalar('Oracle minus valid log-lik.',
-                      -val_oracle + val_nll,
-                      epoch)
+        # Log information to tensorboard
+        writer.add_scalar('Valid log-lik.',
+                          -val_nll,
+                          epoch)
 
-    # Update the best objective value and checkpoint the model
-    is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
-                        (False, best_nll)
+        writer.add_scalar('Valid oracle log-lik.',
+                          -val_oracle,
+                          epoch)
 
-    plot_marginals = args.covtype == 'meanfield'
+        writer.add_scalar('Oracle minus valid log-lik.',
+                          -val_oracle + val_nll,
+                          epoch)
 
-    if args.x_dim == 1:
+        # Update the best objective value and checkpoint the model
+        is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
+                            (False, best_nll)
 
-        plot_samples_and_data(model=model,
-                              gen_plot=gen_plot,
-                              xmin=args.x_context_range[0],
-                              xmax=args.x_context_range[1],
-                              root=working_directory.root,
-                              epoch=epoch,
-                              latent_model=latent_model,
-                              plot_marginals=plot_marginals)
+        plot_marginals = args.covtype == 'meanfield'
+
+        if args.x_dim == 1:
+
+            plot_samples_and_data(model=model,
+                                  gen_plot=gen_plot,
+                                  xmin=args.x_context_range[0],
+                                  xmax=args.x_context_range[1],
+                                  root=working_directory.root,
+                                  epoch=epoch,
+                                  latent_model=latent_model,
+                                  plot_marginals=plot_marginals)
 
 
-train_epoch = data_train[epoch]
+    train_epoch = data_train[epoch]
 
-# Compute training negative log-likelihood
-train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
+    # Compute training negative log-likelihood
+    train_iteration = train(train_epoch,
+                            model,
+                            optimiser,
+                            log_every,
+                            device,
+                            writer,
+                            train_iteration)
 
-save_checkpoint(working_directory,
-                {'epoch'         : epoch + 1,
-                 'state_dict'    : model.state_dict(),
-                 'best_acc_top1' : best_obj,
-                 'optimizer'     : optimiser.state_dict()},
-                is_best=is_best,
-                epoch=epoch)
+    save_checkpoint(working_directory,
+                    {'epoch'         : epoch + 1,
+                     'state_dict'    : model.state_dict(),
+                     'best_acc_top1' : best_obj,
+                     'optimizer'     : optimiser.state_dict()},
+                    is_best=is_best,
+                    epoch=epoch)
