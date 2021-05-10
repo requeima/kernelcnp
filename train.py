@@ -42,7 +42,7 @@ from cnp.cov import (
     AddNoNoise
 )
 
-from cnp.utils import plot_samples_and_data
+from cnp.utils import plot_samples_and_data, make_generator
 
 import torch
 from torch.distributions import MultivariateNormal
@@ -399,17 +399,22 @@ file.close()
 file = open(data_directory.file('valid-data.pkl'), 'rb')
 data_val = pickle.load(file)
 file.close()
-    
-file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
-gen_valid_gp_params = pickle.load(file)
-file.close()
 
-file = open(data_directory.file('kernel-params.pkl'), 'rb')
-kernel_params = pickle.load(file)
-file.close()
+# Create the data generator for the oracle if gp data
+if args.data == 'sawtooth' or args.data == 'random':
+    gen_val = None
+else:
+    file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
+    gen_valid_gp_params = pickle.load(file)
+    file.close()
+
+    file = open(data_directory.file('kernel-params.pkl'), 'rb')
+    kernel_params = pickle.load(file)
+    file.close()
+    
+    gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
         
-
 # =============================================================================
 # Train or test model
 # =============================================================================
