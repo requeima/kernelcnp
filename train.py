@@ -158,7 +158,8 @@ parser.add_argument('data',
                              'matern',
                              'noisy-mixture',
                              'weakly-periodic',
-                             'sawtooth'],
+                             'sawtooth',
+                             'random'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
@@ -399,9 +400,14 @@ file = open(data_directory.file('valid-data.pkl'), 'rb')
 data_val = pickle.load(file)
 file.close()
     
-file = open(data_directory.file('gen-val.pkl'), 'rb')
-gen_val = pickle.load(file)
+file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
+gen_valid_gp_params = pickle.load(file)
 file.close()
+
+file = open(data_directory.file('kernel-params.pkl'), 'rb')
+kernel_params = pickle.load(file)
+file.close()
+
         
 
 # =============================================================================
@@ -410,7 +416,7 @@ file.close()
 
 # Number of epochs between validations
 train_iteration = 0
-log_every = 100
+log_every = 1
 
     
 log_args(working_directory, args)
