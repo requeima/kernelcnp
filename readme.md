@@ -46,6 +46,7 @@
 
 
 # Tasks
+- Fix input range and GP lengthscales to original experiments.
 - Include mean field oracle GP.
 - Run toy experiments on 50-large target sets.
 

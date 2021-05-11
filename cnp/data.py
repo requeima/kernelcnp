@@ -20,6 +20,11 @@ def x_sample_uniform(ranges, num_points, num_dim):
     return lower + uniform * (upper - lower)
 
 
+def _rand(val_range, *shape):
+    lower, upper = val_range
+    return lower + np.random.rand(*shape) * (upper - lower)
+
+
 def _uprank(a):
     if len(a.shape) == 1:
         return a[:, None, None]
@@ -78,17 +83,19 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  batch_size,
                  x_context_ranges,
                  max_num_context,
+                 min_num_target,
                  max_num_target,
                  device,
                  x_target_ranges=None):
         
-        assert max_num_context >= 3 and max_num_target >= 3
+        assert 3 <= min_num_target <= max_num_target and max_num_context >= 3
         assert (x_target_ranges is None) or \
                (len(x_context_ranges) == len(x_target_ranges))
         
         self.iterations_per_epoch = iterations_per_epoch
         self.batch_size = batch_size
         self.max_num_context = max_num_context
+        self.min_num_target = min_num_target
         self.max_num_target = max_num_target
         self.device = device
         
@@ -125,8 +132,10 @@ class DataGenerator(metaclass=abc.ABCMeta):
                  'y_target'  : []}
 
         # Determine number of test and train points.
-        num_context_points = np.random.randint(3, self.max_num_context + 1)
-        num_target_points = np.random.randint(3, self.max_num_target + 1)
+        num_context_points = np.random.randint(3, self.max_num_context+1)
+        
+        num_target_points = np.random.randint(self.min_num_target,
+                                              self.max_num_target+1)
 
         for i in range(self.batch_size):
             
@@ -247,16 +256,21 @@ class SawtoothGenerator(DataGenerator):
                                max_num_context=max_num_context,
                                max_num_target=max_num_target,
                                **kw_args)
-
+    
+    
     def sample(self, x):
-        # Sample parameters of sawtooth.
+        
+        # Sample parameters of sawtooth
         amp = 1
-        freq = np.random.uniform(low=self.freq_range[0], high=self.freq_range[1])
-        shift = np.random.uniform(low=self.shift_range[0], high=self.shift_range[1])
+        freq = _rand(self.freq_range)
+        shift = _rand(self.shift_range)
         trunc = np.random.randint(self.trunc_range[0], self.trunc_range[1] + 1)
 
         # Construct expansion.
-        x = x + shift
-        k = np.arange(1, trunc + 1)[None, :]
-        return 0.5 * amp - amp / np.pi * \
-               np.sum((-1) ** k * np.sin(2 * np.pi * k * freq * x) / k, axis=1)
+        x = x[:, None, :] + shift
+        k = np.arange(1, trunc+1)[None, :, None]
+        
+        y = 0.5 * amp - amp / np.pi * \
+            np.sum((-1) ** k * np.sin(2 * np.pi * k * freq * x) / k, axis=1)
+        
+        return y
