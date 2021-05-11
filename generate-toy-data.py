@@ -176,7 +176,8 @@ data_kinds = ['eq',
               'matern',
               'noisy-mixture',
               'weakly-periodic',
-              'sawtooth']
+              'sawtooth',
+              'random']
 
 seeds = list(range(0, 1))
 
