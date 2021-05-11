@@ -105,9 +105,6 @@ def validate(data,
     # If training a latent model, set the number of latent samples accordingly
     loss_kwargs = {'num_samples' : args.np_val_samples} if latent_model else {}
     
-    # Average number of target points for scaling the loss when reporting
-    avg_num_target = (args.min_num_target + args.max_num_target) / 2
-    
     with torch.no_grad():
         
         for step, batch in enumerate(data):
@@ -130,19 +127,25 @@ def validate(data,
                         
 
             # Scale by the average number of target points
-            nll_list.append(nll.item() / avg_num_target)
-            oracle_nll_list.append(oracle_nll.item() / avg_num_target)
+            nll_list.append(nll.item())
+            oracle_nll_list.append(oracle_nll.item())
+            
+    mean_nll = np.mean(nll_list)
+    std_nll = np.var(nll_list)**0.5
+    
+    mean_oracle_nll = np.mean(oracle_nll_list)
+    std_oracle_nll = np.var(oracle_nll_list)**0.5
 
     # Print validation loss and oracle loss
     print(f"Validation neg. log-lik: "
-          f"{np.mean(nll_list):.2f} +/- "
-          f"{(np.var(nll_list)**0.5):.2f}")
+          f"{mean_nll:.2f} +/- "
+          f"{std_nll:.2f}")
 
     print(f"Oracle     neg. log-lik: "
-          f"{np.mean(oracle_nll_list):.2f} +/- "
-          f"{(np.var(oracle_nll_list)**0.5):.2f}")
+          f"{mean_oracle_nll:.2f} +/- "
+          f"{std_oracle_nll:.2f}")
 
-    return mean_nll, std_nll, mean_oracle, std_oracle
+    return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll
         
 
 # Parse arguments given to the script.
@@ -172,11 +175,6 @@ parser.add_argument('--seed',
                     default=0,
                     type=int,
                     help='Random seed to use.')
-
-parser.add_argument('--epochs',
-                    default=100,
-                    type=int,
-                    help='Number of epochs to train for.')
 
 parser.add_argument('--validate_every',
                     default=10,
@@ -212,7 +210,7 @@ parser.add_argument('--np_loss_samples',
                          'used for ANP and ConvNP.')
 
 parser.add_argument('--np_val_samples',
-                    default=1024,
+                    default=10, # 1024
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')
@@ -351,6 +349,7 @@ elif args.model == 'convGNP':
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
+    
 
 elif args.model == 'ANP':
     
@@ -403,6 +402,7 @@ file.close()
 # Create the data generator for the oracle if gp data
 if args.data == 'sawtooth' or args.data == 'random':
     gen_val = None
+    
 else:
     file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
     gen_valid_gp_params = pickle.load(file)
@@ -434,10 +434,12 @@ optimiser = torch.optim.Adam(model.parameters(),
 # Run the training loop, maintaining the best objective value
 best_nll = np.inf
 
-for epoch in range(args.epochs + 1):
+epochs = len(data_train)
+
+for epoch in range(epochs):
 
     if train_iteration % log_every == 0:
-        print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
     if epoch % args.validate_every == 0:
 
@@ -474,13 +476,14 @@ for epoch in range(args.epochs + 1):
         if args.x_dim == 1:
 
             plot_samples_and_data(model=model,
-                                  gen_plot=gen_plot,
-                                  xmin=args.x_context_range[0],
-                                  xmax=args.x_context_range[1],
+                                  gen_plot=gen_val,
+                                  xmin=-2,
+                                  xmax=2,
                                   root=working_directory.root,
                                   epoch=epoch,
                                   latent_model=latent_model,
-                                  plot_marginals=plot_marginals)
+                                  plot_marginals=plot_marginals,
+                                  device=device)
 
 
     train_epoch = data_train[epoch]

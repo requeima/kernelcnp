@@ -30,10 +30,11 @@ parser = argparse.ArgumentParser()
 # =============================================================================
 
 def make_random_generator(gen_train_gp_params, gen_train_sawtooth_params, kernel_params):
+    
     gp_data_kinds = ['eq',
-            'matern',
-            'noisy-mixture',
-            'weakly-periodic',]
+                     'matern',
+                     'noisy-mixture',
+                     'weakly-periodic',]
 
     gen_list = []
     
@@ -86,12 +87,12 @@ parser.add_argument('--batch_size',
                     help='Number of tasks per batch sampled.')
 
 parser.add_argument('--max_num_context',
-                    default=10,
+                    default=50,
                     type=int,
                     help='Maximum number of context points.')
 
 parser.add_argument('--min_num_target',
-                    default=10,
+                    default=50,
                     type=int,
                     help='Maximum number of target points.')
 
@@ -106,7 +107,7 @@ parser.add_argument('--num_train_iters',
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=64,
+                    default=4, # 64
                     type=int,
                     help='Iterations (# batches sampled) for validation.'
                          'Only used if generate_data_at_traintime is set to True.')
@@ -117,12 +118,12 @@ parser.add_argument('--num_test_iters',
                     help='Iterations (# batches sampled) for testing.')
 
 parser.add_argument('--validate_every',
-                    default=10,
+                    default=1,
                     type=int,
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=100,
+                    default=2,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -183,7 +184,7 @@ data_kinds = ['eq',
               'weakly-periodic',
               'sawtooth']
 
-seeds = list(range(0, 2))
+seeds = list(range(0, 1))
 
 for seed in seeds:
     for x_dim in args.x_dims:

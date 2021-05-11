@@ -22,9 +22,9 @@ data_generators = ['eq',
 #           'convNP',
 #           'FullConvGNP']
 
-# models = ['ANP']
+models = ['AGNP']
 
-models = ['convNP']
+# models = ['convNP']
 
 # covs = ['innerprod-homo',
 #         'kvv-homo',
@@ -61,7 +61,6 @@ if __name__ == '__main__':
                            cov,
                            '--x_dim',
                            x_dim,
-                           '--train',
                            '--seed',
                            seed,
                            '--gpu',

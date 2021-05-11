@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
+    StandardEncoder,
     StandardANPEncoder,
     StandardConvNPEncoder
 )
@@ -91,7 +92,8 @@ class LatentNeuralProcess(nn.Module):
             
             distribution = torch.distributions.Normal(loc=mean,
                                                       scale=noise_var ** 0.5)
-            logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]), axis=-1)
+            logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]),
+                                axis=-1)
             
             logprobs.append(logprob)
             
@@ -145,12 +147,12 @@ class StandardANP(LatentNeuralProcess):
         decoder_output_dim = output_dim + add_noise.extra_noise_dim
 
         # Construct the standard encoder
-        encoder = StandardANPEncoder(input_dim=input_dim,
+        encoder = StandardANPEncoder(input_dim=input_dim+1,
                                      latent_dim=latent_dim)
         
         # Construct the standard decoder
         decoder = StandardDecoder(input_dim=input_dim,
-                                  latent_dim=latent_dim,
+                                  latent_dim=2*latent_dim,
                                   output_dim=decoder_output_dim)
 
         super().__init__(encoder=encoder,
@@ -161,8 +163,6 @@ class StandardANP(LatentNeuralProcess):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.latent_dim = latent_dim
-        
-        
         
         
 
@@ -191,21 +191,10 @@ class StandardConvNP(LatentNeuralProcess):
         # Num channels of output of decoder
         decoder_out_channels = 1
         
-#         # Encoder convolutional architecture
-#         encoder_conv = HalfUNet(input_dim=input_dim,
-#                                 in_channels=encoder_conv_input_channels,
-#                                 out_channels=2*latent_function_channels)
-        
         # Standard convolutional architecture
         encoder_conv = UNet(input_dim=input_dim,
                             in_channels=encoder_conv_input_channels,
                             out_channels=2*latent_function_channels)
-        
-        
-#         # Encoder convolutional architecture
-#         decoder_conv = HalfUNet(input_dim=input_dim,
-#                                 in_channels=latent_function_channels,
-#                                 out_channels=decoder_conv_output_channels)
         
         # Standard convolutional architecture
         decoder_conv = UNet(input_dim=input_dim,

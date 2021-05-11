@@ -165,17 +165,18 @@ def plot_samples_and_data(model,
                           root,
                           epoch,
                           latent_model,
-                          plot_marginals):
+                          plot_marginals,
+                          device):
 
     # Sample datasets from generator
     data = list(gen_plot)[0]
 
     # Split context and target sets out
-    ctx_in = data['x_context']
-    ctx_out = data['y_context']
+    ctx_in = data['x_context'].to(device)
+    ctx_out = data['y_context'].to(device)
 
-    trg_in = data['x_target']
-    trg_out = data['y_target']
+    trg_in = data['x_target'].to(device)
+    trg_out = data['y_target'].to(device)
 
     # Locations to query predictions at
     xrange = xmax - xmin
@@ -271,6 +272,7 @@ def plot_samples_and_data(model,
     plt.close()
 
 
+    
 # =============================================================================
 # Make Datagenerator Function
 # =============================================================================

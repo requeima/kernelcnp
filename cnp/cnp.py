@@ -221,6 +221,7 @@ class StandardGNP(GaussianNeuralProcess):
         # Standard input/output dimensions and latent representation dimension
         output_dim = 1
         latent_dim = 128
+        num_layers = 6
         
         # Decoder output dimension
         decoder_output_dim = output_dim +               \
@@ -231,7 +232,8 @@ class StandardGNP(GaussianNeuralProcess):
         # Construct the standard encoder
         encoder = StandardEncoder(input_dim=input_dim,
                                   latent_dim=latent_dim,
-                                  use_attention=use_attention)
+                                  use_attention=use_attention,
+                                  num_layers=num_layers)
         
         # Construct the standard decoder
         decoder = StandardDecoder(input_dim=input_dim,
