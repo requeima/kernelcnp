@@ -210,11 +210,7 @@ for seed in seeds:
             # =================================================================
             # Create data generators
             # =================================================================
-
             
-            args.num_train_iters = 2
-            args.valid_train_iters = 2
-            args.epochs = 2
 
             # Training data generator parameters -- used for both Sawtooth and GP
             gen_params = {
