@@ -22,7 +22,7 @@ data_generators = ['eq',
 #           'convNP',
 #           'FullConvGNP']
 
-models = ['AGNP']
+models = ['FullConvGNP']
 
 # models = ['convNP']
 
