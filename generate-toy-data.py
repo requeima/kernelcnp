@@ -39,13 +39,13 @@ def make_random_generator(gen_train_gp_params, gen_train_sawtooth_params, kernel
     gen_list = []
     
     # Generate sawtooth seperately
-    gen  = make_generator('sawtooth', args, gen_train_sawtooth_params, None)
+    gen  = make_generator('sawtooth', gen_train_sawtooth_params, None)
     gen_list.append(gen)
 
     
     for dk in gp_data_kinds:
-        gen  = make_generator(dk, args, gen_train_gp_params, kernel_params)
-        gen_list.append(gen).append(gt)
+        gen  = make_generator(dk, gen_train_gp_params, kernel_params)
+        gen_list.append(gen)
     
     return gen_list
 
