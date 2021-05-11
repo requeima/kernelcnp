@@ -107,7 +107,7 @@ parser.add_argument('--num_train_iters',
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=4, # 64
+                    default=64,
                     type=int,
                     help='Iterations (# batches sampled) for validation.'
                          'Only used if generate_data_at_traintime is set to True.')
