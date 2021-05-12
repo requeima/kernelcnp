@@ -10,29 +10,29 @@ GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 20.
 
 # Model and data generator configurations
-data_generators = ['eq',
+data_generators = ['random',
+                   'sawtooth',
+                   'eq',
                    'matern',
                    'noisy-mixture',
                    'weakly-periodic']
 
-# models = ['GNP',
-#           'AGNP',
-#           'ANP',
-#           'convGNP',
-#           'convNP',
-#           'FullConvGNP']
+models = ['GNP',
+           'AGNP',
+           'ANP',
+           'convGNP',
+           'convNP',
+           'FullConvGNP']
 
-models = ['FullConvGNP']
-
+#models = ['FullConvGNP']
 # models = ['convNP']
 
-# covs = ['innerprod-homo',
-#         'kvv-homo',
-#         'meanfield']
+covs = ['innerprod-homo',
+         'kvv-homo',
+         'meanfield']
 
 # covs = ['innerprod-homo']
-
-covs = ['meanfield']
+#covs = ['meanfield']
 
 x_dims = ['1']
 
