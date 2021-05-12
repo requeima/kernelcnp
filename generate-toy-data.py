@@ -59,7 +59,7 @@ parser.add_argument('--test',
                          'experimental root.')
 
 parser.add_argument('--x_dims',
-                    default=[1, 2],
+                    default=[1],
                     nargs='+',
                     type=int,
                     help='Dimensions of x to loop over.')
@@ -179,10 +179,10 @@ data_kinds = ['eq',
               'sawtooth',
               'random']
 
-seeds = list(range(0, 1))
+seeds = list(range(1, 2))
 
-for seed in seeds:
-    for x_dim in args.x_dims:
+for x_dim in args.x_dims:
+    for seed in seeds:
         for data_kind in data_kinds:
             
             x_context_ranges = x_dim * [args.x_context_range]
