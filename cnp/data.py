@@ -1,4 +1,6 @@
 import abc
+import multiprocessing
+import threadpoolctl
 
 import numpy as np
 import stheno
@@ -110,7 +112,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
         """
 
         
-    def generate_task(self):
+    def generate_task(self, to_torch=True):
         """Generate a task.
 
         Returns:
@@ -162,10 +164,32 @@ class DataGenerator(metaclass=abc.ABCMeta):
                                  dtype=torch.float32).to(self.device)
                  for k, v in batch.items()}
 
+        if to_torch:
+            batch = {k: torch.tensor(v, dtype=torch.float32).to(self.device)
+                     for k, v in batch.items()}
+
         return batch
 
     def __iter__(self):
         return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
+
+    def pregen(self, num_batches):
+        # Distribute the batches over the CPUs.
+        num_cpus = multiprocessing.cpu_count()
+        num_batches_per_cpu = [num_batches // num_cpus] * (num_cpus - 1)
+        num_batches_per_cpu.append(num_batches - sum(num_batches_per_cpu))
+
+        # Perform the pregeneration.
+        with multiprocessing.Pool(processes=num_cpus) as pool:
+            args = [(self, num) for num in num_batches_per_cpu]
+            batches = sum(pool.starmap(_generate_batches, args), [])
+
+        return batches
+
+
+def _generate_batches(self, num_batches):
+    with threadpoolctl.threadpool_limits(limits=1, user_api="blas"):
+        return [self.generate_task(to_torch=False) for _ in range(num_batches)]
 
 
 class GPGenerator(DataGenerator):
