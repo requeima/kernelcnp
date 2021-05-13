@@ -7,13 +7,12 @@ SECURITY_GROUP = "sg-00e6c4ed6ef493a3a"
 IMAGE_ID = "ami-043f324346849c8f8"
 
 aws.config["ssh_user"] = "ubuntu"  # "ec2-user"
-aws.config["ssh_key"] = f"~/.ssh/{KEY}.pem"
+aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
 aws.config["setup_commands"] = [
     f"cd /home/ec2-user/{REPO}",
     "ssh-keygen -F github.com || ssh-keyscan github.com >> ~/.ssh/known_hosts",
     "git pull",
 ]
-
 
 # Model and data generator configurations
 data_generators = [
@@ -52,14 +51,11 @@ configs = cond_configs + fcgnp_configs + latent_configs
 commands = [
     [
         f"mkdir -p logs",
-        f"python train.py {gen} {model} {cov} --xd_dim 1 --seed {seed} --gpu 0"
+        f"python -u train.py {gen} {model} {cov} --x_dim 1 --seed {seed} --gpu 0"
         f" 2>&1 | tee \"logs/gen_{gen}_model_{model}_cov_{cov}_seed_{seed}.txt\"",
     ]
     for seed, gen, model, cov in configs
 ]
-
-for command in commands:
-    print(commands)
 
 aws.manage_cluster(
     commands,
