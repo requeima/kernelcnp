@@ -422,7 +422,6 @@ else:
 # Number of epochs between validations
 train_iteration = 0
 log_every = 1
-
     
 log_args(working_directory, args)
 
@@ -473,7 +472,8 @@ for epoch in range(epochs):
 
         plot_marginals = args.covtype == 'meanfield'
 
-        if args.x_dim == 1:
+        if args.x_dim == 1 and \
+           not (args.data == 'sawtooth' or args.data == 'random'):
 
             plot_samples_and_data(model=model,
                                   gen_plot=gen_val,

@@ -73,4 +73,4 @@ if __name__ == '__main__':
 
                 configs = configs[1:]
 
-                time.sleep(5e0)
+                # time.sleep(5e0)

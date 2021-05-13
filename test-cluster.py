@@ -14,9 +14,8 @@ aws.config["setup_commands"] = [
 ]
  
 commands = [
- ["mkdir -p results", "touch results/one.txt", "echo "],
- ["mkdir -p results", "touch results/two.txt"],
- ["mkdir -p results", "touch results/three.txt"],
+ ["mkdir -p results", "touch results/one.txt", "echo running-one > results/one.txt"],
+ ["mkdir -p results", "touch results/two.txt", "echo running-two > results/two.txt"]
 ]
  
 aws.manage_cluster(
@@ -25,7 +24,7 @@ aws.manage_cluster(
  key_name=KEY,
  security_group_id=SECURITY_GROUP,
  image_id=IMAGE_ID,
- sync_sources=[f"/home/ubuntu/{REPO}/results"],
+ sync_sources=[f"/home/ubuntu/{REPO}/toy-results"],
  sync_target=aws.LocalPath("sync"),
  monitor_call=aws.shutdown_timed_call(duration=60),
  monitor_delay=60,
