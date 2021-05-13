@@ -184,11 +184,6 @@ class DataGenerator(metaclass=abc.ABCMeta):
             args = [(self, num) for num in num_batches_per_cpu]
             batches = sum(pool.starmap(_generate_batches, args), [])
 
-        batches = [
-            {k: torch.tensor(v, dtype=torch.float32).to(self.device)
-            for k, v in batch.items()} for batch in batches
-        ]
-
         return batches
 
 
