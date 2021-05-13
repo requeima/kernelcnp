@@ -208,14 +208,15 @@ class GPGenerator(DataGenerator):
         
         kernel = kernel + std_noise ** 2 * stheno.Delta()
         
-        self.gp = stheno.GP(kernel)
+        self.kernel = kernel
         self.std_noise = std_noise
         
         DataGenerator.__init__(self, **kw_args)
         
 
     def sample(self, x):
-        return np.squeeze(self.gp(x).sample())
+        gp = stheno.GP(self.kernel)
+        return np.squeeze(gp(x).sample())
     
 
     def log_like(self, x_context, y_context, x_target, y_target):
@@ -231,7 +232,7 @@ class GPGenerator(DataGenerator):
         
         
         prior = stheno.Measure()
-        f = stheno.GP(self.gp.kernel, measure=prior)
+        f = stheno.GP(self.kernel, measure=prior)
         noise_1 = stheno.GP(self.std_noise ** 2 * stheno.Delta(), measure=prior)
         noise_2 = stheno.GP(self.std_noise ** 2 * stheno.Delta(), measure=prior)
         
