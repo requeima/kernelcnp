@@ -160,9 +160,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
             batch['y_target'].append(y_target)
             
         # Stack batch and convert to PyTorch
-        batch = {k: torch.tensor(_uprank(np.stack(v, axis=0)),
-                                 dtype=torch.float32).to(self.device)
-                 for k, v in batch.items()}
+        batch = {k: _uprank(np.stack(v, axis=0)) for k, v in batch.items()}
 
         if to_torch:
             batch = {k: torch.tensor(v, dtype=torch.float32).to(self.device)
