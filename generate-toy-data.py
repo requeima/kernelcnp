@@ -29,7 +29,9 @@ parser = argparse.ArgumentParser()
 # Make Random DataGenerator Function
 # =============================================================================
 
-def make_random_generator(gen_train_gp_params, gen_train_sawtooth_params, kernel_params):
+def make_random_generator(gen_train_gp_params,
+                          gen_train_sawtooth_params,
+                          kernel_params):
     
     gp_data_kinds = ['eq',
                      'matern',
@@ -179,7 +181,7 @@ data_kinds = ['eq',
               'sawtooth',
               'random']
 
-seeds = list(range(1, 2))
+seeds = list(range(0, 2))
 
 for x_dim in args.x_dims:
     for seed in seeds:
@@ -201,7 +203,7 @@ for x_dim in args.x_dims:
 
             device = torch.device('cpu')
 
-            path = os.path.join('_experiments',
+            path = os.path.join('toy-data',
                                 f'{data_kind}',
                                 'data',
                                 f'seed-{seed}',

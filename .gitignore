@@ -140,3 +140,6 @@ ___experiments/*
 _np-buggy-experiments
 climate-data
 environmental/data
+toy-data
+toy-results
+aws

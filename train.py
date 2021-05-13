@@ -269,7 +269,7 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_root = os.path.join('_experiments',
+data_root = os.path.join('toy-data',
                          f'{args.data}',
                          f'data',
                          f'seed-{args.seed}',
@@ -284,7 +284,7 @@ if args.root:
     writer = SummaryWriter(f'{args.root}/log')
     
 else:
-    experiment_name = os.path.join('_experiments',
+    experiment_name = os.path.join('toy-results',
                                    f'{args.data}',
                                    f'models',
                                    f'{args.model}',
