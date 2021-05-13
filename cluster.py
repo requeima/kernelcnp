@@ -9,7 +9,7 @@ IMAGE_ID = "ami-043f324346849c8f8"
 aws.config["ssh_user"] = "ubuntu"  # "ec2-user"
 aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
 aws.config["setup_commands"] = [
-    f"cd /home/ec2-user/{REPO}",
+    f"cd /home/ubuntu/{REPO}",
     "ssh-keygen -F github.com || ssh-keyscan github.com >> ~/.ssh/known_hosts",
     "git pull",
 ]
