@@ -136,5 +136,10 @@ dmypy.json
 *.png
 _experiments/*
 __experiments/*
+___experiments/*
 _np-buggy-experiments
 climate-data
+environmental/data
+toy-data
+toy-results
+aws

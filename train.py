@@ -2,7 +2,6 @@ import argparse
 
 import numpy as np
 import stheno.torch as stheno
-import torch
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
@@ -43,62 +42,25 @@ from cnp.cov import (
     AddNoNoise
 )
 
-from cnp.utils import plot_samples_and_data
+from cnp.utils import plot_samples_and_data, make_generator
 
+import torch
 from torch.distributions import MultivariateNormal
-
 from torch.utils.tensorboard import SummaryWriter
 
 
-def validate(data, data_generator, model, args, device, writer, oracle=True):
-    
-    nll_list = []
-    oracle_nll_list = []
-    
-    with torch.no_grad():
-        
-        for step, batch in enumerate(data):
-            
-            nll = model.loss(batch['x_context'].to(device),
-                             batch['y_context'].to(device),
-                             batch['x_target'].to(device),
-                             batch['y_target'].to(device))
-            
-            oracle_nll = np.array(0.)
-            
-            if oracle:
-                if (type(data_generator) == cnp.data.GPGenerator):
-                    for b in range(batch['x_context'].shape[0]):
-                        oracle_nll =  - data_generator.log_like(batch['x_context'][b],
-                                                                batch['y_context'][b],
-                                                                batch['x_target'][b],
-                                                                batch['y_target'][b])
-                        
-
-            # Scale by the maximum number of target points
-            nll_list.append(nll.item() / args.max_num_target)
-            oracle_nll_list.append(oracle_nll.item() / args.max_num_target)
-                
-    mean_nll = np.mean(nll_list)
-    std_nll = (np.var(nll_list) ** 0.5) / np.sqrt(len(nll_list))
-    mean_oracle = np.mean(oracle_nll_list)
-    std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(len(oracle_nll_list)) 
+# =============================================================================
+# Training epoch helper
+# =============================================================================
 
 
-    print(f"Validation neg. log-lik: "
-          f"{mean_nll:.2f} +/- "
-          f"{std_nll:.2f}")
-
-    print(f"Oracle     neg. log-lik: "
-          f"{mean_oracle:.2f} +/- "
-          f"{std_oracle:.2f}")
-
-    return mean_nll, std_nll, mean_oracle, std_oracle
-
-
-
-
-def train(data, model, optimiser, log_every, device, writer, training_iteration):
+def train(data,
+          model,
+          optimiser,
+          log_every,
+          device,
+          writer,
+          iteration):
     
     for step, batch in enumerate(data):
 
@@ -116,11 +78,74 @@ def train(data, model, optimiser, log_every, device, writer, training_iteration)
         optimiser.zero_grad()
 
         # Write to tensorboard
-        writer.add_scalar('Train log-lik.', - nll, training_iteration)
+        writer.add_scalar('Train log-lik.', - nll, iteration)
         
-        training_iteration = training_iteration + 1
+        iteration = iteration + 1
         
-    return training_iteration
+    return iteration
+
+
+# =============================================================================
+# Validation helper
+# =============================================================================
+
+
+def validate(data,
+             data_gen,
+             model,
+             args,
+             device,
+             writer,
+             latent_model):
+    
+    # Lists for logging model's training NLL and oracle NLL
+    nll_list = []
+    oracle_nll_list = []
+    
+    # If training a latent model, set the number of latent samples accordingly
+    loss_kwargs = {'num_samples' : args.np_val_samples} if latent_model else {}
+    
+    with torch.no_grad():
+        
+        for step, batch in enumerate(data):
+            
+            nll = model.loss(batch['x_context'].to(device),
+                             batch['y_context'].to(device),
+                             batch['x_target'].to(device),
+                             batch['y_target'].to(device),
+                             **loss_kwargs)
+            
+            oracle_nll = np.array(0.)
+
+            # Oracle loss exists only for GP-generated data, not sawtooth
+            if (type(data_gen) == cnp.data.GPGenerator):
+                for b in range(batch['x_context'].shape[0]):
+                    oracle_nll = - data_gen.log_like(batch['x_context'][b],
+                                                     batch['y_context'][b],
+                                                     batch['x_target'][b],
+                                                     batch['y_target'][b])
+                        
+
+            # Scale by the average number of target points
+            nll_list.append(nll.item())
+            oracle_nll_list.append(oracle_nll.item())
+            
+    mean_nll = np.mean(nll_list)
+    std_nll = np.var(nll_list)**0.5
+    
+    mean_oracle_nll = np.mean(oracle_nll_list)
+    std_oracle_nll = np.var(oracle_nll_list)**0.5
+
+    # Print validation loss and oracle loss
+    print(f"Validation neg. log-lik: "
+          f"{mean_nll:.2f} +/- "
+          f"{std_nll:.2f}")
+
+    print(f"Oracle     neg. log-lik: "
+          f"{mean_oracle_nll:.2f} +/- "
+          f"{std_oracle_nll:.2f}")
+
+    return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll
         
 
 # Parse arguments given to the script.
@@ -136,7 +161,8 @@ parser.add_argument('data',
                              'matern',
                              'noisy-mixture',
                              'weakly-periodic',
-                             'sawtooth'],
+                             'sawtooth',
+                             'random'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
@@ -150,112 +176,10 @@ parser.add_argument('--seed',
                     type=int,
                     help='Random seed to use.')
 
-parser.add_argument('--std_noise',
-                    default=1e-1,
-                    type=float,
-                    help='Standard dev. of noise added to GP-generated data.')
-
-parser.add_argument('--batch_size',
-                    default=64,
-                    type=int,
-                    help='Number of tasks per batch sampled.')
-
-parser.add_argument('--max_num_context',
-                    default=32,
-                    type=int,
-                    help='Maximum number of context points.')
-
-parser.add_argument('--max_num_target',
-                    default=32,
-                    type=int,
-                    help='Maximum number of target points.')
-
-parser.add_argument('--num_train_iters',
-                    default=256,
-                    type=int,
-                    help='Iterations (# batches sampled) per training epoch.')
-
-parser.add_argument('--num_valid_iters',
-                    default=16,
-                    type=int,
-                    help='Iterations (# batches sampled) for validation.'
-                         'Only used if generate_data_at_traintime is set to True.')
-
-parser.add_argument('--num_test_iters',
-                    default=1024,
-                    type=int,
-                    help='Iterations (# batches sampled) for validation.'
-                         'Only used if generate_data_at_traintime is set to True.')
-
-parser.add_argument('--generate_data_at_traintime',
-                    default=False,
-                    action='store_true',
-                    help='Set this to true to generate data at traintime. If'
-                         'this is not set, then pre-generated data will be used.')
-
-parser.add_argument('--epochs',
-                    default=100,
-                    type=int,
-                    help='Number of epochs to train for.')
-
 parser.add_argument('--validate_every',
                     default=10,
                     type=int,
                     help='Number of epochs between validations.')
-
-parser.add_argument('--eq_params',
-                    default=[1.],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--m52_params',
-                    default=[1.],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--mixture_params',
-                    default=[1., 0.5],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--wp_params',
-                    default=[1., 0.5],
-                    nargs='+',
-                    type=float,
-                    help='.')
-
-parser.add_argument('--x_context_range',
-                    default=[-3., 3.],
-                    nargs='+',
-                    type=float,
-                    help='Range of input x for sampled data.')
-
-parser.add_argument('--x_target_range',
-                    default=None,
-                    nargs='+',
-                    type=float,
-                    help='Range of inputs for sampled data.')
-
-parser.add_argument('--freq_range',
-                    default=[3., 5.],
-                    nargs='+',
-                    type=float,
-                    help='Range of frequencies for sawtooth data.')
-
-parser.add_argument('--shift_range',
-                    default=[-5., 5.],
-                    nargs='+',
-                    type=float,
-                    help='Range of frequency shifts for sawtooth data.')
-
-parser.add_argument('--trunc_range',
-                    default=[10., 20.],
-                    nargs='+',
-                    type=float,
-                    help='Range of truncations for sawtooth data.')
 
 
 # =============================================================================
@@ -285,13 +209,19 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
+parser.add_argument('--np_val_samples',
+                    default=1024,
+                    type=int,
+                    help='Number of latent samples for evaluating the loss, '
+                         'when validating, used for ANP and ConvNP.')
+
 parser.add_argument('--num_basis_dim',
                     default=512,
                     type=int,
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=1e-3,
+                    default=5e-4,
                     type=float,
                     help='Learning rate.')
 
@@ -299,7 +229,6 @@ parser.add_argument('--weight_decay',
                     default=0.,
                     type=float,
                     help='Weight decay.')
-
 
 
 # =============================================================================
@@ -311,17 +240,6 @@ parser.add_argument('--root',
                     help='Experiment root, which is the directory from which '
                          'the experiment will run. If it is not given, '
                          'a directory will be automatically created.')
-
-parser.add_argument('--train',
-                    action='store_true',
-                    help='Perform training. If this is not specified, '
-                         'the model will be attempted to be loaded from the '
-                         'experiment root.')
-
-parser.add_argument('--test',
-                    action='store_true',
-                    help='Test the model and record the values in the'
-                         'experimental root.')
 
 parser.add_argument('--num_params',
                     action='store_true',
@@ -347,25 +265,26 @@ torch.manual_seed(args.seed)
 # Set device
 if torch.cuda.is_available():
     torch.cuda.set_device(args.gpu)
+    
+use_cpu = not torch.cuda.is_available() and args.gpu == 0
+device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
-                             else torch.device('cuda')
-
-data_root = os.path.join('_experiments',
+data_root = os.path.join('toy-data',
                          f'{args.data}',
-                         'data',
+                         f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
 
 # Load working directory
 if args.root:
+    
     working_directory = WorkingDirectory(root=args.root)
     data_directory = WorkingDirectory(root=data_root)
     
     writer = SummaryWriter(f'{args.root}/log')
     
 else:
-    experiment_name = os.path.join('_experiments',
+    experiment_name = os.path.join('toy-results',
                                    f'{args.data}',
                                    f'models',
                                    f'{args.model}',
@@ -381,91 +300,6 @@ else:
 file = open(working_directory.file('data_location.txt'), 'w')
 file.write(data_directory.root)
 file.close()
-    
-
-# =============================================================================
-# Create data generators
-# =============================================================================
-
-x_context_ranges = [args.x_context_range] * args.x_dim
-
-# Training data generator parameters -- used for both Sawtooth and GP
-gen_params = {
-    'batch_size'                : args.batch_size,
-    'x_context_ranges'          : x_context_ranges,
-    'max_num_context'           : args.max_num_context,
-    'max_num_target'            : args.max_num_target,
-    'device'                    : device
-}
-
-# Plotting data generator parameters -- used for both Sawtooth and GP
-gen_plot_params = deepcopy(gen_params)
-gen_plot_params['iterations_per_epoch'] = 1
-gen_plot_params['batch_size'] = 3
-gen_plot_params['max_num_context'] = 16
-
-# Training data generator parameters -- specific to Sawtooth
-gen_train_sawtooth_params = {
-    'freq_range'  : args.freq_range,
-    'shift_range' : args.shift_range,
-    'trunc_range' : args.trunc_range
-}
-
-                    
-if args.data == 'sawtooth':
-    
-    gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                           **gen_train_sawtooth_params,
-                                           **gen_params)
-    
-    gen_val = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                         **gen_train_sawtooth_params,
-                                         **gen_params)
-    
-    gen_test = cnp.data.SawtoothGenerator(args.num_test_iters,
-                                          **gen_train_sawtooth_params,
-                                          **gen_params)
-    
-    gen_plot = cnp.data.SawtoothGenerator(**gen_train_sawtooth_params,
-                                          **gen_plot_params)
-    
-else:
-    
-    if args.data == 'eq':
-        kernel = stheno.EQ().stretch(args.eq_params[0])
-        
-    elif args.data == 'matern':
-        kernel = stheno.Matern52().stretch(args.m52_params[0])
-        
-    elif args.data == 'noisy-mixture':
-        kernel = stheno.EQ().stretch(args.mixture_params[0]) + \
-                 stheno.EQ().stretch(args.mixture_params[1])
-        
-    elif args.data == 'weakly-periodic':
-        kernel = stheno.EQ().stretch(args.wp_params[0]) * \
-                 stheno.EQ().periodic(period=args.wp_params[1])
-        
-    else:
-        raise ValueError(f'Unknown generator kind "{args.data}".')
-        
-    gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
-                                     kernel=kernel,
-                                     std_noise=args.std_noise,
-                                     **gen_params)
-        
-    gen_val = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
-                                   kernel=kernel,
-                                   std_noise=args.std_noise,
-                                   **gen_params)
-        
-    gen_test = cnp.data.GPGenerator(iterations_per_epoch=args.num_test_iters,
-                                    kernel=kernel,
-                                    std_noise=args.std_noise,
-                                    **gen_params)
-        
-    gen_plot = cnp.data.GPGenerator(kernel=kernel,
-                                    std_noise=args.std_noise,
-                                    **gen_plot_params)
     
 
 
@@ -497,7 +331,6 @@ elif args.covtype == 'meanfield':
 else:
     raise ValueError(f'Unknown covariance method {args.covtype}.')
     
-print('creating model')
 # Create model architecture
 if args.model == 'GNP':
     model = StandardGNP(input_dim=args.x_dim,
@@ -516,6 +349,7 @@ elif args.model == 'convGNP':
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
+    
 
 elif args.model == 'ANP':
     
@@ -533,7 +367,6 @@ elif args.model == 'convNP':
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
-print('created model')
 
 
 print(f'{args.model} '
@@ -555,141 +388,119 @@ latent_model = args.model in ['ANP', 'convNP']
 
 
 # =============================================================================
-# Load data
+# Load data and validation oracle generator
 # =============================================================================
-
-if args.generate_data_at_traintime:
     
-    if args.train:
-        
-        data_train = gen_train
-        data_val = gen_val
-        
-    if args.test:
-        
-        data_test = gen_test
-        
+file = open(data_directory.file('train-data.pkl'), 'rb')
+data_train = pickle.load(file)
+file.close()
+
+file = open(data_directory.file('valid-data.pkl'), 'rb')
+data_val = pickle.load(file)
+file.close()
+
+# Create the data generator for the oracle if gp data
+if args.data == 'sawtooth' or args.data == 'random':
+    gen_val = None
+    
 else:
+    file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
+    gen_valid_gp_params = pickle.load(file)
+    file.close()
+
+    file = open(data_directory.file('kernel-params.pkl'), 'rb')
+    kernel_params = pickle.load(file)
+    file.close()
     
-    if args.train:
-        file = open(data_directory.file('train-data.pkl'), 'rb')
-        data_train = pickle.load(file)
-        file.close()
+    gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
-        file = open(data_directory.file('valid-data.pkl'), 'rb')
-        data_val = pickle.load(file)
-        file.close()
-
-    if args.test:
-        file = open(data_directory.file('test-data.pkl'), 'rb')
-        data_test = pickle.load(file)
-        file.close()
         
-
 # =============================================================================
 # Train or test model
 # =============================================================================
 
 # Number of epochs between validations
 train_iteration = 0
-log_every = 100
-
-if args.train:
+log_every = 1
     
-    log_args(working_directory, args)
+log_args(working_directory, args)
 
-    # Create optimiser
-    optimiser = torch.optim.Adam(model.parameters(),
-                                 args.learning_rate,
-                                 weight_decay=args.weight_decay)
-    
-    # Run the training loop, maintaining the best objective value
-    best_nll = np.inf
-    
-    for epoch in range(args.epochs + 1):
-        
-        if train_iteration % log_every == 0:
-            print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+# Create optimiser
+optimiser = torch.optim.Adam(model.parameters(),
+                         args.learning_rate,
+                         weight_decay=args.weight_decay)
 
-        if epoch % args.validate_every == 0:
-            
-            valid_epoch = data_val if args.generate_data_at_traintime else \
-                          data_val[epoch // args.validate_every]
-            
-            # Compute validation negative log-likelihood
-            val_nll, _, val_oracle, _ = validate(valid_epoch,
-                                                 gen_val,
-                                                 model,
-                                                 args,
-                                                 device,
-                                                 writer,
-                                                 oracle=True)
-            
-            writer.add_scalar('Valid log-lik.', - val_nll, epoch)
-            writer.add_scalar('Valid oracle log-lik.', - val_oracle, epoch)
-            writer.add_scalar('Oracle minus valid log-lik.', - val_oracle + val_nll, epoch)
+# Run the training loop, maintaining the best objective value
+best_nll = np.inf
 
-            # Update the best objective value and checkpoint the model
-            is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
-                                (False, best_nll)
-            
-            plot_marginals = args.covtype == 'meanfield'
-            
-            if args.x_dim == 1:
-                
-                plot_samples_and_data(model=model,
-                                      gen_plot=gen_plot,
-                                      xmin=args.x_context_range[0],
-                                      xmax=args.x_context_range[1],
-                                      root=working_directory.root,
-                                      epoch=epoch,
-                                      latent_model=latent_model,
-                                      plot_marginals=plot_marginals)
-            
-            
-        train_epoch = data_train if args.generate_data_at_traintime else \
-                      data_train[epoch]
+epochs = len(data_train)
 
-        # Compute training negative log-likelihood
-        train_iteration = train(train_epoch, model, optimiser, log_every, device, writer, train_iteration)
-            
-        save_checkpoint(working_directory,
-                        {'epoch'         : epoch + 1,
-                         'state_dict'    : model.state_dict(),
-                         'best_acc_top1' : best_obj,
-                         'optimizer'     : optimiser.state_dict()},
-                        is_best=is_best,
-                        epoch=epoch)
-        
-        
+for epoch in range(epochs):
 
-elif args.test:
+    if train_iteration % log_every == 0:
+        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
-    print('Testing...')
-    
-    # Load model on appropriate device
-    if device.type == 'cpu':
-        load_dict = torch.load(working_directory.file('model_best.pth.tar',
-                                                      exists=True),
-                               map_location=torch.device('cpu'))
-    else:
-        load_dict = torch.load(working_directory.file('model_best.pth.tar',
-                                                      exists=True))
-        
-    model.load_state_dict(load_dict['state_dict'])
-    
-    # Test model on ~2000 tasks.
-    test_obj, test_obj_std_error, _, _ = validate(data_test, 
-                                            gen_test, 
-                                            model, 
-                                            args, 
-                                            device,
-                                            oracle=False)
-    
-    print('Model averages a log-likelihood of %s +- %s on unseen tasks.' % (test_obj, test_obj_std_error))
-    
-    with open(working_directory.file('test_log_likelihood.txt'), 'w') as f:
-        f.write(str(test_obj))
-        
-    with open(working_directory.file('test_log_likelihood_standard_error.txt'), 'w') as f:
-        f.write(str(test_obj_std_error))
+    if epoch % args.validate_every == 0:
+
+        valid_epoch = data_val[epoch // args.validate_every]
+
+        # Compute validation negative log-likelihood
+        val_nll, _, val_oracle, _ = validate(valid_epoch,
+                                             gen_val,
+                                             model,
+                                             args,
+                                             device,
+                                             writer,
+                                             latent_model)
+
+        # Log information to tensorboard
+        writer.add_scalar('Valid log-lik.',
+                          -val_nll,
+                          epoch)
+
+        writer.add_scalar('Valid oracle log-lik.',
+                          -val_oracle,
+                          epoch)
+
+        writer.add_scalar('Oracle minus valid log-lik.',
+                          -val_oracle + val_nll,
+                          epoch)
+
+        # Update the best objective value and checkpoint the model
+        is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
+                            (False, best_nll)
+
+        plot_marginals = args.covtype == 'meanfield'
+
+        if args.x_dim == 1 and \
+           not (args.data == 'sawtooth' or args.data == 'random'):
+
+            plot_samples_and_data(model=model,
+                                  gen_plot=gen_val,
+                                  xmin=-2,
+                                  xmax=2,
+                                  root=working_directory.root,
+                                  epoch=epoch,
+                                  latent_model=latent_model,
+                                  plot_marginals=plot_marginals,
+                                  device=device)
+
+
+    train_epoch = data_train[epoch]
+
+    # Compute training negative log-likelihood
+    train_iteration = train(train_epoch,
+                            model,
+                            optimiser,
+                            log_every,
+                            device,
+                            writer,
+                            train_iteration)
+
+    save_checkpoint(working_directory,
+                    {'epoch'         : epoch + 1,
+                     'state_dict'    : model.state_dict(),
+                     'best_acc_top1' : best_obj,
+                     'optimizer'     : optimiser.state_dict()},
+                    is_best=is_best,
+                    epoch=epoch)

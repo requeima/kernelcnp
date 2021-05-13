@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
+    StandardEncoder,
     StandardANPEncoder,
     StandardConvNPEncoder
 )
@@ -67,51 +68,19 @@ class LatentNeuralProcess(nn.Module):
         noise_vars = torch.stack(noise_vars, dim=0)
         
         return means, noise_vars
-
     
-    def _loss(self, x_context, y_context, x_target, y_target):
+    
+    def loss(self, x_context, y_context, x_target, y_target, num_samples=None):
         
-        S = self.num_samples
         B = y_target.shape[0]
-        N = y_target.shape[1]
-        D = y_target.shape[2]
+        
+        num_samples = self.num_samples if num_samples is None else num_samples
         
         # Compute mean and variance tensors, each of shape (S, B, N, D)
         means, noise_vars = self.forward(x_context,
                                          y_context,
                                          x_target,
-                                         num_samples=self.num_samples)
-        
-        means = means[:, :, :, 0]
-        idx = torch.arange(noise_vars.shape[2])
-        noise_vars = noise_vars[:, :, idx, idx]
-        
-        # Normal with batch shape (S, B, N), event shape ()
-        normal = torch.distributions.Normal(loc=means, scale=noise_vars ** 0.5)
-        
-        # Normal with batch shape (S), event shape (B, N)
-        normal = torch.distributions.Independent(normal, 2)
-        
-        # Categorical to use for mixing components
-        logits = torch.ones(size=(self.num_samples,)).to(means.device)
-        categorical = torch.distributions.Categorical(logits=logits)
-        
-        mixture = torch.distributions.MixtureSameFamily(categorical, normal)
-        
-        logprob = mixture.log_prob(y_target[:, :, 0]) / B
-        
-        return - logprob
-    
-    
-    def loss(self, x_context, y_context, x_target, y_target):
-        
-        B = y_target.shape[0]
-        
-        # Compute mean and variance tensors, each of shape (S, B, N, D)
-        means, noise_vars = self.forward(x_context,
-                                         y_context,
-                                         x_target,
-                                         num_samples=self.num_samples)
+                                         num_samples=num_samples)
         
         means = means[:, :, :, 0]
         idx = torch.arange(noise_vars.shape[2])
@@ -121,8 +90,10 @@ class LatentNeuralProcess(nn.Module):
         
         for mean, noise_var in zip(means, noise_vars):
             
-            distribution = torch.distributions.Normal(loc=mean, scale=noise_var ** 0.5)
-            logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]), axis=-1)
+            distribution = torch.distributions.Normal(loc=mean,
+                                                      scale=noise_var ** 0.5)
+            logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]),
+                                axis=-1)
             
             logprobs.append(logprob)
             
@@ -132,13 +103,13 @@ class LatentNeuralProcess(nn.Module):
         for i, batch_logprobs in enumerate(logprobs):
             
             max_batch_logprob = torch.max(batch_logprobs)
+        
             batch_logprobs = batch_logprobs - max_batch_logprob
+            
             batch_mix_logprob = torch.log(torch.mean(torch.exp(batch_logprobs)))
             batch_mix_logprob = batch_mix_logprob + max_batch_logprob
             
             logprob = logprob + batch_mix_logprob
-            
-        logprob = logprob / self.num_samples
         
         return - logprob / B
     
@@ -176,12 +147,12 @@ class StandardANP(LatentNeuralProcess):
         decoder_output_dim = output_dim + add_noise.extra_noise_dim
 
         # Construct the standard encoder
-        encoder = StandardANPEncoder(input_dim=input_dim,
+        encoder = StandardANPEncoder(input_dim=input_dim+1,
                                      latent_dim=latent_dim)
         
         # Construct the standard decoder
         decoder = StandardDecoder(input_dim=input_dim,
-                                  latent_dim=latent_dim,
+                                  latent_dim=2*latent_dim,
                                   output_dim=decoder_output_dim)
 
         super().__init__(encoder=encoder,
@@ -192,77 +163,6 @@ class StandardANP(LatentNeuralProcess):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.latent_dim = latent_dim
-        
-        
-        
-
-# # =============================================================================
-# # Convolutional Latent Neural Process
-# # =============================================================================
-        
-        
-# class StandardConvNP(LatentNeuralProcess):
-    
-#     def __init__(self, input_dim, add_noise, num_samples):
-        
-#         # Dimension of output is 1 for scalar outputs -- do not change
-#         output_dim = 1
-        
-#         # Num channels of input passed to encoder CNN
-#         encoder_conv_input_channels = 16
-        
-#         # Num channels of latent function
-#         # Outputted by encoder, expected by decoder
-#         latent_function_channels = 16
-        
-#         # Num channels of output of decoder CNN
-#         decoder_conv_output_channels = 16
-        
-#         # Num channels of output of decoder
-#         decoder_out_channels = 1
-        
-#         # Encoder convolutional architecture
-#         encoder_conv = StandardDepthwiseSeparableCNN(input_dim=input_dim,
-#                                                      in_channels=encoder_conv_input_channels, 
-#                                                      out_channels=2*latent_function_channels)
-        
-#         # Encoder convolutional architecture
-#         decoder_conv = StandardDepthwiseSeparableCNN(input_dim=input_dim,
-#                                                      in_channels=latent_function_channels, 
-#                                                      out_channels=decoder_conv_output_channels)
-
-#         # Construct the convolutional encoder
-#         grid_multiplier =  2 ** encoder_conv.num_halving_layers
-#         points_per_unit = 32
-#         init_length_scale = 2.0 / points_per_unit
-#         grid_margin = 0.2
-        
-#         encoder = StandardConvNPEncoder(input_dim=input_dim,
-#                                         conv_architecture=encoder_conv,
-#                                         init_length_scale=init_length_scale, 
-#                                         points_per_unit=points_per_unit, 
-#                                         grid_multiplier=grid_multiplier,
-#                                         grid_margin=grid_margin)
-        
-#         decoder = ConvDecoder(input_dim=input_dim,
-#                               conv_architecture=decoder_conv,
-#                               conv_out_channels=decoder_conv_output_channels,
-#                               out_channels=decoder_out_channels,
-#                               init_length_scale=init_length_scale,
-#                               points_per_unit=points_per_unit,
-#                               grid_multiplier=grid_multiplier,
-#                               grid_margin=grid_margin)
-
-
-#         super().__init__(encoder=encoder,
-#                          decoder=decoder,
-#                          add_noise=add_noise,
-#                          num_samples=num_samples)
-        
-#         self.input_dim = input_dim
-#         self.output_dim = output_dim
-        
-        
         
         
 
@@ -291,19 +191,19 @@ class StandardConvNP(LatentNeuralProcess):
         # Num channels of output of decoder
         decoder_out_channels = 1
         
-        # Encoder convolutional architecture
-        encoder_conv = HalfUNet(input_dim=input_dim,
-                                in_channels=encoder_conv_input_channels,
-                                out_channels=2*latent_function_channels)
+        # Standard convolutional architecture
+        encoder_conv = UNet(input_dim=input_dim,
+                            in_channels=encoder_conv_input_channels,
+                            out_channels=2*latent_function_channels)
         
-        # Encoder convolutional architecture
-        decoder_conv = HalfUNet(input_dim=input_dim,
-                                in_channels=latent_function_channels,
-                                out_channels=decoder_conv_output_channels)
+        # Standard convolutional architecture
+        decoder_conv = UNet(input_dim=input_dim,
+                            in_channels=latent_function_channels,
+                            out_channels=decoder_conv_output_channels)
 
         # Construct the convolutional encoder
         grid_multiplier =  2 ** encoder_conv.num_halving_layers
-        points_per_unit = 32
+        points_per_unit = 64
         init_length_scale = 8.0 / points_per_unit
         grid_margin = 0.2
         

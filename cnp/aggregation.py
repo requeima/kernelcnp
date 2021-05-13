@@ -41,7 +41,7 @@ class DotProdAttention(nn.Module):
         dot = torch.einsum('...cd, ...td -> ...ct', keys, queries) / Dk ** 0.5
         
         # Apply softmax to get attention weights
-        attn_weights = nn.functional.softmax(dot, dim=-1)
+        attn_weights = nn.functional.softmax(dot, dim=-2)
         
         # Weight values by attention, to get attended values
         attended = torch.einsum('...ct, ...cd -> ...td', attn_weights, values)
@@ -114,16 +114,19 @@ class MultiHeadAttention(nn.Module):
         
         # Transform keys (B, C, Dk) -> (B, C, H * K) -> (B, H, C, K)
         key_embeddings = self.key_linear(keys)
-        key_embeddings = torch.reshape(key_embeddings, (B, H, C, K))
+        key_embeddings = torch.reshape(key_embeddings, (B, C, H, K))
+        key_embeddings = key_embeddings.permute((0, 2, 1, 3))
         
-        # Transform queries (B, C, Dk) -> (B, C, H * K) -> (B, H, C, K)
+        # Transform queries (B, T, Dk) -> (B, T, H * K) -> (B, H, T, K)
         # Note Dk and K here because queries are in the same space as the keys
         query_embeddings = self.query_linear(queries)
-        query_embeddings = torch.reshape(query_embeddings, (B, H, T, K))
+        query_embeddings = torch.reshape(query_embeddings, (B, T, H, K))
+        query_embeddings = query_embeddings.permute((0, 2, 1, 3))
         
         # Transform values (B, C, Dv) -> (B, C, H * V) -> (B, H, C, V)
         value_embeddings = self.value_linear(values)
-        value_embeddings = torch.reshape(value_embeddings, (B, H, C, V))
+        value_embeddings = torch.reshape(value_embeddings, (B, C, H, V))
+        value_embeddings = value_embeddings.permute((0, 2, 1, 3))
         
         # Attend keys, values and queries to get tensor (B, H, T, V)
         attended = self.attention(key_embeddings,

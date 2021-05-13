@@ -13,6 +13,7 @@ import pickle
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import cnp.data
+from cnp.utils import make_generator
 
 from itertools import product
 from copy import deepcopy
@@ -25,6 +26,32 @@ parser = argparse.ArgumentParser()
 
 
 # =============================================================================
+# Make Random DataGenerator Function
+# =============================================================================
+
+def make_random_generator(gen_train_gp_params,
+                          gen_train_sawtooth_params,
+                          kernel_params):
+    
+    gp_data_kinds = ['eq',
+                     'matern',
+                     'noisy-mixture',
+                     'weakly-periodic',]
+
+    gen_list = []
+    
+    # Generate sawtooth seperately
+    gen  = make_generator('sawtooth', gen_train_sawtooth_params, None)
+    gen_list.append(gen)
+
+    
+    for dk in gp_data_kinds:
+        gen  = make_generator(dk, gen_train_gp_params, kernel_params)
+        gen_list.append(gen)
+    
+    return gen_list
+
+# =============================================================================
 # Data generation arguments
 # =============================================================================
 
@@ -34,13 +61,13 @@ parser.add_argument('--test',
                          'experimental root.')
 
 parser.add_argument('--x_dims',
-                    default=[1, 2],
+                    default=[1],
                     nargs='+',
                     type=int,
                     help='Dimensions of x to loop over.')
 
 parser.add_argument('--x_context_range',
-                    default=[-3., 3.],
+                    default=[-2., 2.],
                     nargs='+',
                     type=float,
                     help='Range of inputs for sampled data.')
@@ -52,40 +79,39 @@ parser.add_argument('--x_target_range',
                     help='Range of inputs for sampled data.')
 
 parser.add_argument('--std_noise',
-                    default=1e-1,
+                    default=5e-2,
                     type=float,
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=64,
+                    default=16,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
 parser.add_argument('--max_num_context',
-                    default=32,
+                    default=50,
                     type=int,
                     help='Maximum number of context points.')
 
+parser.add_argument('--min_num_target',
+                    default=50,
+                    type=int,
+                    help='Maximum number of target points.')
+
 parser.add_argument('--max_num_target',
-                    default=32,
+                    default=50,
                     type=int,
                     help='Maximum number of target points.')
 
 parser.add_argument('--num_train_iters',
-                    default=256,
+                    default=1024,
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=16,
+                    default=64,
                     type=int,
-                    help='Iterations (# batches sampled) for validation.'
-                         'Only used if generate_data_at_traintime is set to True.')
-
-parser.add_argument('--num_test_iters',
-                    default=2048,
-                    type=int,
-                    help='Iterations (# batches sampled) for testing.')
+                    help='Iterations (# batches sampled) for validation.')
 
 parser.add_argument('--validate_every',
                     default=10,
@@ -110,13 +136,13 @@ parser.add_argument('--m52_params',
                     help='.')
 
 parser.add_argument('--mixture_params',
-                    default=[1., 0.5],
+                    default=[1., 0.25],
                     nargs='+',
                     type=float,
                     help='.')
 
 parser.add_argument('--wp_params',
-                    default=[1., 0.5],
+                    default=[1., 0.25],
                     nargs='+',
                     type=float,
                     help='.')
@@ -152,12 +178,13 @@ data_kinds = ['eq',
               'matern',
               'noisy-mixture',
               'weakly-periodic',
-              'sawtooth']
+              'sawtooth',
+              'random']
 
 seeds = list(range(0, 2))
 
-for seed in seeds:
-    for x_dim in args.x_dims:
+for x_dim in args.x_dims:
+    for seed in seeds:
         for data_kind in data_kinds:
             
             x_context_ranges = x_dim * [args.x_context_range]
@@ -176,7 +203,7 @@ for seed in seeds:
 
             device = torch.device('cpu')
 
-            path = os.path.join('_experiments',
+            path = os.path.join('toy-data',
                                 f'{data_kind}',
                                 'data',
                                 f'seed-{seed}',
@@ -186,83 +213,94 @@ for seed in seeds:
             # =================================================================
             # Create data generators
             # =================================================================
-
+            
 
             # Training data generator parameters -- used for both Sawtooth and GP
             gen_params = {
+                'batch_size'                : args.batch_size,
+                'x_context_ranges'          : x_context_ranges,
+                'x_target_ranges'           : x_target_ranges,
                 'max_num_context'           : args.max_num_context,
+                'min_num_target'            : args.min_num_target,
                 'max_num_target'            : args.max_num_target,
                 'device'                    : device
             }
 
             # Training data generator parameters -- specific to Sawtooth
-            gen_train_sawtooth_params = {
+            gen_sawtooth_params = gen_params.copy()
+            gen_sawtooth_params.update({
                 'freq_range'  : args.freq_range,
                 'shift_range' : args.shift_range,
                 'trunc_range' : args.trunc_range
+            })
+
+            # Training data generator parameters -- specific to GPs
+            gen_gp_params = gen_params.copy()
+            gen_gp_params.update({
+                'std_noise' : args.std_noise
+            })
+
+            # Adding the iterations to the dictionaries
+            gen_train_sawtooth_params = gen_sawtooth_params.copy()
+            gen_valid_sawtooth_params = gen_sawtooth_params.copy()
+            gen_train_gp_params = gen_gp_params.copy()
+            gen_valid_gp_params = gen_gp_params.copy()
+
+            gen_train_sawtooth_params.update({'iterations_per_epoch': args.num_train_iters})
+            gen_train_gp_params.update({'iterations_per_epoch': args.num_train_iters})
+            gen_valid_sawtooth_params.update({'iterations_per_epoch': args.num_valid_iters})
+            gen_valid_gp_params.update({'iterations_per_epoch': args.num_valid_iters})
+        
+            wd = WorkingDirectory(root=path)
+
+            kernel_params = {'eq'              : args.eq_params,
+                             'matern'          : args.m52_params,
+                             'noisy-mixture'   : args.mixture_params,
+                             'weakly-periodic' : args.wp_params
             }
 
-
             if data_kind == 'sawtooth':
-                
                 if x_dim > 1: continue
 
-                else:
-
-                    gen_train = cnp.data.SawtoothGenerator(args.num_train_iters,
-                                                           batch_size=args.batch_size,
-                                                           x_context_ranges=x_context_ranges,
-                                                           x_target_ranges=x_target_ranges,
-                                                           **gen_train_sawtooth_params,
-                                                           **gen_params)
-
-                    gen_valid = cnp.data.SawtoothGenerator(args.num_valid_iters,
-                                                           batch_size=args.batch_size,
-                                                           x_context_ranges=x_context_ranges,
-                                                           x_target_ranges=x_target_ranges,
-                                                           **gen_train_sawtooth_params,
-                                                           **gen_params)
-                    
-            else:
-
-                if data_kind == 'eq':
-                    kernel = stheno.EQ().stretch(args.eq_params[0])
-
-                elif data_kind == 'matern':
-                    kernel = stheno.Matern52().stretch(args.m52_params[0])
-
-                elif data_kind == 'noisy-mixture':
-                    kernel = stheno.EQ().stretch(args.mixture_params[0]) + \
-                             stheno.EQ().stretch(args.mixture_params[1])
-
-                elif data_kind == 'weakly-periodic':
-                    kernel = stheno.EQ().stretch(args.wp_params[0]) * \
-                             stheno.EQ().periodic(period=args.wp_params[1])
-
-                else:
-                    raise ValueError(f'Unknown generator kind "{data_kind}".')
-
-                gen_train = cnp.data.GPGenerator(iterations_per_epoch=args.num_train_iters,
-                                                 batch_size=args.batch_size,
-                                                 kernel=kernel,
-                                                 std_noise=args.std_noise,
-                                                 x_context_ranges=x_context_ranges,
-                                                 x_target_ranges=x_target_ranges,
-                                                 **gen_params)
-
-                gen_valid = cnp.data.GPGenerator(iterations_per_epoch=args.num_valid_iters,
-                                                 batch_size=args.batch_size,
-                                                 kernel=kernel,
-                                                 std_noise=args.std_noise,
-                                                 x_context_ranges=x_context_ranges,
-                                                 x_target_ranges=x_target_ranges,
-                                                 **gen_params)
-
-
-            wd = WorkingDirectory(root=path)
+                gen_train = make_generator(data_kind, gen_train_sawtooth_params, None)
+                gen_valid = make_generator(data_kind, gen_valid_sawtooth_params, None)            
+                train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
+                valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
             
-            train_data = [gen_train.pregen_epoch() for epoch in trange(args.epochs + 1)]
-            valid_data = [gen_valid.pregen_epoch() for epoch in trange(args.epochs // args.validate_every + 1)]
+            elif data_kind == 'random':
+                if x_dim > 1: continue
+                
+                gen_train = make_random_generator(gen_train_gp_params,
+                                                  gen_train_sawtooth_params, 
+                                                  kernel_params
+                )
+                gen_valid = make_random_generator(gen_valid_gp_params,
+                                                  gen_valid_sawtooth_params,
+                                                  kernel_params
+                )
+                
+                train_idx = np.random.randint(5, size=args.epochs + 1)
+                valid_idx = np.random.randint(5, size = args.epochs// args.validate_every + 1)
+                
+                train_data = [[batch for batch in gen_train[idx]] for idx in train_idx]
+                valid_data = [[batch for batch in gen_valid[idx]] for idx in valid_idx]
+
+            else:
+                gen_train = make_generator(data_kind, gen_train_gp_params, kernel_params)
+                gen_valid = make_generator(data_kind, gen_valid_gp_params, kernel_params)            
+                train_data = [gen_train.pregen_epoch() for epoch in trange(args.epochs + 1)]
+                valid_data = [gen_valid.pregen_epoch() for epoch in trange(args.epochs // args.validate_every + 1)]
+
+                # Save the generating parameters
+                with open(wd.file('gen-valid-dict.pkl'), 'wb') as file:
+                    pickle.dump(gen_valid_gp_params, file)
+                    file.close()
+
+                # Save the kernel parameters
+                temp = {data_kind: kernel_params[data_kind]}
+                with open(wd.file('kernel-params.pkl'), 'wb') as file:
+                    pickle.dump(temp, file)
+                    file.close()
 
             with open(wd.file('train-data.pkl'), 'wb') as file:
                 pickle.dump(train_data, file)

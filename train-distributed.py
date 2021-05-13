@@ -10,33 +10,33 @@ GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 20.
 
 # Model and data generator configurations
-data_generators = ['eq',
+data_generators = ['random',
+                   'sawtooth',
+                   'eq',
                    'matern',
                    'noisy-mixture',
                    'weakly-periodic']
 
-# models = ['GNP',
-#           'AGNP',
-#           'ANP',
-#           'ConvGNP',
-#           'ConvNP']
+models = ['GNP',
+           'AGNP',
+           'ANP',
+           'convGNP',
+           'convNP',
+           'FullConvGNP']
 
-models = ['ANP',
-          'ConvNP']
+#models = ['FullConvGNP']
+# models = ['convNP']
 
-# models = ['GNP',
-#           'AGNP',
-#           'ConvGNP']
+covs = ['innerprod-homo',
+         'kvv-homo',
+         'meanfield']
 
-# covs = ['innerprod-homo',
-#         'kvv-homo',
-#         'meanfield']
-
-covs = ['meanfield']
+# covs = ['innerprod-homo']
+#covs = ['meanfield']
 
 x_dims = ['1']
 
-seeds = [str(i) for i in range(0)]
+seeds = [str(i) for i in range(1)]
 
 configs = list(product(seeds, x_dims, data_generators, models, covs))
 
@@ -61,7 +61,6 @@ if __name__ == '__main__':
                            cov,
                            '--x_dim',
                            x_dim,
-                           '--train',
                            '--seed',
                            seed,
                            '--gpu',
@@ -70,8 +69,8 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.Popen(command)
+                process = subprocess.call(command)
 
                 configs = configs[1:]
 
-                time.sleep(5e0)
+                # time.sleep(5e0)

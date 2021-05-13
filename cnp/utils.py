@@ -6,6 +6,8 @@ from torch.distributions.normal import Normal
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import stheno
+import cnp
 
 
 __all__ = ['to_multiple',
@@ -163,17 +165,18 @@ def plot_samples_and_data(model,
                           root,
                           epoch,
                           latent_model,
-                          plot_marginals):
+                          plot_marginals,
+                          device):
 
     # Sample datasets from generator
     data = list(gen_plot)[0]
 
     # Split context and target sets out
-    ctx_in = data['x_context']
-    ctx_out = data['y_context']
+    ctx_in = data['x_context'].to(device)
+    ctx_out = data['y_context'].to(device)
 
-    trg_in = data['x_target']
-    trg_out = data['y_target']
+    trg_in = data['x_target'].to(device)
+    trg_out = data['y_target'].to(device)
 
     # Locations to query predictions at
     xrange = xmax - xmin
@@ -267,3 +270,37 @@ def plot_samples_and_data(model,
         
     plt.savefig(f'{root}/plots/{str(epoch).zfill(6)}.png')
     plt.close()
+
+
+    
+# =============================================================================
+# Make Datagenerator Function
+# =============================================================================
+
+def make_generator(data_kind, gen_params, kernel_params):
+
+    if data_kind == 'sawtooth':
+        gen = cnp.data.SawtoothGenerator(**gen_params)
+
+    else:
+        params = kernel_params[data_kind]
+        if data_kind == 'eq':
+            kernel = stheno.EQ().stretch(params[0])
+
+        elif data_kind == 'matern':
+            kernel = stheno.Matern52().stretch(params[0])
+
+        elif data_kind == 'noisy-mixture':
+            kernel = stheno.EQ().stretch(params[0]) + \
+                        stheno.EQ().stretch(params[1])
+
+        elif data_kind == 'weakly-periodic':
+            kernel = stheno.EQ().stretch(params[0]) * \
+                        stheno.EQ().periodic(period=params[1])
+
+        else:
+            raise ValueError(f'Unknown generator kind "{data_kind}".')
+
+        gen = cnp.data.GPGenerator(kernel=kernel, **gen_params)\
+
+    return gen
