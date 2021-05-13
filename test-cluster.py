@@ -3,7 +3,7 @@ import aws
 KEY = "elukbook"
 REPO = "kernelcnp"
 SECURITY_GROUP = "sg-00e6c4ed6ef493a3a"
-IMAGE_ID = "ami-08958d372207fc80b"
+IMAGE_ID = "ami-043f324346849c8f8"
  
 aws.config["ssh_user"] = "ubuntu" # "ec2-user"
 aws.config["ssh_key"] = f"~/.ssh/{KEY}.pem"
@@ -14,8 +14,8 @@ aws.config["setup_commands"] = [
 ]
  
 commands = [
- ["mkdir -p results", "touch results/one.txt", "echo running-one > results/one.txt"],
- ["mkdir -p results", "touch results/two.txt", "echo running-two > results/two.txt"]
+ ["mkdir -p toy-results", "touch toy-results/one.txt", "echo running-one > toy-results/one.txt"],
+ ["mkdir -p toy-results", "touch toy-results/two.txt", "echo running-two > toy-results/two.txt"]
 ]
  
 aws.manage_cluster(
