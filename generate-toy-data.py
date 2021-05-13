@@ -261,8 +261,8 @@ for seed in seeds:
 
             wd = WorkingDirectory(root=path)
             
-            train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
-            valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
+            train_data = [gen_train.pregen_epoch() for epoch in trange(args.epochs + 1)]
+            valid_data = [gen_valid.pregen_epoch() for epoch in trange(args.epochs // args.validate_every + 1)]
 
             with open(wd.file('train-data.pkl'), 'wb') as file:
                 pickle.dump(train_data, file)

@@ -173,7 +173,9 @@ class DataGenerator(metaclass=abc.ABCMeta):
     def __iter__(self):
         return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
 
-    def pregen(self, num_batches):
+    def pregen_epoch(self):
+        num_batches = self.iterations_per_epoch
+
         # Distribute the batches over the CPUs.
         num_cpus = multiprocessing.cpu_count()
         num_batches_per_cpu = [num_batches // num_cpus] * (num_cpus - 1)
