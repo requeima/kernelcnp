@@ -174,14 +174,13 @@ parser.add_argument('--root',
 args = parser.parse_args()
 
 
-# data_kinds = ['eq',
-#               'matern',
-#               'noisy-mixture',
-#               'weakly-periodic',
-#               'sawtooth',
-#               'random']
+data_kinds = ['eq',
+              'matern',
+              'noisy-mixture',
+              'weakly-periodic',
+              'sawtooth',
+              'random']
 
-data_kinds = ['random']
 
 seeds = list(range(0, 2))
 
