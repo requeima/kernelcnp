@@ -269,7 +269,7 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_root = os.path.join('toy-data/_experiments',
+data_root = os.path.join('toy-data',
                          f'{args.data}',
                          f'data',
                          f'seed-{args.seed}',
