@@ -174,12 +174,14 @@ parser.add_argument('--root',
 args = parser.parse_args()
 
 
-data_kinds = ['eq',
-              'matern',
-              'noisy-mixture',
-              'weakly-periodic',
-              'sawtooth',
-              'random']
+# data_kinds = ['eq',
+#               'matern',
+#               'noisy-mixture',
+#               'weakly-periodic',
+#               'sawtooth',
+#               'random']
+
+data_kinds = ['random']
 
 seeds = list(range(0, 2))
 
@@ -213,7 +215,7 @@ for x_dim in args.x_dims:
             # =================================================================
             # Create data generators
             # =================================================================
-            
+        
 
             # Training data generator parameters -- used for both Sawtooth and GP
             gen_params = {
@@ -269,6 +271,11 @@ for x_dim in args.x_dims:
             
             elif data_kind == 'random':
                 if x_dim > 1: continue
+
+                gen_train_gp_params['batch_size'] = 1
+                gen_train_sawtooth_params['batch_size'] = 1
+                gen_valid_gp_params['batch_size'] = 1
+                gen_valid_sawtooth_params['batch_size'] = 1
                 
                 gen_train = make_random_generator(gen_train_gp_params,
                                                   gen_train_sawtooth_params, 
@@ -279,11 +286,28 @@ for x_dim in args.x_dims:
                                                   kernel_params
                 )
                 
-                train_idx = np.random.randint(5, size=args.epochs + 1)
-                valid_idx = np.random.randint(5, size = args.epochs// args.validate_every + 1)
-                
-                train_data = [[batch for batch in gen_train[idx]] for idx in train_idx]
-                valid_data = [[batch for batch in gen_valid[idx]] for idx in valid_idx]
+                train_idx = np.random.randint(5, size=(args.epochs + 1)*args.batch_size)
+                valid_idx = np.random.randint(5, size=(args.epochs + 1)*args.batch_size)
+
+                i = 0
+                train_data = []
+                for e in range(args.epochs + 1):
+                    batch = []
+                    for b in range(args.batch_size):
+                        # The batch size is set to 1 in the generator
+                        batch.append([b for b in gen_train[train_idx[i]]][0])
+                    train_data.append(batch)
+                    i += 1
+
+                i = 0
+                valid_data = []
+                for e in range(args.epochs + 1):
+                    batch = []
+                    for b in range(args.batch_size):
+                        # The batch size is set to 1 in the generator
+                        batch.append([b for b in gen_train[valid_idx[i]]][0])
+                    valid_data.append(batch)
+                    i += 1
 
             else:
                 gen_train = make_generator(data_kind, gen_train_gp_params, kernel_params)
