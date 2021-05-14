@@ -181,6 +181,7 @@ data_kinds = ['eq',
               'sawtooth',
               'random']
 
+data_kinds = ['random']
 
 seeds = list(range(0, 2))
 
@@ -265,9 +266,11 @@ for x_dim in args.x_dims:
 
                 gen_train = make_generator(data_kind, gen_train_sawtooth_params, None)
                 gen_valid = make_generator(data_kind, gen_valid_sawtooth_params, None)            
+
                 train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
                 valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
             
+
             elif data_kind == 'random':
                 if x_dim > 1: continue
 
@@ -290,7 +293,7 @@ for x_dim in args.x_dims:
 
                 i = 0
                 train_data = []
-                for e in range(args.epochs + 1):
+                for e in trange(args.epochs + 1):
                     batch = []
                     for b in range(args.batch_size):
                         # The batch size is set to 1 in the generator
@@ -300,7 +303,7 @@ for x_dim in args.x_dims:
 
                 i = 0
                 valid_data = []
-                for e in range(args.epochs + 1):
+                for e in trange(args.epochs + 1):
                     batch = []
                     for b in range(args.batch_size):
                         # The batch size is set to 1 in the generator
