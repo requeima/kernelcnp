@@ -60,7 +60,7 @@ class KvvCov(Covariance):
         self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
         self.kernel_fn = torch.exp
     
-    def forward(self, embeddings, verbose=False):
+    def forward(self, embeddings):
         # Extract the embeddings and v function
         basis_emb = embeddings[:, :, :self.num_basis_dim]
         v = embeddings[:, :, self.num_basis_dim: self.num_basis_dim + self.extra_cov_dim]
