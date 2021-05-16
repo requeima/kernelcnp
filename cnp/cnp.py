@@ -58,6 +58,9 @@ class GaussianNeuralProcess(nn.Module):
     def loss(self, x_context, y_context, x_target, y_target):
         y_mean, _, y_cov = self.forward(x_context, y_context, x_target)
 
+        jitter = 1e-6 * tf.eye(y_cov.shape[-1])[None, :, :]
+        y_cov = y_cov + jitter
+
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)
         
