@@ -9,10 +9,9 @@ from abc import ABC, abstractmethod, abstractproperty
 
 
 def cdist(x):
-    norms = torch.sum(x ** 2, axis=2)
-    x_t = torch.transpose(x, dim0=1, dim1=2)
-    inner_products = torch.matmul(x, x_t)
-    return norms[:, :, None] + norms[:, None, :] - 2 * inner_products
+    quad = (x[..., :, None, :] - x[..., None, :, :]) ** 2
+    quad = torch.sum(quad, axis=-1)
+    return quad
 
 def rbf_kernel(x, scales):
     # Pariwise squared Euclidean distances between embedding vectors
@@ -61,7 +60,7 @@ class KvvCov(Covariance):
         self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
         self.kernel_fn = torch.exp
     
-    def forward(self, embeddings):
+    def forward(self, embeddings, verbose=False):
         # Extract the embeddings and v function
         basis_emb = embeddings[:, :, :self.num_basis_dim]
         v = embeddings[:, :, self.num_basis_dim: self.num_basis_dim + self.extra_cov_dim]
