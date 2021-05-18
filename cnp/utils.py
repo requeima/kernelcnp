@@ -182,7 +182,7 @@ def plot_samples_and_data(model,
     xrange = xmax - xmin
     xmin = xmin - 0.5 * xrange
     xmax = xmax + 0.5 * xrange
-    plot_inputs = torch.linspace(xmin, xmax, 100)[None, :, None]
+    plot_inputs = torch.linspace(xmin, xmax, 500)[None, :, None]
     plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
 
     # Make predictions 
@@ -224,7 +224,7 @@ def plot_samples_and_data(model,
 
                 else:
                     cov_plus_jitter = cov[i, :, :].double() + \
-                                      1e-4 * torch.eye(cov.shape[-1]).double()
+                                      1e-6 * torch.eye(cov.shape[-1]).double()
                     dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
                                                                   covariance_matrix=cov_plus_jitter)
 
