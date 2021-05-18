@@ -42,7 +42,7 @@ configs = list(product(seeds, data_generators, cond_models, covs, basis_dims))
 commands = [
     [
         f"mkdir -p logs",
-        f"python -u train.py {gen} {model} {cov} --x_dim 1 --seed {seed} --gpu 0 --num_basis_dims {basis_dim}"
+        f"python -u train.py {gen} {model} {cov} --x_dim 1 --seed {seed} --gpu 0 --num_basis_dim {basis_dim}"
         f" 2>&1 | tee \"logs/gen_{gen}_model_{model}_cov_{cov}_seed_{seed}_basis_{basis_dim}.txt\"",
     ]
     for seed, gen, model, cov, basis_dim in configs
