@@ -29,7 +29,7 @@ from cnp.cov import (
     AddHeteroNoise
 )
 
-from cnp.utils import make_generator
+from cnp.data import EnvironmentalDataloader
 
 
 # =============================================================================
@@ -37,13 +37,7 @@ from cnp.utils import make_generator
 # =============================================================================
 
 
-def train(data,
-          model,
-          optimiser,
-          log_every,
-          device,
-          writer,
-          iteration):
+def train(data, model, optimiser, log_every, device, writer, iteration):
     
     for step, batch in enumerate(data):
 
@@ -62,7 +56,6 @@ def train(data,
 
         # Write to tensorboard
         writer.add_scalar('Train log-lik.', - nll, iteration)
-        
         iteration = iteration + 1
         
     return iteration
@@ -73,12 +66,7 @@ def train(data,
 # =============================================================================
 
 
-def validate(data,
-             model,
-             args,
-             device,
-             writer,
-             latent_model):
+def validate(data, model, args, device, writer, latent_model):
     
     # Lists for logging model's training NLL and oracle NLL
     nll_list = []
@@ -87,7 +75,6 @@ def validate(data,
     loss_kwargs = {'num_samples' : args.np_val_samples} if latent_model else {}
     
     with torch.no_grad():
-        
         for step, batch in enumerate(data):
             
             nll = model.loss(batch['x_context'].to(device),
@@ -107,23 +94,15 @@ def validate(data,
           f"{mean_nll:.2f} +/- "
           f"{std_nll:.2f}")
 
-    return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll
+    return mean_nll, std_nll
         
-
-# Parse arguments given to the script.
-parser = argparse.ArgumentParser()
 
 # =============================================================================
 # Model arguments
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['GNP',
-                             'AGNP',
-                             'convGNP',
-                             'FullConvGNP',
-                             'ANP',
-                             'convNP'],
+                    choices=['convGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
@@ -176,11 +155,20 @@ parser.add_argument('--epochs',
                     type=int,
                     help='Number of epochs to train for.')
 
+parser.add_argument('--iterations_per_epoch',
+                    default=1024,
+                    type=int,
+                    help='Number of iterations in each epoch.')
+
+parser.add_argument('--batch_size',
+                    default=16,
+                    type=int,
+                    help='Number of datasets in each batch.')
+
 
 # =============================================================================
 # Experiment arguments
 # =============================================================================
-
 
 parser.add_argument('--root',
                     help='Experiment root, which is the directory from which '
@@ -202,9 +190,9 @@ parser.add_argument('--gpu',
                     type=int,
                     help='GPU to run experiment on. Defaults to 0.')
 
+parser = argparse.ArgumentParser()
 
-args = parser.parse_args()
-    
+
 # =============================================================================
 # Set random seed, device and tensorboard writer
 # =============================================================================
@@ -232,396 +220,165 @@ experiment_name = os.path.join(f'environmental',
 working_directory = WorkingDirectory(root=experiment_name)
 
 writer = SummaryWriter(f'{experiment_name}/log')
+
+# Log all arguments passed to the experiment script
+log_args(working_directory, args)
     
 
 # =============================================================================
 # Load training and validation data
 # =============================================================================
 
+# Training set name, subsample even-index times for train, odd for validation
 train_dataset = 'era5land_daily_central_eu_complete.nc'
+train_subsampler = lambda t : t % 2 == 0
+valid_subsampler = lambda t : t % 2 == 1
 
-valid_datasets = ['era5land_daily_east_eu_test.nc',
-                  'era5land_daily_north_eu_test.nc',
-                  'era5land_daily_west_eu_test.nc']
+# Test dataset locations, including one for validation
+test_datasets = [train_dataset] + \
+                ['era5land_daily_east_eu_test.nc',
+                 'era5land_daily_north_eu_test.nc',
+                 'era5land_daily_west_eu_test.nc']
+test_subsamplers = [valid_subsampler] + \
+                   [lambda t : True for _ in test_datasets]
 
+# Create training dataloader
+train_dataloader = EnvironmentalDataloader(train_dataset,
+                                           args.iterations_per_epoch,
+                                           args.min_num_context,
+                                           args.max_num_context,
+                                           args.min_num_target,
+                                           args.max_num_target,
+                                           args.batch_size,
+                                           train_subsampler,
+                                           scale_inputs_by=None)
+scale_inputs_by = train_dataloader.scale_by
 
-train_dataset = Dataset(f"{data_root}/{train_dataset}", "r", format="NETCDF4")
-valid_datasets = [Dataset(f"{data_root}/{dataset}", "r", format="NETCDF4") \
-                  for dataset in valid_datasets]
-
-class LambdaIterator:
-
-    def __init__(self, generator, num_elements):
-        self.generator = generator
-        self.num_elements = num_elements
-        self.index = 0
-
-    def __next__(self):
-        self.index += 1
-        if self.index <= self.num_elements:
-            return self.generator()
-        else:
-            raise StopIteration()
-
-    def __iter__(self):
-        return self
-
-
-class EnvironmentalDataloader:
-
-    def __init__(self,
-                 dataset,
-                 iterations_per_epoch,
-                 min_num_context,
-                 max_num_context,
-                 min_num_target,
-                 max_num_target,
-                 num_datasets,
-                 scale_inputs_by):
-
-        self.dataset = dataset
-        self.iterations_per_epoch = iterations_per_epoch
-
-        self.min_num_context = min_num_context
-        self.max_num_context = max_num_context
-        self.min_num_context = min_num_context
-        self.max_num_target = max_num_target
-        self.num_datasets = num_datasets
-
-        lat = np.array(dataset.variables['latitude'])
-        lon = np.array(dataset.variables['longitude'])
-
-        lat, lon, scale_by = self.lat_lon_scale(lat=lat,
-                                                lon=lon,
-                                                scale_by=scale_inputs_by)
-        self.lat = lat
-        self.lon = lon
-        self.scale_by = scale_by
-        self.latlon_idx = np.meshgrid(np.arange(lat.shape[0]),
-                                      np.arange(lon.shape[0]))
-        self.latlon_idx = np.reshape(np.stack(self.latlon_idx, axis=-1),
-                                     (-1, 2))
-
-        # Predict total precipitation
-        self.variables = ["tp"]
+# Create validation/testing dataloaders
+test_dataloaders = [EnvironmentalDataloader(dataset,
+                                            args.iterations_per_epoch,
+                                            args.min_num_context,
+                                            args.max_num_context,
+                                            args.min_num_target,
+                                            args.max_num_target,
+                                            args.batch_size,
+                                            subsampler,
+                                            scale_inputs_by=scale_inputs_by)
+                     for dataset, subsampler in zip(]
 
 
-    def lat_lon_scale(self, lat, lon, scale_by=None):
-        """
-        Computes the translation and scaling amounts which convert the given
-        longitude and latitude arrays to both be in the range lat_lon_range.
-        """
+# =============================================================================
+# Create model
+# =============================================================================
 
-        if scale_by is None:
+# Create covariance method
+if args.covtype == 'innerprod-homo':
+    cov = InnerProdCov(args.num_basis_dim)
+    noise = AddHomoNoise()
+    
+elif args.covtype == 'innerprod-hetero':
+    cov = InnerProdCov(args.num_basis_dim)
+    noise = AddHeteroNoise()
+    
+elif args.covtype == 'kvv-homo':
+    cov = KvvCov(args.num_basis_dim)
+    noise = AddHomoNoise()
+    
+elif args.covtype == 'kvv-hetero':
+    cov = KvvCov(args.num_basis_dim)
+    noise = AddHomoNoise()
+    
+elif args.covtype == 'meanfield':
+    cov = MeanFieldCov(num_basis_dim=1)
+    noise = AddNoNoise()
+    
+else:
+    raise ValueError(f'Unknown covariance method {args.covtype}.')
+    
+# Create model architecture
+if args.model == 'convGNP':
+    model = StandardConvGNP(input_dim=2,
+                            covariance=cov,
+                            add_noise=noise)
+   
+elif args.model == 'convNP':
+    
+    noise = AddHomoNoise()
+    model = StandardConvNP(input_dim=2,
+                           add_noise=noise,
+                           num_samples=args.np_loss_samples)
+    
+else:
+    raise ValueError(f'Unknown model {args.model}.')
+
+
+# Print model to the log
+print(f'{args.model} '
+      f'{args.covtype}: '
+      f'{model.num_params}')
+
+with open(working_directory.file('num_params.txt'), 'w') as f:
+    f.write(f'{model.num_params}')
         
-            lat_min = lat.min()
-            lat_max = lat.max()
-
-            lon_min = lon.min()
-            lon_max = lon.max()
-
-            lat_trans = (lat_max + lat_min) / 2
-            lat_scale = 0.5 * (lat_max - lat_min)
-
-            lon_trans = (lon_max + lat_min) / 2
-            lon_scale = 0.5 * (lon_max - lon_min)
-
-            self.scale_by = (lat_trans, lat_scale, lon_trans, lon_scale)
-
-        else:
-            lat_trans, lat_scale, lon_trans, lon_scale = scale_by
-
-        lat = (lat - lat_trans) / lat_scale
-        lon = (lon - lon_trans) / lon_scale
-
-        return lat, lon, (lat_trans, lat_scale, lon_trans, lon_scale)
+if args.num_params:
+    exit()
+    
+# Load model to appropriate device
+model = model.to(device)
 
 
-    def __iter__(self):
-        return LambdaIterator(lambda : self.generate_task(), self.iterations_per_epoch)
+# =============================================================================
+# Train or test model
+# =============================================================================
 
+# Number of epochs between validations
+train_iteration = 0
+log_every = 1
+    
+# Create optimiser
+optimiser = torch.optim.Adam(model.parameters(),
+                         args.learning_rate,
+                         weight_decay=args.weight_decay)
 
-    def generate_task(self):
+# Run the training loop, maintaining the best objective value
+best_nll = np.inf
 
-        # Latitude and logitude resolutions
-        num_lat = self.lat.shape[0]
-        num_lon = self.lon.shape[0]
+for epoch in range(args.epochs):
 
-        # Dict to store sampled batch
-        batch = {
-            'x'         : [],
-            'y'         : [],
-            'x_context' : [],
-            'y_context' : [],
-            'x_target'  : [],
-            'y_target'  : []
-        }
+    if train_iteration % log_every == 0:
+        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
-        # Sample number of context and target points
-        num_context = np.random.randint(1, self.max_num_context+1)
-        num_target = np.random.randint(1, self.max_num_target+1)
-        num_data = num_context + num_target
+    if epoch % args.validate_every == 0:
 
-        idx = np.arange(self.latlon_idx.shape[0])
+        # Compute validation negative log-likelihood
+        val_nll, _ = validate(valid_dataloader,
+                              model,
+                              args,
+                              device,
+                              writer)
 
-        for i in range(self.num_datasets):
-            
-            # Sample indices for current batch (C + T, 2)
-            _idx = np.random.choice(idx, size=(num_data,), replace=False)
-            _idx = self.latlon_idx[_idx]
+        # Log information to tensorboard
+        writer.add_scalar('Valid log-lik.',
+                          -val_nll,
+                          epoch)
 
-            # Slice out latitude and longitude values, stack to (C + T, 2)
-            # These latitude and longitude values are already rescaled
-            x = np.stack([self.lat[_idx[:, 0]], self.lon[_idx[:, 1]]], axis=-1)
+        # Update the best objective value and checkpoint the model
+        is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
+                            (False, best_nll)
 
-            # Slice out output values to be predicted
-            t = np.random.randint(0, self.dataset.variables['time'].shape[0])
-            y = [self.dataset.variables[variable][t][_idx[:, 0], _idx[:, 1]] \
-                 for variable in self.variables]
-            y = np.stack(y, axis=-1)
+    # Compute training negative log-likelihood
+    train_iteration = train(train_epoch,
+                            model,
+                            optimiser,
+                            log_every,
+                            device,
+                            writer,
+                            train_iteration)
 
-            # Append results to lists in batch dict
-            batch['x'].append(x)
-            batch['y'].append(y)
-
-            batch['x_context'].append(x[:num_context])
-            batch['y_context'].append(y[:num_context])
-
-            batch['x_target'].append(x[num_context:])
-            batch['y_target'].append(y[num_context:])
-
-        # Stack arrays and convert to tensors
-        batch = {name : torch.tensor(np.stack(tensors, axis=0)) \
-                 for name, tensors in batch.items()}
-
-        return batch
-
-
-iterations_per_epoch = 1000
-min_num_context = 50
-max_num_context = 50
-min_num_target = 10
-max_num_target = 50
-num_datasets = 16
-epochs = 100
-
-dataloader = EnvironmentalDataloader(train_dataset,
-                                     iterations_per_epoch,
-                                     min_num_context,
-                                     max_num_context,
-                                     min_num_target,
-                                     max_num_target,
-                                     num_datasets,
-                                     scale_inputs_by=None)
-
-
-for epoch in range(epochs):
-    for batch in dataloader:
-        
-        print(batch['x'].shape)
-        print(batch['y'].shape)
-
-        print(batch['x'][0])
-
-## =============================================================================
-## Create model
-## =============================================================================
-#
-## Create covariance method
-#if args.covtype == 'innerprod-homo':
-#    cov = InnerProdCov(args.num_basis_dim)
-#    noise = AddHomoNoise()
-#    
-#elif args.covtype == 'innerprod-hetero':
-#    cov = InnerProdCov(args.num_basis_dim)
-#    noise = AddHeteroNoise()
-#    
-#elif args.covtype == 'kvv-homo':
-#    cov = KvvCov(args.num_basis_dim)
-#    noise = AddHomoNoise()
-#    
-#elif args.covtype == 'kvv-hetero':
-#    cov = KvvCov(args.num_basis_dim)
-#    noise = AddHomoNoise()
-#    
-#elif args.covtype == 'meanfield':
-#    cov = MeanFieldCov(num_basis_dim=1)
-#    noise = AddNoNoise()
-#    
-#else:
-#    raise ValueError(f'Unknown covariance method {args.covtype}.')
-#    
-## Create model architecture
-#if args.model == 'GNP':
-#    model = StandardGNP(input_dim=args.x_dim,
-#                        covariance=cov,
-#                        add_noise=noise)
-#    
-#elif args.model == 'AGNP':
-#    model = StandardAGNP(input_dim=args.x_dim,
-#                         covariance=cov,
-#                         add_noise=noise)
-#    
-#elif args.model == 'convGNP':
-#    model = StandardConvGNP(input_dim=args.x_dim,
-#                            covariance=cov,
-#                            add_noise=noise)
-#
-#elif args.model == 'FullConvGNP':
-#    model = FullConvGNP()
-#    
-#
-#elif args.model == 'ANP':
-#    
-#    noise = AddHomoNoise()
-#    model = StandardANP(input_dim=args.x_dim,
-#                        add_noise=noise,
-#                        num_samples=args.np_loss_samples)
-#    
-#elif args.model == 'convNP':
-#    
-#    noise = AddHomoNoise()
-#    model = StandardConvNP(input_dim=args.x_dim,
-#                           add_noise=noise,
-#                           num_samples=args.np_loss_samples)
-#    
-#else:
-#    raise ValueError(f'Unknown model {args.model}.')
-#
-#
-#print(f'{args.model} '
-#      f'{args.covtype} '
-#      f'{args.num_basis_dim}: '
-#      f'{model.num_params}')
-#
-#with open(working_directory.file('num_params.txt'), 'w') as f:
-#    f.write(f'{model.num_params}')
-#        
-#if args.num_params:
-#    exit()
-#    
-#    
-## Load model to appropriate device
-#model = model.to(device)
-#
-#latent_model = args.model in ['ANP', 'convNP']
-#
-#
-#
-## =============================================================================
-## Load data and validation oracle generator
-## =============================================================================
-#    
-#file = open(data_directory.file('train-data.pkl'), 'rb')
-#data_train = pickle.load(file)
-#file.close()
-#
-#file = open(data_directory.file('valid-data.pkl'), 'rb')
-#data_val = pickle.load(file)
-#file.close()
-#
-## Create the data generator for the oracle if gp data
-#if args.data == 'sawtooth' or args.data == 'random':
-#    gen_val = None
-#    
-#else:
-#    file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
-#    gen_valid_gp_params = pickle.load(file)
-#    file.close()
-#
-#    file = open(data_directory.file('kernel-params.pkl'), 'rb')
-#    kernel_params = pickle.load(file)
-#    file.close()
-#    
-#    gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
-#
-#        
-## =============================================================================
-## Train or test model
-## =============================================================================
-#
-## Number of epochs between validations
-#train_iteration = 0
-#log_every = 1
-#    
-#log_args(working_directory, args)
-#
-## Create optimiser
-#optimiser = torch.optim.Adam(model.parameters(),
-#                         args.learning_rate,
-#                         weight_decay=args.weight_decay)
-#
-## Run the training loop, maintaining the best objective value
-#best_nll = np.inf
-#
-#epochs = len(data_train)
-#
-#for epoch in range(epochs):
-#
-#    if train_iteration % log_every == 0:
-#        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
-#
-#    if epoch % args.validate_every == 0:
-#
-#        valid_epoch = data_val[epoch // args.validate_every]
-#
-#        # Compute validation negative log-likelihood
-#        val_nll, _, val_oracle, _ = validate(valid_epoch,
-#                                             gen_val,
-#                                             model,
-#                                             args,
-#                                             device,
-#                                             writer,
-#                                             latent_model)
-#
-#        # Log information to tensorboard
-#        writer.add_scalar('Valid log-lik.',
-#                          -val_nll,
-#                          epoch)
-#
-#        writer.add_scalar('Valid oracle log-lik.',
-#                          -val_oracle,
-#                          epoch)
-#
-#        writer.add_scalar('Oracle minus valid log-lik.',
-#                          -val_oracle + val_nll,
-#                          epoch)
-#
-#        # Update the best objective value and checkpoint the model
-#        is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
-#                            (False, best_nll)
-#
-#        plot_marginals = args.covtype == 'meanfield'
-#
-#        if args.x_dim == 1 and \
-#           not (args.data == 'sawtooth' or args.data == 'random'):
-#
-#            plot_samples_and_data(model=model,
-#                                  gen_plot=gen_val,
-#                                  xmin=-2,
-#                                  xmax=2,
-#                                  root=working_directory.root,
-#                                  epoch=epoch,
-#                                  latent_model=latent_model,
-#                                  plot_marginals=plot_marginals,
-#                                  device=device)
-#
-#
-#    train_epoch = data_train[epoch]
-#
-#    # Compute training negative log-likelihood
-#    train_iteration = train(train_epoch,
-#                            model,
-#                            optimiser,
-#                            log_every,
-#                            device,
-#                            writer,
-#                            train_iteration)
-#
-#    save_checkpoint(working_directory,
-#                    {'epoch'         : epoch + 1,
-#                     'state_dict'    : model.state_dict(),
-#                     'best_acc_top1' : best_obj,
-#                     'optimizer'     : optimiser.state_dict()},
-#                    is_best=is_best,
-#                    epoch=epoch)
+    save_checkpoint(working_directory,
+                    {'epoch'         : epoch + 1,
+                     'state_dict'    : model.state_dict(),
+                     'best_acc_top1' : best_obj,
+                     'optimizer'     : optimiser.state_dict()},
+                    is_best=is_best,
+                    epoch=epoch)
