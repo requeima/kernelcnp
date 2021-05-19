@@ -49,8 +49,6 @@ from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
-raise Exception
-
 # =============================================================================
 # Training epoch helper
 # =============================================================================
