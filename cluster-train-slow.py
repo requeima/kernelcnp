@@ -4,7 +4,7 @@ from itertools import product
 KEY = "elukbook"
 REPO = "kernelcnp"
 SECURITY_GROUP = "sg-00e6c4ed6ef493a3a"
-IMAGE_ID = "ami-09b413cf58ed577df"
+IMAGE_ID = "ami-0c72f79fa99130733"
 
 aws.config["ssh_user"] = "ubuntu"  # "ec2-user"
 aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
