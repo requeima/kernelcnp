@@ -104,22 +104,22 @@ parser.add_argument('--max_num_target',
                     help='Maximum number of target points.')
 
 parser.add_argument('--num_train_iters',
-                    default=1024,
+                    default=1,  # 1024
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
 
 parser.add_argument('--num_valid_iters',
-                    default=64,
+                    default=1, # 64
                     type=int,
                     help='Iterations (# batches sampled) for validation.')
 
 parser.add_argument('--validate_every',
-                    default=10,
+                    default=1, # 10
                     type=int,
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=100,
+                    default=1, # 100
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -145,6 +145,11 @@ parser.add_argument('--wp_params',
                     default=[1., 0.25],
                     nargs='+',
                     type=float,
+                    help='.')
+
+parser.add_argument('--slow',
+                    default=False,
+                    action='store_true',
                     help='.')
 
 parser.add_argument('--freq_range',
@@ -181,7 +186,13 @@ data_kinds = ['eq',
               'sawtooth',
               'random']
 
-data_kinds = ['random']
+data_kinds = ['noisy-mixture',
+              'weakly-periodic']
+
+if args.slow:
+    args.mixture_params[1] = args.mixture_params[0] / 2
+    args.wp_params[1] = args.wp_params[0] / 2
+    
 
 seeds = list(range(0, 2))
 
@@ -205,8 +216,9 @@ for x_dim in args.x_dims:
 
             device = torch.device('cpu')
 
+            data_name = data_kind + '-slow' if args.slow else data_kind
             path = os.path.join('toy-data',
-                                f'{data_kind}',
+                                f'{data_name}',
                                 'data',
                                 f'seed-{seed}',
                                 f'dim-{x_dim}')
@@ -324,6 +336,7 @@ for x_dim in args.x_dims:
 
                 # Save the kernel parameters
                 temp = {data_kind: kernel_params[data_kind]}
+                print(temp)
                 with open(wd.file('kernel-params.pkl'), 'wb') as file:
                     pickle.dump(temp, file)
                     file.close()
