@@ -55,10 +55,10 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def test(data,
-        model,
-        args,
-        device,
-        latent_model):
+         model,
+         args,
+         device,
+         latent_model):
     
     # Lists for logging model's training NLL and oracle NLL
     nll_list = []
@@ -69,7 +69,13 @@ def test(data,
     
     with torch.no_grad():
         
-        for step, batch in enumerate(data):            
+        for step, batch in enumerate(data):
+            if step % 500 == 0:
+                print(f'{args.data}',
+                      f'{args.model} '
+                      f'{args.covtype} ',
+                      f'step: {step}')
+
             nll = model.loss(batch['x_context'].to(device),
                              batch['y_context'].to(device),
                              batch['x_target'].to(device),
