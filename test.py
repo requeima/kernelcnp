@@ -97,8 +97,9 @@ parser.add_argument('data',
                              'matern',
                              'noisy-mixture',
                              'weakly-periodic',
-                             'sawtooth',
-                             'random'],
+                             'noisy-mixture-slow',
+                             'weakly-periodic-slow',
+                             'sawtooth'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
@@ -173,6 +174,8 @@ parser.add_argument('--weight_decay',
 
 
 parser.add_argument('--root',
+                    type=str,
+                    default='_experiments',
                     help='Experiment root, which is the directory from which '
                          'the experiment will run. If it is not given, '
                          'a directory will be automatically created.')
@@ -205,32 +208,24 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_root = os.path.join('_experiments/toy-data',
+data_root = os.path.join(f'{args.root}/toy-data',
                          f'{args.data}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
+    
+experiment_name = os.path.join(f'{args.root}/toy-results',
+                               f'{args.data}',
+                               f'models',
+                               f'{args.model}',
+                               f'{args.covtype}',
+                               f'seed-{args.seed}',
+                               f'dim-{args.x_dim}')
 
-# Load working directory
-if args.root:
-    
-    working_directory = WorkingDirectory(root=args.root)
-    data_directory = WorkingDirectory(root=data_root)
-    
-    writer = SummaryWriter(f'{args.root}/log')
-    
-else:
-    experiment_name = os.path.join('_experiments/toy-data',
-                                   f'{args.data}',
-                                   f'models',
-                                   f'{args.model}',
-                                   f'{args.covtype}',
-                                   f'seed-{args.seed}',
-                                   f'dim-{args.x_dim}')
-    working_directory = WorkingDirectory(root=experiment_name)
-    data_directory = WorkingDirectory(root=data_root)
-    
-    writer = SummaryWriter(f'{experiment_name}/log')
+working_directory = WorkingDirectory(root=experiment_name)
+data_directory = WorkingDirectory(root=data_root)
+
+writer = SummaryWriter(f'{experiment_name}/log')
     
 # =============================================================================
 # Create model
@@ -315,6 +310,9 @@ model = model.to(device)
 
 latent_model = args.model in ['ANP', 'convNP']
 
+# Load model from saved state
+load_dict = torch.load(working_directory.file('model_best.pth.tar', exists=True))
+model.load_state_dict(load_dict['state_dict'])
 
 # =============================================================================
 # Load data and validation oracle generator
