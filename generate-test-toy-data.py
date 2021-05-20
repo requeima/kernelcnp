@@ -84,12 +84,12 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=16,
+                    default=1,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
 parser.add_argument('--max_num_context',
-                    default=50,
+                    default=10,
                     type=int,
                     help='Maximum number of context points.')
 
@@ -103,25 +103,10 @@ parser.add_argument('--max_num_target',
                     type=int,
                     help='Maximum number of target points.')
 
-parser.add_argument('--num_train_iters',
-                    default=1,  # 1024
+parser.add_argument('--num_test_iters',
+                    default=5000,
                     type=int,
                     help='Iterations (# batches sampled) per training epoch.')
-
-parser.add_argument('--num_valid_iters',
-                    default=1, # 64
-                    type=int,
-                    help='Iterations (# batches sampled) for validation.')
-
-parser.add_argument('--validate_every',
-                    default=1, # 10
-                    type=int,
-                    help='.')
-
-parser.add_argument('--epochs',
-                    default=1, # 100
-                    type=int,
-                    help='Number of epochs to train for.')
 
 parser.add_argument('--eq_params',
                     default=[1.],
@@ -145,11 +130,6 @@ parser.add_argument('--wp_params',
                     default=[1., 0.25],
                     nargs='+',
                     type=float,
-                    help='.')
-
-parser.add_argument('--slow',
-                    default=False,
-                    action='store_true',
                     help='.')
 
 parser.add_argument('--freq_range',
@@ -178,21 +158,18 @@ parser.add_argument('--root',
 
 args = parser.parse_args()
 
+# data_kinds = ['eq',
+#               'matern',
+#               'noisy-mixture',
+#               'weakly-periodic',
+#               'sawtooth',
+#               'random']
 
 data_kinds = ['eq',
               'matern',
               'noisy-mixture',
               'weakly-periodic',
-              'sawtooth',
-              'random']
-
-data_kinds = ['noisy-mixture',
-              'weakly-periodic']
-
-if args.slow:
-    args.mixture_params[1] = args.mixture_params[0] / 2
-    args.wp_params[1] = args.wp_params[0] / 2
-    
+              'sawtooth']
 
 seeds = list(range(0, 2))
 
@@ -216,9 +193,8 @@ for x_dim in args.x_dims:
 
             device = torch.device('cpu')
 
-            data_name = data_kind + '-slow' if args.slow else data_kind
-            path = os.path.join('toy-data',
-                                f'{data_name}',
+            path = os.path.join('_experiments/toy-data',
+                                f'{data_kind}',
                                 'data',
                                 f'seed-{seed}',
                                 f'dim-{x_dim}')
@@ -237,34 +213,24 @@ for x_dim in args.x_dims:
                 'max_num_context'           : args.max_num_context,
                 'min_num_target'            : args.min_num_target,
                 'max_num_target'            : args.max_num_target,
-                'device'                    : device
+                'device'                    : device,
+                'iterations_per_epoch'      : args.num_test_iters
             }
 
             # Training data generator parameters -- specific to Sawtooth
-            gen_sawtooth_params = gen_params.copy()
-            gen_sawtooth_params.update({
+            gen_test_sawtooth_params = gen_params.copy()
+            gen_test_sawtooth_params.update({
                 'freq_range'  : args.freq_range,
                 'shift_range' : args.shift_range,
                 'trunc_range' : args.trunc_range
             })
 
             # Training data generator parameters -- specific to GPs
-            gen_gp_params = gen_params.copy()
-            gen_gp_params.update({
+            gen_test_gp_params = gen_params.copy()
+            gen_test_gp_params.update({
                 'std_noise' : args.std_noise
             })
 
-            # Adding the iterations to the dictionaries
-            gen_train_sawtooth_params = gen_sawtooth_params.copy()
-            gen_valid_sawtooth_params = gen_sawtooth_params.copy()
-            gen_train_gp_params = gen_gp_params.copy()
-            gen_valid_gp_params = gen_gp_params.copy()
-
-            gen_train_sawtooth_params.update({'iterations_per_epoch': args.num_train_iters})
-            gen_train_gp_params.update({'iterations_per_epoch': args.num_train_iters})
-            gen_valid_sawtooth_params.update({'iterations_per_epoch': args.num_valid_iters})
-            gen_valid_gp_params.update({'iterations_per_epoch': args.num_valid_iters})
-        
             wd = WorkingDirectory(root=path)
 
             kernel_params = {'eq'              : args.eq_params,
@@ -276,75 +242,41 @@ for x_dim in args.x_dims:
             if data_kind == 'sawtooth':
                 if x_dim > 1: continue
 
-                gen_train = make_generator(data_kind, gen_train_sawtooth_params, None)
-                gen_valid = make_generator(data_kind, gen_valid_sawtooth_params, None)            
+                gen_test = make_generator(data_kind, gen_test_sawtooth_params, None)            
 
-                train_data = [[batch for batch in gen_train] for epoch in trange(args.epochs + 1)]
-                valid_data = [[batch for batch in gen_valid] for epoch in trange(args.epochs // args.validate_every + 1)]
-            
+                test_data = [batch for batch in gen_test]
 
             elif data_kind == 'random':
                 if x_dim > 1: continue
 
-                gen_train_gp_params['batch_size'] = 1
-                gen_train_sawtooth_params['batch_size'] = 1
-                gen_valid_gp_params['batch_size'] = 1
-                gen_valid_sawtooth_params['batch_size'] = 1
-                
-                gen_train = make_random_generator(gen_train_gp_params,
-                                                  gen_train_sawtooth_params, 
+                gen_test = make_random_generator(gen_test_gp_params,
+                                                  gen_test_sawtooth_params, 
                                                   kernel_params
                 )
-                gen_valid = make_random_generator(gen_valid_gp_params,
-                                                  gen_valid_sawtooth_params,
-                                                  kernel_params
-                )
-                
-                train_idx = np.random.randint(5, size=(args.epochs + 1)*args.num_train_iters)
-                valid_idx = np.random.randint(5, size=(args.epochs + 1)*args.num_test_iters)
 
-                i = 0
-                train_data = []
-                for e in trange(args.epochs + 1):
-                    batch = []
-                    for b in range(args.batch_size):
-                        # The batch size is set to 1 in the generator
-                        batch.append([_ for _ in gen_train[train_idx[i]]][0])
-                    train_data.append(batch)
-                    i += 1
+                test_idx = np.random.randint(5, size=(args.num_test_iters + 1))
 
-                i = 0
-                valid_data = []
-                for e in trange(args.epochs + 1):
-                    batch = []
-                    for b in range(args.batch_size):
-                        # The batch size is set to 1 in the generator
-                        batch.append([_ for _ in gen_train[valid_idx[i]]][0])
-                    valid_data.append(batch)
-                    i += 1
+
+                test_data = []
+                for i in range(args.batch_size):
+                    # The batch size is set to 1 in the generator
+                    test_data.append([b for b in gen_test[test_idx[i]]][0])
 
             else:
-                gen_train = make_generator(data_kind, gen_train_gp_params, kernel_params)
-                gen_valid = make_generator(data_kind, gen_valid_gp_params, kernel_params)            
-                train_data = [gen_train.pregen_epoch() for epoch in trange(args.epochs + 1)]
-                valid_data = [gen_valid.pregen_epoch() for epoch in trange(args.epochs // args.validate_every + 1)]
+                gen_test = make_generator(data_kind, gen_test_gp_params, kernel_params)
+                test_data = gen_test.pregen_epoch()
 
                 # Save the generating parameters
-                with open(wd.file('gen-valid-dict.pkl'), 'wb') as file:
-                    pickle.dump(gen_valid_gp_params, file)
+                with open(wd.file('gen-test-dict.pkl'), 'wb') as file:
+                    pickle.dump(gen_test_gp_params, file)
                     file.close()
 
                 # Save the kernel parameters
                 temp = {data_kind: kernel_params[data_kind]}
-                print(temp)
                 with open(wd.file('kernel-params.pkl'), 'wb') as file:
                     pickle.dump(temp, file)
                     file.close()
 
-            with open(wd.file('train-data.pkl'), 'wb') as file:
-                pickle.dump(train_data, file)
-                file.close()
-
-            with open(wd.file('valid-data.pkl'), 'wb') as file:
-                pickle.dump(valid_data, file)
+            with open(wd.file('test-data.pkl'), 'wb') as file:
+                pickle.dump(test_data, file)
                 file.close()
