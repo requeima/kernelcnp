@@ -295,11 +295,11 @@ def make_generator(data_kind, gen_params, kernel_params):
         elif data_kind == 'matern':
             kernel = stheno.Matern52().stretch(params[0])
 
-        elif data_kind == 'noisy-mixture':
+        elif data_kind in ['noisy-mixture', 'noisy-mixture-slow']:
             kernel = stheno.EQ().stretch(params[0]) + \
                         stheno.EQ().stretch(params[1])
 
-        elif data_kind == 'weakly-periodic':
+        elif data_kind in ['weakly-periodic', 'weakly-periodic-slow']:
             kernel = stheno.EQ().stretch(params[0]) * \
                         stheno.EQ().periodic(period=params[1])
 
