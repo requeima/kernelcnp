@@ -16,14 +16,21 @@ data_generators = ['sawtooth',
                    'noisy-mixture',
                    'weakly-periodic']
 
-models = ['GNP',
+cond_models = ['GNP',
            'AGNP',
-           'ANP',
            'convGNP',
            'convGNP-16',
-           'convGNP-128',
-           'convNP',
-           'FullConvGNP']
+           'convGNP-128']
+latent_models = ['ANP', 'convNP']
+fcgnp_models = ["FullConvGNP"]
+
+
+# cond_models = [
+#            'AGNP'
+#            ]
+# latent_models = []
+# fcgnp_models = []
+
 
 covs = ['innerprod-homo',
          'kvv-homo',
@@ -33,7 +40,12 @@ x_dims = ['1']
 
 seeds = [str(i) for i in range(1)]
 
-configs = list(product(seeds, x_dims, data_generators, models, covs))
+# Configs for conditional models
+cond_configs = list(product(seeds, x_dims, data_generators, cond_models, covs))
+latent_configs = list(product(seeds, x_dims, data_generators, latent_models, ["meanfield"]))
+fcgnp_configs = list(product(seeds, x_dims, data_generators, fcgnp_models, ["meanfield"]))
+
+configs = cond_configs + latent_configs + fcgnp_configs
 
 FNULL = open(os.devnull, 'w')
 
@@ -50,6 +62,8 @@ if __name__ == '__main__':
                 seed, x_dim, gen, model, cov = configs[0]
                 
                 command = ['python',
+                            '-W',
+                            'ignore',
                            'test.py',
                            gen,
                            model,
@@ -64,8 +78,8 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.call(command)
+                process = subprocess.Popen(command)
 
                 configs = configs[1:]
 
-                # time.sleep(5e0)
+                time.sleep(5e0)
