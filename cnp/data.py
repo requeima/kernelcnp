@@ -304,3 +304,169 @@ class SawtoothGenerator(DataGenerator):
             np.sum((-1) ** k * np.sin(2 * np.pi * k * freq * x) / k, axis=1)
         
         return y
+
+
+
+
+
+# =============================================================================
+# Environmental dataloader
+# =============================================================================
+
+class EnvironmentalDataloader:
+
+    def __init__(self,
+                 path_to_dataset,
+                 iterations_per_epoch,
+                 min_num_context,
+                 max_num_context,
+                 min_num_target,
+                 max_num_target,
+                 num_datasets,
+                 time_subsampler,
+                 scale_inputs_by):
+
+        """
+        Args:
+            path_to_dataset (str)      : path to netcdf file (.nc) with the data
+            iterations_per_epoch (int) : # iterations per epoch
+            min_num_context (int)      : minimum number of context points
+            max_num_context (int)      : maximum number of context points
+            min_num_target (int)       : minimum number of target points
+            max_num_target (int)       : maximum number of target points
+            time_subsampler (lambda)   : which returns bool for each time point
+            scale_inputs_by ((float,)  : tuple of floats for normalising inputs
+
+        Note:
+            The scale_inputs_by argument should be set to None for the training
+            dataloader. The inputs will then be scaled to the range [-2., 2.],
+            both for latitudes and logitudes, and the scaling parameters (for
+            translation and stretching) will be stored in self.scale_by. Then,
+            in the validation dataloaders you should set the argument
+            self.scale_inputs_by=train_dataloader.scale_by.
+        """
+
+        self.dataset = Dataset(path_to_dataset, 'r', format='NETCDF4')
+        self.iterations_per_epoch = iterations_per_epoch
+
+        self.min_num_context = min_num_context
+        self.max_num_context = max_num_context
+        self.min_num_context = min_num_context
+        self.max_num_target = max_num_target
+        self.num_datasets = num_datasets
+
+        # Preprocessing for latitudes and logitudes
+        lat = np.array(dataset.variables['latitude'])
+        lon = np.array(dataset.variables['longitude'])
+
+        lat, lon, scale_by = self.lat_lon_scale(lat=lat,
+                                                lon=lon,
+                                                scale_by=scale_inputs_by)
+        self.lat = lat
+        self.lon = lon
+        self.scale_by = scale_by
+        self.latlon_idx = np.meshgrid(np.arange(lat.shape[0]),
+                                      np.arange(lon.shape[0]))
+        self.latlon_idx = np.reshape(np.stack(self.latlon_idx, axis=-1),
+                                     (-1, 2))
+
+        # Preprocessing for times
+        self.time_idx = np.arange(self.dataset.variables['time'].shape[0])
+        self.time_idx = filter(time_subsampler, self.time_idx)
+
+        # Only output variable is total percipitation for now
+        self.variables = ["tp"]
+
+
+    def lat_lon_scale(self, lat, lon, scale_by=None):
+        """
+        Computes the translation and scaling amounts which convert the given
+        longitude and latitude arrays to both be in the range lat_lon_range.
+        """
+
+        if scale_by is None:
+        
+            lat_min = lat.min()
+            lat_max = lat.max()
+
+            lon_min = lon.min()
+            lon_max = lon.max()
+
+            lat_trans = (lat_max + lat_min) / 2
+            lat_scale = 0.5 * (lat_max - lat_min)
+
+            lon_trans = (lon_max + lat_min) / 2
+            lon_scale = 0.5 * (lon_max - lon_min)
+
+            self.scale_by = (lat_trans, lat_scale, lon_trans, lon_scale)
+
+        else:
+            lat_trans, lat_scale, lon_trans, lon_scale = scale_by
+
+        lat = (lat - lat_trans) / lat_scale
+        lon = (lon - lon_trans) / lon_scale
+
+        return lat, lon, (lat_trans, lat_scale, lon_trans, lon_scale)
+
+
+    def __iter__(self):
+        return LambdaIterator(lambda : self.generate_task(),
+                              self.iterations_per_epoch)
+
+
+    def generate_task(self):
+
+        # Latitude and logitude resolutions
+        num_lat = self.lat.shape[0]
+        num_lon = self.lon.shape[0]
+
+        # Dict to store sampled batch
+        batch = {
+            'x'         : [],
+            'y'         : [],
+            'x_context' : [],
+            'y_context' : [],
+            'x_target'  : [],
+            'y_target'  : []
+        }
+
+        # Sample number of context and target points
+        num_context = np.random.randint(1, self.max_num_context+1)
+        num_target = np.random.randint(1, self.max_num_target+1)
+        num_data = num_context + num_target
+
+        idx = np.arange(self.latlon_idx.shape[0])
+
+        for i in range(self.num_datasets):
+            
+            # Sample indices for current batch (C + T, 2)
+            _idx = np.random.choice(idx, size=(num_data,), replace=False)
+            _idx = self.latlon_idx[_idx]
+
+            # Slice out latitude and longitude values, stack to (C + T, 2)
+            # These latitude and longitude values are already rescaled
+            x = np.stack([self.lat[_idx[:, 0]], self.lon[_idx[:, 1]]], axis=-1)
+
+            # Slice out output values to be predicted
+            t = np.random.choice(self.time_idx)
+            y = [self.dataset.variables[variable][t][_idx[:, 0], _idx[:, 1]] \
+                 for variable in self.variables]
+            y = np.stack(y, axis=-1)
+
+            # Append results to lists in batch dict
+            batch['x'].append(x)
+            batch['y'].append(y)
+
+            batch['x_context'].append(x[:num_context])
+            batch['y_context'].append(y[:num_context])
+
+            batch['x_target'].append(x[num_context:])
+            batch['y_target'].append(y[num_context:])
+
+        # Stack arrays and convert to tensors
+        batch = {name : torch.tensor(np.stack(tensors, axis=0)) \
+                 for name, tensors in batch.items()}
+
+        return batch
+
+
