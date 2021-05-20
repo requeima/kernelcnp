@@ -225,7 +225,7 @@ def plot_samples_and_data(model,
 
                 else:
                     cov_plus_jitter = cov[i, :, :].double() + \
-                                      1e-6 * torch.eye(cov.shape[-1]).double()
+                                      1e-4 * torch.eye(cov.shape[-1]).double()
                     dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
                                                                   covariance_matrix=cov_plus_jitter)
 

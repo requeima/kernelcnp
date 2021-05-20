@@ -181,6 +181,11 @@ parser.add_argument('--validate_every',
                     type=int,
                     help='Number of epochs between validations.')
 
+parser.add_argument('--slow',
+                    default=False,
+                    type=bool,
+                    help='Train on slow-moving sinusoids, NM/WP only.')
+
 
 # =============================================================================
 # Model arguments
@@ -269,8 +274,11 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
+data_name = f'{args.data}'
+data_name = data_name + '-slow' if args.slow else data_name
+
 data_root = os.path.join('toy-data',
-                         f'{args.data}',
+                         f'{data_name}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
@@ -285,7 +293,7 @@ if args.root:
     
 else:
     experiment_name = os.path.join('toy-results',
-                                   f'{args.data}',
+                                   f'{data_name}',
                                    f'models',
                                    f'{args.model}-{args.num_basis_dim}',
                                    f'{args.covtype}',
