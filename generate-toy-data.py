@@ -161,8 +161,8 @@ args = parser.parse_args()
 data_kinds = ['eq',
               'matern',
               'noisy-mixture',
-              'weakly-periodic',
               'noisy-mixture-slow',
+              'weakly-periodic',
               'weakly-periodic-slow',
               'sawtooth']
 
