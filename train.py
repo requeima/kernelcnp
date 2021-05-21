@@ -30,7 +30,8 @@ from cnp.cnp import (
 
 from cnp.lnp import (
     StandardANP,
-    StandardConvNP
+    StandardConvNP,
+    StandardHalfUNetConvNP
 )
 
 from cnp.cov import (
@@ -161,6 +162,8 @@ parser.add_argument('data',
                              'matern',
                              'noisy-mixture',
                              'weakly-periodic',
+                             'noisy-mixture-slow',
+                             'weakly-periodic-slow',
                              'sawtooth',
                              'random'],
                     help='Data set to train the CNP on. ')
@@ -181,11 +184,6 @@ parser.add_argument('--validate_every',
                     type=int,
                     help='Number of epochs between validations.')
 
-parser.add_argument('--slow',
-                    default=False,
-                    type=bool,
-                    help='Train on slow-moving sinusoids, NM/WP only.')
-
 
 # =============================================================================
 # Model arguments
@@ -197,7 +195,8 @@ parser.add_argument('model',
                              'convGNP',
                              'FullConvGNP',
                              'ANP',
-                             'convNP'],
+                             'convNP',
+                             'convNPHalfUNet'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
@@ -274,11 +273,8 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_name = f'{args.data}'
-data_name = data_name + '-slow' if args.slow else data_name
-
 data_root = os.path.join('toy-data',
-                         f'{data_name}',
+                         f'{args.data}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
@@ -293,7 +289,7 @@ if args.root:
     
 else:
     experiment_name = os.path.join('toy-results',
-                                   f'{data_name}',
+                                   f'{args.data}',
                                    f'models',
                                    f'{args.model}-{args.num_basis_dim}',
                                    f'{args.covtype}',
@@ -372,6 +368,13 @@ elif args.model == 'convNP':
     model = StandardConvNP(input_dim=args.x_dim,
                            add_noise=noise,
                            num_samples=args.np_loss_samples)
+
+elif args.model == 'convNPHalfUNet':
+    
+    noise = AddHomoNoise()
+    model = StandardHalfUNetConvNP(input_dim=args.x_dim,
+                                   add_noise=noise,
+                                   num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
@@ -392,7 +395,7 @@ if args.num_params:
 # Load model to appropriate device
 model = model.to(device)
 
-latent_model = args.model in ['ANP', 'convNP']
+latent_model = args.model in ['ANP', 'convNP', 'convNPHalfUNet']
 
 
 # =============================================================================
