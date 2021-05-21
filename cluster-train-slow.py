@@ -37,6 +37,7 @@ cond_configs = list(product(seeds, data_generators, cond_models, covs))
 latent_configs = list(product(seeds, data_generators, latent_models, ["meanfield"]))
 fcgnp_configs = list(product(seeds, data_generators, ["FullConvGNP"], ["meanfield"]))
 
+configs = cond_configs + latent_configs + fcgnp_configs
 
 commands = [
     [
@@ -44,7 +45,7 @@ commands = [
         f"python -u train.py {gen} {model} {cov} --x_dim 1 --seed {seed} --gpu 0 --slow True"
         f" 2>&1 | tee \"logs/gen_{gen}_model_{model}_cov_{cov}_seed_{seed}.txt\"",
     ]
-    for seed, gen, model, cov, basis_dim in configs
+    for seed, gen, model, cov in configs
 ]
 
 aws.manage_cluster(

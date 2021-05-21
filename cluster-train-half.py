@@ -11,7 +11,8 @@ aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
 aws.config["setup_commands"] = [
     f"cd /home/ubuntu/{REPO}",
     "ssh-keygen -F github.com || ssh-keyscan github.com >> ~/.ssh/known_hosts",
-    "git pull",
+    "git fetch",
+    "git reset --hard origin/main",
     ". venv/bin/activate"
 ]
 
@@ -26,15 +27,13 @@ data_generators = [
     "sawtooth"
 ]
 
-latent_models = ["ConvHalfUNetNP"]
-
 # Seeds to try
 seeds = ["0"]
 
 # Configs for conditional models
 configs = list(product(seeds,
                        data_generators,
-                       ["ConvHalfUNetNP"],
+                       ["convNPHalfUNet"],
                        ["meanfield"]))
 
 commands = [
