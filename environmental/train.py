@@ -20,11 +20,13 @@ from cnp.experiment import (
 
 from cnp.cnp import StandardConvGNP
 
-from cnp.lnp import StandardConvNP
+from cnp.lnp import StandardHalfUNetConvNP
 
 from cnp.cov import (
     InnerProdCov,
     KvvCov,
+    MeanFieldCov,
+    AddNoNoise,
     AddHomoNoise,
     AddHeteroNoise
 )
@@ -66,43 +68,50 @@ def train(data, model, optimiser, log_every, device, writer, iteration):
 # =============================================================================
 
 
-def validate(data, model, args, device, writer, latent_model):
+def validate(valid_dataloaders, model, args, device, writer, latent_model):
     
     # Lists for logging model's training NLL and oracle NLL
-    nll_list = []
+    nll_mean_list = []
+    nll_std_list = []
     
     # If training a latent model, set the number of latent samples accordingly
     loss_kwargs = {'num_samples' : args.np_val_samples} if latent_model else {}
     
     with torch.no_grad():
-        for step, batch in enumerate(data):
-            
-            nll = model.loss(batch['x_context'].to(device),
-                             batch['y_context'].to(device),
-                             batch['x_target'].to(device),
-                             batch['y_target'].to(device),
-                             **loss_kwargs)
-            
-            # Scale by the average number of target points
-            nll_list.append(nll.item())
-            
-    mean_nll = np.mean(nll_list)
-    std_nll = np.var(nll_list)**0.5
-    
-    # Print validation loss and oracle loss
-    print(f"Validation neg. log-lik: "
-          f"{mean_nll:.2f} +/- "
-          f"{std_nll:.2f}")
+        for dataloader in valid_dataloaders:
 
-    return mean_nll, std_nll
+            dataloader_nlls = []
+
+            for batch in dataloader:
+            
+                nll = model.loss(batch['x_context'].to(device),
+                                 batch['y_context'].to(device),
+                                 batch['x_target'].to(device),
+                                 batch['y_target'].to(device),
+                                 **loss_kwargs)
+
+                dataloader_nlls.append(nll.item())
+            
+            nll_mean_list.append(np.mean(dataloader_nlls))
+            nll_std_list.append(np.var(dataloader_nlls)**0.5)
+    
+        # Print validation loss and oracle loss
+        print(f"Validation neg. log-lik: "
+              f"{nll_mean_list[-1]:.2f} +/- "
+              f"{nll_std_list[-1]:.2f}")
+
+    return nll_mean_list, nll_std_list
         
+
+# Parse arguments given to the script.
+parser = argparse.ArgumentParser()
 
 # =============================================================================
 # Model arguments
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['convGNP', 'convNP'],
+                    choices=['convGNP', 'convNPHalfUNet'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
@@ -132,6 +141,27 @@ parser.add_argument('--num_basis_dim',
 
 
 # =============================================================================
+# Data arguments
+# =============================================================================
+
+parser.add_argument('--min_num_context',
+                    default=3,
+                    type=int)
+
+parser.add_argument('--max_num_context',
+                    default=50,
+                    type=int)
+
+parser.add_argument('--min_num_target',
+                    default=100,
+                    type=int)
+
+parser.add_argument('--max_num_target',
+                    default=100,
+                    type=int)
+
+
+# =============================================================================
 # Training arguments
 # =============================================================================
 
@@ -155,10 +185,15 @@ parser.add_argument('--epochs',
                     type=int,
                     help='Number of epochs to train for.')
 
-parser.add_argument('--iterations_per_epoch',
+parser.add_argument('--num_iters_train',
                     default=1024,
                     type=int,
                     help='Number of iterations in each epoch.')
+
+parser.add_argument('--num_iters_valid',
+                    default=256,
+                    type=int,
+                    help='Number of iterations in each validation epoch.')
 
 parser.add_argument('--batch_size',
                     default=16,
@@ -190,8 +225,7 @@ parser.add_argument('--gpu',
                     type=int,
                     help='GPU to run experiment on. Defaults to 0.')
 
-parser = argparse.ArgumentParser()
-
+args = parser.parse_args()
 
 # =============================================================================
 # Set random seed, device and tensorboard writer
@@ -230,21 +264,27 @@ log_args(working_directory, args)
 # =============================================================================
 
 # Training set name, subsample even-index times for train, odd for validation
-train_dataset = 'era5land_daily_central_eu_complete.nc'
+train_dataset = f'{data_directory.root}/era5land_daily_central_eu_complete.nc'
 train_subsampler = lambda t : t % 2 == 0
 valid_subsampler = lambda t : t % 2 == 1
 
 # Test dataset locations, including one for validation
 test_datasets = [train_dataset] + \
-                ['era5land_daily_east_eu_test.nc',
-                 'era5land_daily_north_eu_test.nc',
-                 'era5land_daily_west_eu_test.nc']
+                [f'{data_directory.root}/era5land_daily_east_eu_test.nc',
+                 f'{data_directory.root}/era5land_daily_north_eu_test.nc',
+                 f'{data_directory.root}/era5land_daily_west_eu_test.nc']
+
 test_subsamplers = [valid_subsampler] + \
                    [lambda t : True for _ in test_datasets]
 
+test_names = ['Central EU (same region as train)',
+              'East EU',
+              'North EU',
+              'West EU']
+
 # Create training dataloader
 train_dataloader = EnvironmentalDataloader(train_dataset,
-                                           args.iterations_per_epoch,
+                                           args.num_iters_train,
                                            args.min_num_context,
                                            args.max_num_context,
                                            args.min_num_target,
@@ -255,8 +295,9 @@ train_dataloader = EnvironmentalDataloader(train_dataset,
 scale_inputs_by = train_dataloader.scale_by
 
 # Create validation/testing dataloaders
+test_zipped = zip(test_datasets, test_subsamplers)
 test_dataloaders = [EnvironmentalDataloader(dataset,
-                                            args.iterations_per_epoch,
+                                            args.num_iters_valid,
                                             args.min_num_context,
                                             args.max_num_context,
                                             args.min_num_target,
@@ -264,7 +305,7 @@ test_dataloaders = [EnvironmentalDataloader(dataset,
                                             args.batch_size,
                                             subsampler,
                                             scale_inputs_by=scale_inputs_by)
-                     for dataset, subsampler in zip(]
+                     for dataset, subsampler in test_zipped]
 
 
 # =============================================================================
@@ -301,12 +342,12 @@ if args.model == 'convGNP':
                             covariance=cov,
                             add_noise=noise)
    
-elif args.model == 'convNP':
+elif args.model == 'convNPHalfUNet':
     
     noise = AddHomoNoise()
-    model = StandardConvNP(input_dim=2,
-                           add_noise=noise,
-                           num_samples=args.np_loss_samples)
+    model = StandardHalfUNetConvNP(input_dim=2,
+                                   add_noise=noise,
+                                   num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
@@ -343,27 +384,29 @@ optimiser = torch.optim.Adam(model.parameters(),
 # Run the training loop, maintaining the best objective value
 best_nll = np.inf
 
+latent_model = args.model == "convNP"
+
 for epoch in range(args.epochs):
 
     if train_iteration % log_every == 0:
-        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
+        print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
     if epoch % args.validate_every == 0:
 
         # Compute validation negative log-likelihood
-        val_nll, _ = validate(valid_dataloader,
-                              model,
-                              args,
-                              device,
-                              writer)
+        mean_nlls, _ = validate(test_dataloaders,
+                                model,
+                                args,
+                                device,
+                                writer,
+                                latent_model)
 
         # Log information to tensorboard
-        writer.add_scalar('Valid log-lik.',
-                          -val_nll,
-                          epoch)
+        for test_name, mean_nll in zip(test_names, mean_nlls):
+            writer.add_scalar(test_name, -mean_nll, epoch)
 
         # Update the best objective value and checkpoint the model
-        is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
+        is_best, best_obj = (True, mean_nll) if mean_nll < best_nll else \
                             (False, best_nll)
 
     # Compute training negative log-likelihood
