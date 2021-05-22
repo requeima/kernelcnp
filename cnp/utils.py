@@ -172,22 +172,23 @@ def plot_samples_and_data(model,
     data = list(gen_plot)[0]
 
     # Split context and target sets out
-    ctx_in = data['x_context'].to(device)
-    ctx_out = data['y_context'].to(device)
+    ctx_in = data['x_context'].to(device)[:3]
+    ctx_out = data['y_context'].to(device)[:3]
 
-    trg_in = data['x_target'].to(device)
-    trg_out = data['y_target'].to(device)
+    trg_in = data['x_target'].to(device)[:3]
+    trg_out = data['y_target'].to(device)[:3]
 
     # Locations to query predictions at
     xrange = xmax - xmin
     xmin = xmin - 0.5 * xrange
     xmax = xmax + 0.5 * xrange
-    plot_inputs = torch.linspace(xmin, xmax, 100)[None, :, None]
+    plot_inputs = torch.linspace(xmin, xmax, 200)[None, :, None]
     plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
+    num_samples = 20
 
     # Make predictions 
     if latent_model:
-        tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=100)
+        tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=num_samples)
         sample_means = tensors[0].detach().cpu()
     
     else:
@@ -204,11 +205,11 @@ def plot_samples_and_data(model,
         # Try samlping and plotting with jitter -- if error is raised, plot marginals
         if latent_model:
 
-            for j in range(100):
+            for j in range(num_samples):
                 plt.plot(plot_inputs[i, :, 0].cpu(),
                          sample_means[j, i, :, 0],
                          color='blue',
-                         alpha=0.05,
+                         alpha=0.1,
                          zorder=2)
         
         else:
@@ -228,9 +229,13 @@ def plot_samples_and_data(model,
                     dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
                                                                   covariance_matrix=cov_plus_jitter)
 
-                    for j in range(100):
+                    for j in range(num_samples):
                         sample = dist.sample()
-                        plt.plot(plot_inputs[i, :, 0].cpu(), sample, color='blue', alpha=0.05, zorder=2)
+                        plt.plot(plot_inputs[i, :, 0].cpu(),
+                                 sample,
+                                 color='blue',
+                                 alpha=0.1,
+                                 zorder=2)
 
             except Exception as e:
                 
@@ -290,11 +295,11 @@ def make_generator(data_kind, gen_params, kernel_params):
         elif data_kind == 'matern':
             kernel = stheno.Matern52().stretch(params[0])
 
-        elif data_kind == 'noisy-mixture':
+        elif data_kind in ['noisy-mixture', 'noisy-mixture-slow']:
             kernel = stheno.EQ().stretch(params[0]) + \
                         stheno.EQ().stretch(params[1])
 
-        elif data_kind == 'weakly-periodic':
+        elif data_kind in ['weakly-periodic', 'weakly-periodic-slow']:
             kernel = stheno.EQ().stretch(params[0]) * \
                         stheno.EQ().periodic(period=params[1])
 

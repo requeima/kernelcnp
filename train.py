@@ -30,7 +30,8 @@ from cnp.cnp import (
 
 from cnp.lnp import (
     StandardANP,
-    StandardConvNP
+    StandardConvNP,
+    StandardHalfUNetConvNP
 )
 
 from cnp.cov import (
@@ -161,6 +162,8 @@ parser.add_argument('data',
                              'matern',
                              'noisy-mixture',
                              'weakly-periodic',
+                             'noisy-mixture-slow',
+                             'weakly-periodic-slow',
                              'sawtooth',
                              'random'],
                     help='Data set to train the CNP on. ')
@@ -192,7 +195,8 @@ parser.add_argument('model',
                              'convGNP',
                              'FullConvGNP',
                              'ANP',
-                             'convNP'],
+                             'convNP',
+                             'convNPHalfUNet'],
                     help='Choice of model. ')
 
 parser.add_argument('covtype',
@@ -364,6 +368,13 @@ elif args.model == 'convNP':
     model = StandardConvNP(input_dim=args.x_dim,
                            add_noise=noise,
                            num_samples=args.np_loss_samples)
+
+elif args.model == 'convNPHalfUNet':
+    
+    noise = AddHomoNoise()
+    model = StandardHalfUNetConvNP(input_dim=args.x_dim,
+                                   add_noise=noise,
+                                   num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
@@ -384,7 +395,7 @@ if args.num_params:
 # Load model to appropriate device
 model = model.to(device)
 
-latent_model = args.model in ['ANP', 'convNP']
+latent_model = args.model in ['ANP', 'convNP', 'convNPHalfUNet']
 
 
 # =============================================================================
@@ -411,7 +422,7 @@ else:
     file = open(data_directory.file('kernel-params.pkl'), 'rb')
     kernel_params = pickle.load(file)
     file.close()
-    
+   
     gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
         
