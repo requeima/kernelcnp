@@ -18,13 +18,13 @@ aws.config["setup_commands"] = [
 
 # Model and data generator configurations
 data_generators = [
-    "eq",
-    "matern",
-    "noisy-mixture",
+#    "eq",
+#    "matern",
+#    "noisy-mixture",
     "noisy-mixture-slow",
-    "weakly-periodic",
+#    "weakly-periodic",
     "weakly-periodic-slow",
-    "sawtooth"
+#    "sawtooth"
 ]
 
 # Seeds to try

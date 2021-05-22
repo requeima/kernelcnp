@@ -172,23 +172,26 @@ def plot_samples_and_data(model,
     data = list(gen_plot)[0]
 
     # Split context and target sets out
-    ctx_in = data['x_context'].to(device)
-    ctx_out = data['y_context'].to(device)
+    ctx_in = data['x_context'].to(device)[:3]
+    ctx_out = data['y_context'].to(device)[:3]
 
-    trg_in = data['x_target'].to(device)
-    trg_out = data['y_target'].to(device)
+    trg_in = data['x_target'].to(device)[:3]
+    trg_out = data['y_target'].to(device)[:3]
 
     # Locations to query predictions at
     xrange = xmax - xmin
     xmin = xmin - 0.5 * xrange
     xmax = xmax + 0.5 * xrange
-    plot_inputs = torch.linspace(xmin, xmax, 500)[None, :, None]
+    plot_inputs = torch.linspace(xmin, xmax, 200)[None, :, None]
     plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
     num_samples = 20
 
+    print(plot_inputs.shape)
+    raise Exception
+
     # Make predictions 
     if latent_model:
-        tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=100)
+        tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=num_samples)
         sample_means = tensors[0].detach().cpu()
     
     else:
