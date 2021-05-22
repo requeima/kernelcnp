@@ -186,9 +186,6 @@ def plot_samples_and_data(model,
     plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
     num_samples = 20
 
-    print(plot_inputs.shape)
-    raise Exception
-
     # Make predictions 
     if latent_model:
         tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=num_samples)

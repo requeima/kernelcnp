@@ -291,7 +291,7 @@ else:
     experiment_name = os.path.join('toy-results',
                                    f'{args.data}',
                                    f'models',
-                                   f'{args.model}-{args.num_basis_dim}',
+                                   f'{args.model}',
                                    f'{args.covtype}',
                                    f'seed-{args.seed}',
                                    f'dim-{args.x_dim}')
