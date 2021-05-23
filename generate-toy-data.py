@@ -188,10 +188,10 @@ for x_dim in args.x_dims:
             torch.manual_seed(seed)
 
             if args.test:
-                seed = np.random.randint(0, int(10**6))
+                seed_ = np.random.randint(0, int(10**6))
 
-                np.random.seed(seed)
-                torch.manual_seed(seed)
+                np.random.seed(seed_)
+                torch.manual_seed(seed_)
 
 
             device = torch.device('cpu')
