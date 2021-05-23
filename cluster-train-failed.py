@@ -4,40 +4,50 @@ from itertools import product
 KEY = "elukbook"
 REPO = "kernelcnp"
 SECURITY_GROUP = "sg-00e6c4ed6ef493a3a"
-IMAGE_ID = "ami-0c72f79fa99130733"
+IMAGE_ID = "ami-068bc7620e20aa12c"
 
 aws.config["ssh_user"] = "ubuntu"  # "ec2-user"
 aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
 aws.config["setup_commands"] = [
     f"cd /home/ubuntu/{REPO}",
     "ssh-keygen -F github.com || ssh-keyscan github.com >> ~/.ssh/known_hosts",
-    "git pull",
+    "git fetch",
+    "git reset --hard origin/main",
     ". venv/bin/activate"
 ]
 
-# Model and data generator configurations
+# Experiments which failed form the core set
+failed_core = [
+    ["0", "eq", "GNP", "kvv-homo"],   
+    ["0", "noisy-mixture", "AGNP", "innerprod-homo"],   
+    ["0", "sawtooth", "AGNP", "kvv-homo"],   
+]
+
+# Experiments which failed due to kvv memory
 data_generators = [
     "noisy-mixture-slow",
     "weakly-periodic-slow"
 ]
 
-# Conditional models -- without FullConvGNP
-cond_models = ["GNP", "AGNP", "convGNP"]
+models = [
+    "GNP",
+    "AGNP",
+    "convGNP"
+]
 
-latent_models = ["ANP", "ConvNPHalfUnet"]
+failed_kvv_memory = list(product(["0"],
+                                 data_generators,
+                                 models,
+                                 ["kvv-homo"]))
 
-# Covariances for conditional models
-covs = ["innerprod-homo", "kvv-homo", "meanfield"]
+# Experiments which failede due to invalid dict access
+failed_dict_access = list(product(["0"],
+                                  data_generators,
+                                  ["convNPHalfUNet"],
+                                  ["meanfield"]))
 
-# Seeds to try
-seeds = ["0"]
-
-# Configs for conditional models
-cond_configs = list(product(seeds, data_generators, cond_models, covs))
-latent_configs = list(product(seeds, data_generators, latent_models, ["meanfield"]))
-fcgnp_configs = list(product(seeds, data_generators, ["FullConvGNP"], ["meanfield"]))
-
-configs = cond_configs + latent_configs + fcgnp_configs
+# Put all configs together and create commands
+configs = failed_core + failed_kvv_memory + failed_dict_access
 
 commands = [
     [
