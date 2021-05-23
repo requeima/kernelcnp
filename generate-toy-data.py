@@ -187,6 +187,13 @@ for x_dim in args.x_dims:
             np.random.seed(seed)
             torch.manual_seed(seed)
 
+            if args.test:
+                seed = np.random.randint(0, int(10**6))
+
+                np.random.seed(seed)
+                torch.manual_seed(seed)
+
+
             device = torch.device('cpu')
 
             path = os.path.join('toy-data',
