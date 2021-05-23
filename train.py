@@ -446,7 +446,7 @@ best_nll = np.inf
 
 epochs = len(data_train)
 
-for epoch in range(101): # (epochs):
+for epoch in range(101): # range(epochs):
 
     if train_iteration % log_every == 0:
         print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
