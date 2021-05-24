@@ -422,6 +422,10 @@ else:
     file = open(data_directory.file('kernel-params.pkl'), 'rb')
     kernel_params = pickle.load(file)
     file.close()
+
+    print('===========================in train===========================')
+    print('kernel_params', kernel_params)
+    print('gen_valid_params', gen_valid_gp_params)
    
     gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
