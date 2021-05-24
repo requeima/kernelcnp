@@ -188,7 +188,7 @@ for x_dim in args.x_dims:
             torch.manual_seed(seed)
 
             if args.test:
-                seed_ = np.random.randint(0, int(10**6))
+                seed_ = np.random.randint(int(1e6), int(2e6))
 
                 np.random.seed(seed_)
                 torch.manual_seed(seed_)
