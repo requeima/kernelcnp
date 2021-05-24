@@ -10,40 +10,18 @@ GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 30.
 
 # Model and data generator configurations
-data_generators = ['sawtooth',
-                   'eq',
+data_generators = ['eq',
                    'matern',
                    'noisy-mixture',
                    'noisy-mixture-slow',
                    'weakly-periodic',
                    'weakly-periodic-slow']
 
-cond_models = ['GNP',
-           'AGNP',
-           'convGNP']
-latent_models = ['ANP', 'convNP']
-fcgnp_models = ["FullConvGNP"]
-
-
-# cond_models = []
-# latent_models = []
-# fcgnp_models = []
-
-
-covs = ['innerprod-homo',
-         'kvv-homo',
-         'meanfield']
-
 x_dims = ['1']
 
 seeds = [str(i) for i in range(1)]
 
-# Configs for conditional models
-cond_configs = list(product(seeds, x_dims, data_generators, cond_models, covs))
-latent_configs = list(product(seeds, x_dims, data_generators, latent_models, ["meanfield"]))
-fcgnp_configs = list(product(seeds, x_dims, data_generators, fcgnp_models, ["meanfield"]))
-
-configs = cond_configs + latent_configs + fcgnp_configs
+configs = list(product(seeds, x_dims, data_generators))
 
 FNULL = open(os.devnull, 'w')
 
@@ -57,23 +35,17 @@ if __name__ == '__main__':
 
             if percent_memory_used < GPU_MEMORY_PERCENTAGE:
 
-                seed, x_dim, gen, model, cov = configs[0]
+                seed, x_dim, gen = configs[0]
                 
-                
-
                 command = ['python',
                             '-W',
                             'ignore',
-                           'test.py',
+                           'test_oracle.py',
                            gen,
-                           model,
-                           cov,
                            '--x_dim',
                            x_dim,
                            '--seed',
-                           seed,
-                           '--gpu',
-                           gpu_id]
+                           seed]
                 
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')

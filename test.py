@@ -153,7 +153,7 @@ parser.add_argument('--np_loss_samples',
                          'used for ANP and ConvNP.')
 
 parser.add_argument('--np_test_samples',
-                    default=5000,
+                    default=512,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')

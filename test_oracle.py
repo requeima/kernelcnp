@@ -36,6 +36,8 @@ def test_oracle(data, data_generator):
     
     with torch.no_grad():
         for step, batch in enumerate(data):
+            if step % 500 == 0:
+                print(f'step {step}')
             print(step)
             oracle_nll = np.array(0.)
             if (type(data_generator) == cnp.data.GPGenerator):
@@ -46,13 +48,16 @@ def test_oracle(data, data_generator):
                                                             batch['y_target'][b])
                     # oracle_nll = oracle_nll + _oracle_nll
                     oracle_nll_list.append(oracle_nll/50.)
+            break        
+            
 
         print(f"Oracle     neg. log-lik: "
             f"{np.mean(oracle_nll_list):.2f} +/- "
             f"{np.var(oracle_nll_list) ** 0.5:.2f}")
+            
                 
     mean_oracle = np.mean(oracle_nll_list)
-    std_oracle = np.var(oracle_nll_list) ** 0.5
+    std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(step + 1)
 
     return mean_oracle, std_oracle
 
@@ -65,12 +70,13 @@ parser = argparse.ArgumentParser()
 # =============================================================================
 
 parser.add_argument('data',
-                    choices=['eq',
-                             'matern',
-                             'noisy-mixture',
-                             'weakly-periodic',
-                             'sawtooth',
-                             'random'],
+                    choices=['sawtooth',
+                            'eq',
+                            'matern',
+                            'noisy-mixture',
+                            'noisy-mixture-slow',
+                            'weakly-periodic',
+                            'weakly-periodic-slow'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
@@ -124,7 +130,7 @@ data_root = os.path.join('_experiments/toy-data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
 
-experiment_name = os.path.join('_experiments/toy-data',
+experiment_name = os.path.join('_experiments/toy-results',
                                    f'{args.data}',
                                    f'models',
                                    'Oracle-GP',
