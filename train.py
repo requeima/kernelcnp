@@ -423,10 +423,21 @@ else:
     kernel_params = pickle.load(file)
     file.close()
 
-    print('===========================in train===========================')
-    print('kernel_params', kernel_params)
-    print('gen_valid_params', gen_valid_gp_params)
+    #kernel_params = {
+    #    "eq"                   : [1.0],
+    #    "matern"               : [1.0],
+    #    "weakly-periodic"      : [1.0, 0.25],
+    #    "noisy-mixture"        : [1.0, 0.25],
+    #    "weakly-periodic-slow" : [1.0, 0.50],
+    #    "noisy-mixture-slow"   : [1.0, 0.50]
+    #}
+
+    #kernel_params = {args.data : kernel_params[args.data]}
    
+    #print('===========================in train===========================')
+    #print('kernel_params', kernel_params)
+    #print('gen_valid_params', gen_valid_gp_params)
+
     gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
         
