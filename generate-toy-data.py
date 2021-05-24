@@ -161,8 +161,8 @@ args = parser.parse_args()
 data_kinds = ['eq',
               'matern',
               'noisy-mixture',
-              'weakly-periodic',
               'noisy-mixture-slow',
+              'weakly-periodic',
               'weakly-periodic-slow',
               'sawtooth']
 
@@ -186,6 +186,13 @@ for x_dim in args.x_dims:
             # Set seed
             np.random.seed(seed)
             torch.manual_seed(seed)
+
+            if args.test:
+                seed_ = np.random.randint(int(1e6), int(2e6))
+
+                np.random.seed(seed_)
+                torch.manual_seed(seed_)
+
 
             device = torch.device('cpu')
 

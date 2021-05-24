@@ -5,6 +5,7 @@ import threadpoolctl
 import numpy as np
 import stheno
 import torch
+from netCDF4 import Dataset
 
 __all__ = ['GPGenerator', 'SawtoothGenerator']
 
@@ -356,8 +357,8 @@ class EnvironmentalDataloader:
         self.num_datasets = num_datasets
 
         # Preprocessing for latitudes and logitudes
-        lat = np.array(dataset.variables['latitude'])
-        lon = np.array(dataset.variables['longitude'])
+        lat = np.array(self.dataset.variables['latitude'])
+        lon = np.array(self.dataset.variables['longitude'])
 
         lat, lon, scale_by = self.lat_lon_scale(lat=lat,
                                                 lon=lon,
@@ -372,7 +373,7 @@ class EnvironmentalDataloader:
 
         # Preprocessing for times
         self.time_idx = np.arange(self.dataset.variables['time'].shape[0])
-        self.time_idx = filter(time_subsampler, self.time_idx)
+        self.time_idx = list(filter(time_subsampler, self.time_idx))
 
         # Only output variable is total percipitation for now
         self.variables = ["tp"]
@@ -464,7 +465,7 @@ class EnvironmentalDataloader:
             batch['y_target'].append(y[num_context:])
 
         # Stack arrays and convert to tensors
-        batch = {name : torch.tensor(np.stack(tensors, axis=0)) \
+        batch = {name : torch.tensor(np.stack(tensors, axis=0)).float() \
                  for name, tensors in batch.items()}
 
         return batch
