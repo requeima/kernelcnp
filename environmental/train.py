@@ -42,7 +42,7 @@ from cnp.data import EnvironmentalDataloader
 def train(data, model, optimiser, log_every, device, writer, iteration):
     
     for step, batch in enumerate(data):
-
+        
         nll = model.loss(batch['x_context'].to(device),
                          batch['y_context'].to(device),
                          batch['x_target'].to(device),
@@ -291,8 +291,10 @@ train_dataloader = EnvironmentalDataloader(train_dataset,
                                            args.max_num_target,
                                            args.batch_size,
                                            train_subsampler,
-                                           scale_inputs_by=None)
+                                           scale_inputs_by=None,
+                                           normalise_by=None)
 scale_inputs_by = train_dataloader.scale_by
+normalise_by = train_dataloader.normalise_by
 
 # Create validation/testing dataloaders
 test_zipped = zip(test_datasets, test_subsamplers)
@@ -304,7 +306,8 @@ test_dataloaders = [EnvironmentalDataloader(dataset,
                                             args.max_num_target,
                                             args.batch_size,
                                             subsampler,
-                                            scale_inputs_by=scale_inputs_by)
+                                            scale_inputs_by=scale_inputs_by,
+                                            normalise_by=normalise_by)
                      for dataset, subsampler in test_zipped]
 
 
@@ -410,7 +413,7 @@ for epoch in range(args.epochs):
                             (False, best_nll)
 
     # Compute training negative log-likelihood
-    train_iteration = train(train_epoch,
+    train_iteration = train(train_dataloader,
                             model,
                             optimiser,
                             log_every,

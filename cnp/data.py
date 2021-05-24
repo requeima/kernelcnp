@@ -1,6 +1,7 @@
 import abc
 import multiprocessing
 import threadpoolctl
+from netCDF4 import Dataset
 
 import numpy as np
 import stheno
@@ -324,7 +325,8 @@ class EnvironmentalDataloader:
                  max_num_target,
                  num_datasets,
                  time_subsampler,
-                 scale_inputs_by):
+                 scale_inputs_by,
+                 normalise_by):
 
         """
         Args:
@@ -336,6 +338,7 @@ class EnvironmentalDataloader:
             max_num_target (int)       : maximum number of target points
             time_subsampler (lambda)   : which returns bool for each time point
             scale_inputs_by ((float,)  : tuple of floats for normalising inputs
+            normalise_by    ((float,)  : tuple of floats for normalising outputs
 
         Note:
             The scale_inputs_by argument should be set to None for the training
@@ -343,7 +346,8 @@ class EnvironmentalDataloader:
             both for latitudes and logitudes, and the scaling parameters (for
             translation and stretching) will be stored in self.scale_by. Then,
             in the validation dataloaders you should set the argument
-            self.scale_inputs_by=train_dataloader.scale_by.
+            self.scale_inputs_by=train_dataloader.scale_by. Similarly for output
+            normalisation using normalise_by.
         """
 
         self.dataset = Dataset(path_to_dataset, 'r', format='NETCDF4')
@@ -356,8 +360,8 @@ class EnvironmentalDataloader:
         self.num_datasets = num_datasets
 
         # Preprocessing for latitudes and logitudes
-        lat = np.array(dataset.variables['latitude'])
-        lon = np.array(dataset.variables['longitude'])
+        lat = np.array(self.dataset.variables['latitude'])
+        lon = np.array(self.dataset.variables['longitude'])
 
         lat, lon, scale_by = self.lat_lon_scale(lat=lat,
                                                 lon=lon,
@@ -372,11 +376,32 @@ class EnvironmentalDataloader:
 
         # Preprocessing for times
         self.time_idx = np.arange(self.dataset.variables['time'].shape[0])
-        self.time_idx = filter(time_subsampler, self.time_idx)
+        self.time_idx = list(filter(time_subsampler, self.time_idx))
 
         # Only output variable is total percipitation for now
-        self.variables = ["tp"]
+        variables, normalise_by = self.normalise(variables=["tp"],
+                                                 normalise_by=normalise_by)
+        self.variables = variables
+        self.normalise_by = normalise_by
 
+
+    def normalise(self, variables, normalise_by=None):
+        
+        variables = {variable : np.stack([self.dataset.variables[variable][t] \
+                                          for t in self.time_idx], axis=0)    \
+                     for variable in variables}
+
+        if normalise_by is None:
+
+            normalise_by = [(np.mean(variable), np.var(variable)**0.5) \
+                            for name, variable in variables.items()]
+
+        zipped = zip(variables.items(), normalise_by)
+        variables = {name : (variable - mean) / std \
+                     for (name, variable), (mean, std) in zipped}
+
+        return variables, normalise_by
+        
 
     def lat_lon_scale(self, lat, lon, scale_by=None):
         """
@@ -435,12 +460,15 @@ class EnvironmentalDataloader:
         num_target = np.random.randint(1, self.max_num_target+1)
         num_data = num_context + num_target
 
-        idx = np.arange(self.latlon_idx.shape[0])
+        total_num_points = self.latlon_idx.shape[0]
+        total_num_times = len(self.time_idx)
 
         for i in range(self.num_datasets):
             
             # Sample indices for current batch (C + T, 2)
-            _idx = np.random.choice(idx, size=(num_data,), replace=False)
+            _idx = np.random.choice(np.arange(total_num_points),
+                                    size=(num_data,),
+                                    replace=False)
             _idx = self.latlon_idx[_idx]
 
             # Slice out latitude and longitude values, stack to (C + T, 2)
@@ -448,9 +476,9 @@ class EnvironmentalDataloader:
             x = np.stack([self.lat[_idx[:, 0]], self.lon[_idx[:, 1]]], axis=-1)
 
             # Slice out output values to be predicted
-            t = np.random.choice(self.time_idx)
-            y = [self.dataset.variables[variable][t][_idx[:, 0], _idx[:, 1]] \
-                 for variable in self.variables]
+            t = np.random.choice(np.arange(total_num_times))
+            y = [variable[t][_idx[:, 0], _idx[:, 1]] \
+                 for key, variable in self.variables.items()]
             y = np.stack(y, axis=-1)
 
             # Append results to lists in batch dict
@@ -464,7 +492,7 @@ class EnvironmentalDataloader:
             batch['y_target'].append(y[num_context:])
 
         # Stack arrays and convert to tensors
-        batch = {name : torch.tensor(np.stack(tensors, axis=0)) \
+        batch = {name : torch.tensor(np.stack(tensors, axis=0)).float() \
                  for name, tensors in batch.items()}
 
         return batch
