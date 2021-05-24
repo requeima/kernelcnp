@@ -434,9 +434,9 @@ else:
 
     #kernel_params = {args.data : kernel_params[args.data]}
    
-    #print('===========================in train===========================')
-    #print('kernel_params', kernel_params)
-    #print('gen_valid_params', gen_valid_gp_params)
+    print('===========================in train===========================')
+    print('kernel_params', kernel_params)
+    print('gen_valid_params', gen_valid_gp_params)
 
     gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
@@ -447,7 +447,7 @@ else:
 
 # Number of epochs between validations
 train_iteration = 0
-log_every = 1
+log_every = 500
     
 log_args(working_directory, args)
 
@@ -463,8 +463,7 @@ epochs = len(data_train)
 
 for epoch in range(101): # range(epochs):
 
-    if train_iteration % log_every == 0:
-        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
+    print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
     if epoch % args.validate_every == 0:
 
