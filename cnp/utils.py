@@ -311,6 +311,6 @@ def make_generator(data_kind, gen_params, kernel_params):
         else:
             raise ValueError(f'Unknown generator kind "{data_kind}".')
 
-        gen = cnp.data.GPGenerator(kernel=kernel, **gen_params)\
+        gen = cnp.data.GPGenerator(kernel=kernel, **gen_params)
 
     return gen
