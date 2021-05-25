@@ -53,7 +53,7 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=16,
+                    default=64,
                     type=int,
                     help='Number of tasks per batch sampled.')
 
@@ -83,7 +83,7 @@ parser.add_argument('--num_valid_iters',
                     help='Iterations (# batches sampled) for validation.')
 
 parser.add_argument('--num_test_iters',
-                    default=5000,
+                    default=1024,
                     type=int,
                     help='Iterations (# batches sampled) **TOTAL**.')
 
@@ -196,7 +196,7 @@ for x_dim in args.x_dims:
 
             device = torch.device('cpu')
 
-            path = os.path.join('toy-data',
+            path = os.path.join('_/experiments/toy-data',
                                 f'{data_kind}',
                                 'data',
                                 f'seed-{seed}',
