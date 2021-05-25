@@ -10,9 +10,6 @@ from tqdm import trange
 import pickle
 import itertools
 
-# This is for an error that is now popping up when running on macos
-# os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
 import cnp.data
 from cnp.utils import make_generator
 

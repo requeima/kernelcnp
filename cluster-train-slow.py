@@ -6,7 +6,7 @@ REPO = "kernelcnp"
 SECURITY_GROUP = "sg-00e6c4ed6ef493a3a"
 IMAGE_ID = "ami-0b9e8bb933b9914b3"
 
-aws.config["ssh_user"] = "ubuntu"  # "ec2-user"
+aws.config["ssh_user"] = "ubuntu"
 aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
 aws.config["setup_commands"] = [
     f"cd /home/ubuntu/{REPO}",

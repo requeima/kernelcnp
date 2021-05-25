@@ -422,7 +422,22 @@ else:
     file = open(data_directory.file('kernel-params.pkl'), 'rb')
     kernel_params = pickle.load(file)
     file.close()
+
+    #kernel_params = {
+    #    "eq"                   : [1.0],
+    #    "matern"               : [1.0],
+    #    "weakly-periodic"      : [1.0, 0.25],
+    #    "noisy-mixture"        : [1.0, 0.25],
+    #    "weakly-periodic-slow" : [1.0, 0.50],
+    #    "noisy-mixture-slow"   : [1.0, 0.50]
+    #}
+
+    #kernel_params = {args.data : kernel_params[args.data]}
    
+    print('===========================in train===========================')
+    print('kernel_params', kernel_params)
+    print('gen_valid_gp_params', gen_valid_gp_params)
+
     gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
 
         
@@ -432,7 +447,7 @@ else:
 
 # Number of epochs between validations
 train_iteration = 0
-log_every = 1
+log_every = 500
     
 log_args(working_directory, args)
 
@@ -446,10 +461,9 @@ best_nll = np.inf
 
 epochs = len(data_train)
 
-for epoch in range(101): # range(epochs):
+for epoch in range(epochs): # range(epochs):
 
-    if train_iteration % log_every == 0:
-        print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
+    print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
     if epoch % args.validate_every == 0:
 
