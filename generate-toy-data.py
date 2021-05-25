@@ -193,7 +193,7 @@ for x_dim in args.x_dims:
 
             device = torch.device('cpu')
 
-            path = os.path.join('_/experiments/toy-data',
+            path = os.path.join('_experiments/toy-data',
                                 f'{data_kind}',
                                 'data',
                                 f'seed-{seed}',
