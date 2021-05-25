@@ -5,6 +5,8 @@ import threadpoolctl
 import numpy as np
 import stheno
 import torch
+import lab as B
+from matrix import Diagonal
 from netCDF4 import Dataset
 
 __all__ = ['GPGenerator', 'SawtoothGenerator']
@@ -232,7 +234,7 @@ class GPGenerator(DataGenerator):
         return np.squeeze(gp(x).sample())
     
 
-    def log_like(self, x_context, y_context, x_target, y_target):
+    def log_like(self, x_context, y_context, x_target, y_target, diagonal=False):
         
         to_numpy = lambda x: x.squeeze().cpu().numpy().astype(np.float64)
         
@@ -250,8 +252,16 @@ class GPGenerator(DataGenerator):
         noise_2 = stheno.GP(self.std_noise ** 2 * stheno.Delta(), measure=prior)
         
         post = prior | ((f + noise_1)(x_context), y_context)
+        ll = post(f + noise_2)(x_target).logpdf(y_target)
         
-        return post(f + noise_2)(x_target).logpdf(y_target)
+        if diagonal:
+            fdd = post(f + noise_2)(x_target)
+            diagonalised_fdd = stheno.Normal(fdd.mean, Diagonal(B.diag(fdd.var)))
+            diag_ll = diagonalised_fdd.logpdf(y_target) 
+        
+            return ll, diag_ll
+        else:
+            return ll
 
 
 class SawtoothGenerator(DataGenerator):

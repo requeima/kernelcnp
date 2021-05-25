@@ -1,7 +1,8 @@
 import argparse
+from matrix import diagonal
 
 import numpy as np
-import stheno.torch as stheno
+# import stheno.torch as stheno
 import torch
 import matplotlib.pyplot as plt
 import os
@@ -28,6 +29,7 @@ from cnp.utils import plot_samples_and_data, make_generator
 
 from torch.distributions import MultivariateNormal
 
+torch.set_default_dtype(torch.double)
 
 # =============================================================================
 # Custom kernels until we resolve issue with Stheno
@@ -109,17 +111,26 @@ def oracle_loglik(xc, yc, xt, yt, covariance):
     Kcc = covariance(xc, xc, use_noise=True)
     Kct = covariance(xc, xt, use_noise=False)
     
-    cov = Ktt - np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, Kct))
-    cov = torch.tensor(cov).double()
-    
+    # Compute mean and covariance of ground truth GP predictive
     mean = np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, yc))
     mean = torch.tensor(mean[:, 0]).double()
 
+    cov = Ktt - np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, Kct))
+    cov = torch.tensor(cov).double()
+
+    # Compute log probability of ground truth GP predictive
     dist = torch.distributions.MultivariateNormal(loc=mean,
                                                   covariance_matrix=cov)
     logprob = dist.log_prob(torch.tensor(yt[:, 0]).double())
 
-    return logprob
+    # Compute log probability of diagonal GP predictive
+    diag_cov = torch.diag(cov)
+    dist = torch.distributions.Normal(loc=mean, scale=diag_cov**0.5)
+
+    diag_logprob = dist.log_prob(torch.tensor(yt[:, 0]).double())
+    diag_logprob = torch.sum(diag_logprob)
+    
+    return logprob, diag_logprob
 
 
 
@@ -132,32 +143,40 @@ def test_oracle(data, covariance):
     """ Compute the oracle test loss. """
     
     oracle_nll_list = []
+    diag_oracle_nll_list = []
     
     with torch.no_grad():
         for step, batch in enumerate(data):
-            if step % 500 == 0:
-                print(f'step {step}')
-            print(step)
-            oracle_nll = np.array(0.)
-            for b in range(batch['x_context'].shape[0]):
-                oracle_nll = -oracle_loglik(batch['x_context'][b],
-                                            batch['y_context'][b],
-                                            batch['x_target'][b],
-                                            batch['y_target'][b],
-                                            covariance=covariance)
-                        
-                # oracle_nll = oracle_nll + _oracle_nll
-                oracle_nll_list.append(oracle_nll/50.)
 
-        print(f"Oracle     neg. log-lik: "
-            f"{np.mean(oracle_nll_list):.2f} +/- "
-            f"{np.var(oracle_nll_list) ** 0.5:.2f}")
-            
+            for b in range(batch['x_context'].shape[0]):
+                logliks = oracle_loglik(batch['x_context'][b],
+                                        batch['y_context'][b],
+                                        batch['x_target'][b],
+                                        batch['y_target'][b],
+                                        covariance=covariance)
+                logprob, diag_logprob = logliks
+                        
+                oracle_nll_list.append(logprob / 50.)
+                diag_oracle_nll_list.append(diag_logprob / 50.)
+
+            if step % 100 == 0:
                 
+                print(f"{args.data} step {step} \n"
+                      f"Oracle     neg. log-lik: "
+                      f"{np.mean(diag_oracle_nll_list):.2f} +/- "
+                      f"{np.var(diag_oracle_nll_list) ** 0.5:.2f}")
+        
+        print(f"Oracle     neg. log-lik: "
+              f"{np.mean(diag_oracle_nll_list):.2f} +/- "
+              f"{np.var(diag_oracle_nll_list) ** 0.5:.2f}")
+            
     mean_oracle = np.mean(oracle_nll_list)
     std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(step + 1)
 
-    return mean_oracle, std_oracle
+    mean_diag_oracle = np.mean(diag_oracle_nll_list)
+    std_diag_oracle = (np.var(diag_oracle_nll_list) ** 0.5) / np.sqrt(step + 1)
+
+    return mean_oracle, std_oracle, mean_diag_oracle, std_diag_oracle
 
 
 # Parse arguments given to the script.
@@ -290,11 +309,19 @@ elif args.data == 'weakly-periodic-slow':
 # Test oracle
 # =============================================================================
 
-mean_oracle, std_oracle = test_oracle(data_test, covariance)
-print('Oracle averages a log-likelihood of %s +- %s on unseen tasks.' % (mean_oracle, std_oracle))
+test_result = test_oracle(data_test, covariance)
+mean_oracle, std_oracle, mean_diag_oracle, std_diag_oracle = test_result
+print(f'Oracle averages a log-likelihood of {mean_oracle:.4f} '
+      f'+- {std_oracle:.4f} on unseen tasks.')
 
-with open(working_directory.file('test_log_likelihood.txt'), 'w') as f:
+with open(working_directory.file('test_nll_mean.txt'), 'w') as f:
     f.write(str(mean_oracle))
     
-with open(working_directory.file('test_log_likelihood_standard_error.txt'), 'w') as f:
+with open(working_directory.file('test_nll_error.txt'), 'w') as f:
     f.write(str(std_oracle))
+
+with open(working_directory.file('test_diag_nll_mean.txt'), 'w') as f:
+    f.write(str(mean_diag_oracle))
+    
+with open(working_directory.file('test_diag_nll_std.txt'), 'w') as f:
+    f.write(str(std_diag_oracle))
