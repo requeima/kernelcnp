@@ -29,7 +29,106 @@ from cnp.utils import plot_samples_and_data, make_generator
 from torch.distributions import MultivariateNormal
 
 
-def test_oracle(data, data_generator):
+# =============================================================================
+# Custom kernels until we resolve issue with Stheno
+# =============================================================================
+
+def eq_cov(lengthscale, coefficient, noise):
+    
+    def _eq_cov(x, x_, use_noise):
+    
+        diff = x[:, None, :] - x_[None, :, :]
+        l2 = torch.sum((diff / lengthscale) ** 2, dim=2)
+        cov = coefficient ** 2 * np.exp(-0.5 * l2)
+        
+        if use_noise:
+            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
+            
+        return cov
+        
+    
+    return _eq_cov
+
+
+def mat_cov(lengthscale, coefficient, noise):
+    
+    def _mat_cov(x, x_, use_noise):
+    
+        diff = x[:, None, :] - x_[None, :, :]
+        l1 = torch.sum(np.abs(diff / lengthscale), dim=2)
+        cov = coefficient ** 2 * (1 + 5 ** 0.5 * l1 + 5 * l1 ** 2 / 3)
+        cov = cov * np.exp(- 5 ** 0.5 * l1)
+        
+        if use_noise:
+            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
+            
+        return cov
+        
+    return _mat_cov
+
+
+def wp_cov(period, lengthscale, coefficient, noise):
+    
+    def _wp_cov(x, x_, use_noise):
+    
+        diff = x[:, None, :] - x_[None, :, :]
+        l1 = torch.sum(np.abs(diff / period), dim=2)
+        l2 = torch.sum((diff / lengthscale) ** 2, dim=2)
+        
+        sin2 = (torch.sin(np.pi * l1) / lengthscale) ** 2
+        
+        cov = coefficient ** 2 * torch.exp(-2. * sin2)
+        cov = cov * np.exp(-0.5 * l2)
+        
+        if use_noise:
+            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
+            
+        return cov
+        
+    return _wp_cov
+
+
+def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
+        
+    eq_cov1 = eq_cov(lengthscale1, coefficient, noise)
+    eq_cov2 = eq_cov(lengthscale2, coefficient, noise)
+    
+    def _nm_cov(x, x_, use_noise):
+        
+        cov1 = eq_cov1(x, x_, use_noise)
+        cov2 = eq_cov2(x, x_, use_noise=False)
+        
+        return cov1 + cov2
+        
+    return _nm_cov
+    
+
+def oracle_loglik(xc, yc, xt, yt, covariance):
+
+    Ktt = covariance(xt, xt, use_noise=True)
+    Kcc = covariance(xc, xc, use_noise=True)
+    Kct = covariance(xc, xt, use_noise=False)
+    
+    cov = Ktt - np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, Kct))
+    cov = torch.tensor(cov).double()
+    
+    mean = np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, yc))
+    mean = torch.tensor(mean[:, 0]).double()
+
+    dist = torch.distributions.MultivariateNormal(loc=mean,
+                                                  covariance_matrix=cov)
+    logprob = dist.log_prob(torch.tensor(yt[:, 0]).double())
+
+    return logprob
+
+
+
+# =============================================================================
+# Test oracle helper
+# =============================================================================
+
+
+def test_oracle(data, covariance):
     """ Compute the oracle test loss. """
     
     oracle_nll_list = []
@@ -40,16 +139,15 @@ def test_oracle(data, data_generator):
                 print(f'step {step}')
             print(step)
             oracle_nll = np.array(0.)
-            if (type(data_generator) == cnp.data.GPGenerator):
-                for b in range(batch['x_context'].shape[0]):
-                    oracle_nll =  - data_generator.log_like(batch['x_context'][b],
-                                                            batch['y_context'][b],
-                                                            batch['x_target'][b],
-                                                            batch['y_target'][b])
-                    # oracle_nll = oracle_nll + _oracle_nll
-                    oracle_nll_list.append(oracle_nll/50.)
-            break        
-            
+            for b in range(batch['x_context'].shape[0]):
+                oracle_nll = -oracle_loglik(batch['x_context'][b],
+                                            batch['y_context'][b],
+                                            batch['x_target'][b],
+                                            batch['y_target'][b],
+                                            covariance=covariance)
+                        
+                # oracle_nll = oracle_nll + _oracle_nll
+                oracle_nll_list.append(oracle_nll/50.)
 
         print(f"Oracle     neg. log-lik: "
             f"{np.mean(oracle_nll_list):.2f} +/- "
@@ -153,23 +251,46 @@ file.close()
 if args.data == 'sawtooth' or args.data == 'random':
     raise ValueError('No oracle for data type')
     
-else:
-    file = open(data_directory.file('gen-test-dict.pkl'), 'rb')
-    gen_valid_gp_params = pickle.load(file)
-    file.close()
+elif args.data == 'eq':
+    covariance = eq_cov(lengthscale=1.,
+                        coefficient=1.,
+                        noise=5e-2)
 
-    file = open(data_directory.file('kernel-params.pkl'), 'rb')
-    kernel_params = pickle.load(file)
-    file.close()
-    
-    gen_test = make_generator(args.data, gen_valid_gp_params, kernel_params)
+elif args.data == 'matern':
+    covariance = mat_cov(lengthscale=1.,
+                         coefficient=1.,
+                         noise=5e-2)
+
+elif args.data == 'noisy-mixture':
+    covariance = nm_cov(lengthscale1=1.,
+                        lengthscale2=0.25,
+                        coefficient=1.,
+                        noise=5e-2)
+
+elif args.data == 'weakly-periodic':
+    covariance = wp_cov(period=0.25,
+                        lengthscale=1.,
+                        coefficient=1.,
+                        noise=5e-2)
+
+elif args.data == 'noisy-mixture-slow':
+    covariance = nm_cov(lengthscale1=1.,
+                        lengthscale2=0.5,
+                        coefficient=1.,
+                        noise=5e-2)
+
+elif args.data == 'weakly-periodic-slow':
+    covariance = wp_cov(period=0.5,
+                        lengthscale=1.,
+                        coefficient=1.,
+                        noise=5e-2)
 
 
 # =============================================================================
 # Test oracle
 # =============================================================================
 
-mean_oracle, std_oracle = test_oracle(data_test, gen_test)
+mean_oracle, std_oracle = test_oracle(data_test, covariance)
 print('Oracle averages a log-likelihood of %s +- %s on unseen tasks.' % (mean_oracle, std_oracle))
 
 with open(working_directory.file('test_log_likelihood.txt'), 'w') as f:
