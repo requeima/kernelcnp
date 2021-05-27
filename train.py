@@ -461,7 +461,7 @@ best_nll = np.inf
 
 epochs = len(data_train)
 
-for epoch in range(epochs): # range(epochs):
+for epoch in range(epochs): # range(101):
 
     print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
