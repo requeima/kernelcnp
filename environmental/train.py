@@ -96,9 +96,7 @@ def validate(valid_dataloaders, model, args, device, writer, latent_model):
             nll_std_list.append(np.var(dataloader_nlls)**0.5)
     
         # Print validation loss and oracle loss
-        print(f"Validation neg. log-lik: "
-              f"{nll_mean_list[-1]:.2f} +/- "
-              f"{nll_std_list[-1]:.2f}")
+        print(f"Validation neg. log-lik: {nll_mean_list}")
 
     return nll_mean_list, nll_std_list
         
@@ -123,7 +121,7 @@ parser.add_argument('covtype',
                     help='Choice of covariance method.')
 
 parser.add_argument('--np_loss_samples',
-                    default=16,
+                    default=2,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
@@ -166,7 +164,7 @@ parser.add_argument('--max_num_target',
 # =============================================================================
 
 parser.add_argument('--learning_rate',
-                    default=5e-4,
+                    default=1e-3,
                     type=float,
                     help='Learning rate.')
 
@@ -186,12 +184,12 @@ parser.add_argument('--epochs',
                     help='Number of epochs to train for.')
 
 parser.add_argument('--num_iters_train',
-                    default=1024,
+                    default=512,
                     type=int,
                     help='Number of iterations in each epoch.')
 
 parser.add_argument('--num_iters_valid',
-                    default=256,
+                    default=128,
                     type=int,
                     help='Number of iterations in each validation epoch.')
 
@@ -271,16 +269,16 @@ valid_subsampler = lambda t : t % 2 == 1
 # Test dataset locations, including one for validation
 test_datasets = [train_dataset] + \
                 [f'{data_directory.root}/era5land_daily_east_eu_test.nc',
-                 f'{data_directory.root}/era5land_daily_north_eu_test.nc',
-                 f'{data_directory.root}/era5land_daily_west_eu_test.nc']
+                 f'{data_directory.root}/era5land_daily_north_eu_test.nc']
+                 #f'{data_directory.root}/era5land_daily_west_eu_test.nc']
 
 test_subsamplers = [valid_subsampler] + \
                    [lambda t : True for _ in test_datasets]
 
 test_names = ['Central EU (same region as train)',
               'East EU',
-              'North EU',
-              'West EU']
+              'North EU']
+              #'West EU']
 
 # Create training dataloader
 train_dataloader = EnvironmentalDataloader(train_dataset,
@@ -377,7 +375,7 @@ model = model.to(device)
 
 # Number of epochs between validations
 train_iteration = 0
-log_every = 1
+log_every = 50
     
 # Create optimiser
 optimiser = torch.optim.Adam(model.parameters(),
@@ -391,8 +389,7 @@ latent_model = args.model == "convNP"
 
 for epoch in range(args.epochs):
 
-    if train_iteration % log_every == 0:
-        print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
+    print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
     if epoch % args.validate_every == 0:
 
@@ -409,7 +406,8 @@ for epoch in range(args.epochs):
             writer.add_scalar(test_name, -mean_nll, epoch)
 
         # Update the best objective value and checkpoint the model
-        is_best, best_obj = (True, mean_nll) if mean_nll < best_nll else \
+        valid_nll = mean_nlls[0]
+        is_best, best_obj = (True, valid_nll) if valid_nll < best_nll else \
                             (False, best_nll)
 
     # Compute training negative log-likelihood
@@ -428,3 +426,4 @@ for epoch in range(args.epochs):
                      'optimizer'     : optimiser.state_dict()},
                     is_best=is_best,
                     epoch=epoch)
+

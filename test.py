@@ -65,7 +65,8 @@ def test(data,
     oracle_nll_list = []
     
     # If training a latent model, set the number of latent samples accordingly
-    loss_kwargs = {'num_samples' : args.np_test_samples} if latent_model else {}
+    loss_kwargs = {'num_samples' : args.np_test_samples} if latent_model else \
+                  {'double'      : True}
     
     with torch.no_grad():
         
@@ -105,6 +106,8 @@ parser.add_argument('data',
                              'weakly-periodic',
                              'noisy-mixture-slow',
                              'weakly-periodic-slow',
+                             'noisy-mixture-slow-100',
+                             'weakly-periodic-slow-100',
                              'sawtooth'],
                     help='Data set to train the CNP on. ')
 

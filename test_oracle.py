@@ -142,8 +142,8 @@ def oracle_loglik(xc, yc, xt, yt, covariance):
 def test_oracle(data, covariance):
     """ Compute the oracle test loss. """
     
-    oracle_nll_list = []
-    diag_oracle_nll_list = []
+    oracle_ll_list = []
+    diag_oracle_ll_list = []
     
     with torch.no_grad():
         for step, batch in enumerate(data):
@@ -156,25 +156,25 @@ def test_oracle(data, covariance):
                                         covariance=covariance)
                 logprob, diag_logprob = logliks
                         
-                oracle_nll_list.append(logprob / 50.)
-                diag_oracle_nll_list.append(diag_logprob / 50.)
+                oracle_ll_list.append(logprob / 50.)
+                diag_oracle_ll_list.append(diag_logprob / 50.)
 
-            if step % 100 == 0:
+            if step % 100 == 0 or step == len(data) - 1:
+
+                n = len(oracle_ll_list)
                 
                 print(f"{args.data} step {step} \n"
-                      f"Oracle     neg. log-lik: "
-                      f"{np.mean(diag_oracle_nll_list):.2f} +/- "
-                      f"{np.var(diag_oracle_nll_list) ** 0.5:.2f}")
-        
-        print(f"Oracle     neg. log-lik: "
-              f"{np.mean(diag_oracle_nll_list):.2f} +/- "
-              f"{np.var(diag_oracle_nll_list) ** 0.5:.2f}")
-            
-    mean_oracle = np.mean(oracle_nll_list)
-    std_oracle = (np.var(oracle_nll_list) ** 0.5) / np.sqrt(step + 1)
+                      f"Oracle full-cov log-lik: "
+                      f"{np.mean(oracle_ll_list):.2f} +/- "
+                      f"{np.var(oracle_ll_list) ** 0.5 / n**0.5:.2f}, diag:"
+                      f"{np.mean(diag_oracle_ll_list):.2f} +/- "
+                      f"{np.var(diag_oracle_ll_list) ** 0.5 / n**0.5:.2f}")
 
-    mean_diag_oracle = np.mean(diag_oracle_nll_list)
-    std_diag_oracle = (np.var(diag_oracle_nll_list) ** 0.5) / np.sqrt(step + 1)
+    mean_oracle = np.mean(oracle_ll_list)
+    std_oracle = (np.var(oracle_ll_list) ** 0.5) / np.sqrt(step + 1)
+
+    mean_diag_oracle = np.mean(diag_oracle_ll_list)
+    std_diag_oracle = (np.var(diag_oracle_ll_list) ** 0.5) / np.sqrt(step + 1)
 
     return mean_oracle, std_oracle, mean_diag_oracle, std_diag_oracle
 

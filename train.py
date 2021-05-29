@@ -159,13 +159,17 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('data',
                     choices=['eq',
+                             'eq-lb',
                              'matern',
+                             'matern-lb',
                              'noisy-mixture',
+                             'noisy-mixture-lb',
                              'weakly-periodic',
+                             'weakly-periodic-lb',
                              'noisy-mixture-slow',
                              'weakly-periodic-slow',
                              'sawtooth',
-                             'random'],
+                             'sawtooth-lb'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',

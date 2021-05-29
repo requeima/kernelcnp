@@ -50,7 +50,7 @@ parser.add_argument('--std_noise',
                     help='Standard dev. of noise added to GP-generated data.')
 
 parser.add_argument('--batch_size',
-                    default=64,
+                    default=16,
                     type=int,
                     help='Number of tasks per batch sampled.')
 

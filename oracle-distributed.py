@@ -38,8 +38,8 @@ if __name__ == '__main__':
                 seed, x_dim, gen = configs[0]
                 
                 command = ['python',
-                            '-W',
-                            'ignore',
+                           '-W',
+                           'ignore',
                            'test_oracle.py',
                            gen,
                            '--x_dim',
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.Popen(command)
+                process = subprocess.call(command)
 
                 configs = configs[1:]
 
