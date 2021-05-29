@@ -284,6 +284,8 @@ def plot_samples_and_data(model,
 
 def make_generator(data_kind, gen_params, kernel_params):
 
+    data_kind = data_kind[:-3] if data_kind == data_kind[-3:] else data_kind
+
     if data_kind == 'sawtooth':
         gen = cnp.data.SawtoothGenerator(**gen_params)
 
