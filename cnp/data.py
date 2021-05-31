@@ -185,8 +185,8 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
         return batch
 
-    #def __iter__(self):
-    #    return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
+    def __iter__(self):
+        return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
 
     def pregen_epoch(self):
 

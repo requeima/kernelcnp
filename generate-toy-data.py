@@ -163,7 +163,7 @@ data_kinds = ['eq',
 
 seeds = list(range(0, 1))
 
-input(f'About to do batch size {batch_size}. '
+input(f'About to do batch size {args.batch_size}. '
       f'Enter to continue, Ctrl+C to cancel generation.')
 
 for x_dim in args.x_dims:

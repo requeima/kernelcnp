@@ -121,7 +121,7 @@ def validate(data,
                              batch['y_target'].to(device),
                              **loss_kwargs)
             
-            oracle_nll = 0.
+            oracle_nll = torch.tensor(0.)
 
             # Oracle loss exists only for GP-generated data, not sawtooth
             if oracle_cov is not None:
@@ -418,11 +418,9 @@ file = open(data_directory.file('valid-data.pkl'), 'rb')
 data_val = pickle.load(file)
 file.close()
 
-# Create the data generator for the oracle if gp data
-if args.data == 'sawtooth':
-    oracle_cov = None
-    
-elif 'eq' in args.data:
+oracle_cov = None
+
+if 'eq' in args.data:
     oracle_cov = eq_cov(lengthscale=1.,
                         coefficient=1.,
                         noise=5e-2)
