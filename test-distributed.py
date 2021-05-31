@@ -20,6 +20,12 @@ data_generators = ['eq',
                    'weakly-periodic-slow',
                    'sawtooth']
 
+data_generators = ['eq-lb',
+                   'matern-lb',
+                   'noisy-mixture-lb',
+                   'weakly-periodic-lb',
+                   'sawtooth-lb']
+
 cond_models = ['GNP', 'AGNP', 'convGNP']
 latent_models = ['ANP', 'convNP']
 fcgnp_models = ["FullConvGNP"]
@@ -70,7 +76,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.Popen(command)
+                process = subprocess.call(command)
 
                 configs = configs[1:]
 

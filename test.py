@@ -1,7 +1,6 @@
 import argparse
 
 import numpy as np
-import stheno.torch as stheno
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
@@ -9,8 +8,6 @@ import pickle
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
-import cnp.data
 
 from copy import deepcopy
 
@@ -71,11 +68,6 @@ def test(data,
     with torch.no_grad():
         
         for step, batch in enumerate(data):
-            if step % 500 == 0:
-                print(f'{args.data}',
-                      f'{args.model} '
-                      f'{args.covtype} ',
-                      f'step: {step}')
 
             nll = model.loss(batch['x_context'].to(device),
                              batch['y_context'].to(device),
@@ -84,7 +76,13 @@ def test(data,
                              **loss_kwargs)                        
 
             # Scale by the average number of target points
-            nll_list.append(nll.item()/50.)
+            nll_list.append(nll.item() / 50.)
+
+            if step % 100 == 0:
+                print(f"Validation neg. log-lik, {step+1}: "
+                      f"{np.mean(nll_list):.2f} +/- "
+                      f"{np.var(nll_list)**0.5  / (step+1)**0.5:.2f}")
+
             
     mean_nll = np.mean(nll_list)
     std_nll = np.var(nll_list)**0.5 / np.sqrt(step + 1)
@@ -101,14 +99,19 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('data',
                     choices=['eq',
+                             'eq-lb',
                              'matern',
+                             'matern-lb',
                              'noisy-mixture',
+                             'noisy-mixture-lb',
                              'weakly-periodic',
+                             'weakly-periodic-lb',
                              'noisy-mixture-slow',
                              'weakly-periodic-slow',
                              'noisy-mixture-slow-100',
                              'weakly-periodic-slow-100',
-                             'sawtooth'],
+                             'sawtooth',
+                             'sawtooth-lb'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
@@ -201,6 +204,7 @@ parser.add_argument('--gpu',
 
 
 args = parser.parse_args()
+
     
 # =============================================================================
 # Set random seed, device and tensorboard writer
@@ -217,13 +221,13 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_root = os.path.join(f'{args.root}/toy-data',
+data_root = os.path.join(f'toy-data',
                          f'{args.data}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
     
-experiment_name = os.path.join(f'{args.root}/toy-results',
+experiment_name = os.path.join(f'toy-results',
                                f'{args.data}',
                                f'models',
                                f'{args.model}',
@@ -330,7 +334,8 @@ model.load_state_dict(load_dict['state_dict'])
 file = open(data_directory.file('test-data.pkl'), 'rb')
 data_test = pickle.load(file)
 file.close()
-      
+
+
 # =============================================================================
 # Train or test model
 # =============================================================================

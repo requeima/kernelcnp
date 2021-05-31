@@ -25,113 +25,19 @@ from cnp.experiment import (
     log_args
 )
 
+from cnp.oracle import (
+    eq_cov,
+    mat_cov,
+    nm_cov,
+    wp_cov,
+    oracle_loglik
+)
+
 from cnp.utils import plot_samples_and_data, make_generator
 
 from torch.distributions import MultivariateNormal
 
 torch.set_default_dtype(torch.double)
-
-# =============================================================================
-# Custom kernels until we resolve issue with Stheno
-# =============================================================================
-
-def eq_cov(lengthscale, coefficient, noise):
-    
-    def _eq_cov(x, x_, use_noise):
-    
-        diff = x[:, None, :] - x_[None, :, :]
-        l2 = torch.sum((diff / lengthscale) ** 2, dim=2)
-        cov = coefficient ** 2 * np.exp(-0.5 * l2)
-        
-        if use_noise:
-            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
-            
-        return cov
-        
-    
-    return _eq_cov
-
-
-def mat_cov(lengthscale, coefficient, noise):
-    
-    def _mat_cov(x, x_, use_noise):
-    
-        diff = x[:, None, :] - x_[None, :, :]
-        l1 = torch.sum(np.abs(diff / lengthscale), dim=2)
-        cov = coefficient ** 2 * (1 + 5 ** 0.5 * l1 + 5 * l1 ** 2 / 3)
-        cov = cov * np.exp(- 5 ** 0.5 * l1)
-        
-        if use_noise:
-            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
-            
-        return cov
-        
-    return _mat_cov
-
-
-def wp_cov(period, lengthscale, coefficient, noise):
-    
-    def _wp_cov(x, x_, use_noise):
-    
-        diff = x[:, None, :] - x_[None, :, :]
-        l1 = torch.sum(np.abs(diff / period), dim=2)
-        l2 = torch.sum((diff / lengthscale) ** 2, dim=2)
-        
-        sin2 = (torch.sin(np.pi * l1) / lengthscale) ** 2
-        
-        cov = coefficient ** 2 * torch.exp(-2. * sin2)
-        cov = cov * np.exp(-0.5 * l2)
-        
-        if use_noise:
-            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
-            
-        return cov
-        
-    return _wp_cov
-
-
-def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
-        
-    eq_cov1 = eq_cov(lengthscale1, coefficient, noise)
-    eq_cov2 = eq_cov(lengthscale2, coefficient, noise)
-    
-    def _nm_cov(x, x_, use_noise):
-        
-        cov1 = eq_cov1(x, x_, use_noise)
-        cov2 = eq_cov2(x, x_, use_noise=False)
-        
-        return cov1 + cov2
-        
-    return _nm_cov
-    
-
-def oracle_loglik(xc, yc, xt, yt, covariance):
-
-    Ktt = covariance(xt, xt, use_noise=True)
-    Kcc = covariance(xc, xc, use_noise=True)
-    Kct = covariance(xc, xt, use_noise=False)
-    
-    # Compute mean and covariance of ground truth GP predictive
-    mean = np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, yc))
-    mean = torch.tensor(mean[:, 0]).double()
-
-    cov = Ktt - np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, Kct))
-    cov = torch.tensor(cov).double()
-
-    # Compute log probability of ground truth GP predictive
-    dist = torch.distributions.MultivariateNormal(loc=mean,
-                                                  covariance_matrix=cov)
-    logprob = dist.log_prob(torch.tensor(yt[:, 0]).double())
-
-    # Compute log probability of diagonal GP predictive
-    diag_cov = torch.diag(cov)
-    dist = torch.distributions.Normal(loc=mean, scale=diag_cov**0.5)
-
-    diag_logprob = dist.log_prob(torch.tensor(yt[:, 0]).double())
-    diag_logprob = torch.sum(diag_logprob)
-    
-    return logprob, diag_logprob
-
 
 
 # =============================================================================
@@ -155,7 +61,7 @@ def test_oracle(data, covariance):
                                         batch['y_target'][b],
                                         covariance=covariance)
                 logprob, diag_logprob = logliks
-                        
+
                 oracle_ll_list.append(logprob / 50.)
                 diag_oracle_ll_list.append(diag_logprob / 50.)
 
@@ -187,18 +93,21 @@ parser = argparse.ArgumentParser()
 # =============================================================================
 
 parser.add_argument('data',
-                    choices=['sawtooth',
-                            'eq',
-                            'matern',
-                            'noisy-mixture',
-                            'noisy-mixture-slow',
-                            'weakly-periodic',
-                            'weakly-periodic-slow'],
+                    choices=['eq',
+                             'eq-lb',
+                             'matern',
+                             'matern-lb',
+                             'noisy-mixture',
+                             'noisy-mixture-lb'
+                             'noisy-mixture-slow',
+                             'weakly-periodic',
+                             'weakly-periodic-lb'
+                             'weakly-periodic-slow'],
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
                     default=1,
-                    choices=[1, 2, 3],
+                    choices=[1],
                     type=int,
                     help='Input dimension of data.')
 
@@ -257,7 +166,6 @@ experiment_name = os.path.join('_experiments/toy-results',
 working_directory = WorkingDirectory(root=experiment_name)
 data_directory = WorkingDirectory(root=data_root)
     
-
 # =============================================================================
 # Load data and validation oracle generator
 # =============================================================================
@@ -268,38 +176,38 @@ file.close()
 
 # Create the data generator for the oracle if gp data
 if args.data == 'sawtooth' or args.data == 'random':
-    raise ValueError('No oracle for data type')
+    oracle_cov = None
     
-elif args.data == 'eq':
-    covariance = eq_cov(lengthscale=1.,
+elif 'eq' in args.data:
+    oracle_cov = eq_cov(lengthscale=1.,
                         coefficient=1.,
                         noise=5e-2)
 
-elif args.data == 'matern':
-    covariance = mat_cov(lengthscale=1.,
+elif 'matern' in args.data:
+    oracle_cov = mat_cov(lengthscale=1.,
                          coefficient=1.,
                          noise=5e-2)
 
-elif args.data == 'noisy-mixture':
-    covariance = nm_cov(lengthscale1=1.,
+elif 'noisy-mixture' in args.data:
+    oracle_cov = nm_cov(lengthscale1=1.,
                         lengthscale2=0.25,
                         coefficient=1.,
                         noise=5e-2)
 
-elif args.data == 'weakly-periodic':
-    covariance = wp_cov(period=0.25,
+elif 'weakly-periodic' in args.data:
+    oracle_cov = wp_cov(period=0.25,
                         lengthscale=1.,
                         coefficient=1.,
                         noise=5e-2)
 
-elif args.data == 'noisy-mixture-slow':
-    covariance = nm_cov(lengthscale1=1.,
+elif 'noisy-mixture-slow' in args.data:
+    oracle_cov = nm_cov(lengthscale1=1.,
                         lengthscale2=0.5,
                         coefficient=1.,
                         noise=5e-2)
 
-elif args.data == 'weakly-periodic-slow':
-    covariance = wp_cov(period=0.5,
+elif 'weakly-periodic-slow' in args.data:
+    oracle_cov = wp_cov(period=0.5,
                         lengthscale=1.,
                         coefficient=1.,
                         noise=5e-2)
@@ -309,7 +217,7 @@ elif args.data == 'weakly-periodic-slow':
 # Test oracle
 # =============================================================================
 
-test_result = test_oracle(data_test, covariance)
+test_result = test_oracle(data_test, oracle_cov)
 mean_oracle, std_oracle, mean_diag_oracle, std_diag_oracle = test_result
 print(f'Oracle averages a log-likelihood of {mean_oracle:.4f} '
       f'+- {std_oracle:.4f} on unseen tasks.')

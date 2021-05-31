@@ -158,13 +158,13 @@ args = parser.parse_args()
 data_kinds = ['eq',
               'matern',
               'noisy-mixture',
-              'noisy-mixture-slow',
               'weakly-periodic',
-              'weakly-periodic-slow',
               'sawtooth']
 
+seeds = list(range(0, 1))
 
-seeds = list(range(0, 2))
+input(f'About to do batch size {batch_size}. '
+      f'Enter to continue, Ctrl+C to cancel generation.')
 
 for x_dim in args.x_dims:
     for seed in seeds:
@@ -193,8 +193,8 @@ for x_dim in args.x_dims:
 
             device = torch.device('cpu')
 
-            path = os.path.join('_experiments/toy-data',
-                                f'{data_kind}',
+            path = os.path.join('toy-data',
+                                f'{data_kind}-lb',
                                 'data',
                                 f'seed-{seed}',
                                 f'dim-{x_dim}')
@@ -265,13 +265,19 @@ for x_dim in args.x_dims:
                     
                 if args.test:
                     
-                    gen_test = make_generator(data_kind, gen_test_sawtooth_params, None)           
+                    gen_test = make_generator(data_kind,
+                                              gen_testsawtooth_params,
+                                              None)           
                     test_data = gen_test.pregen_epoch()
                 
                 else:
                     
-                    gen_train = make_generator(data_kind, gen_train_sawtooth_params, None)
-                    gen_valid = make_generator(data_kind, gen_valid_sawtooth_params, None)    
+                    gen_train = make_generator(data_kind,
+                                               gen_train_sawtooth_params,
+                                               None)
+                    gen_valid = make_generator(data_kind,
+                                               gen_valid_sawtooth_params,
+                                               None)    
 
                     train_data = [[batch for batch in gen_train] \
                                   for epoch in trange(args.epochs + 1)]
@@ -298,13 +304,17 @@ for x_dim in args.x_dims:
                     
                 else:
                     
-                    gen_train = make_generator(data_kind, gen_train_gp_params, kernel_params)
-                    gen_valid = make_generator(data_kind, gen_valid_gp_params, kernel_params)     
+                    gen_train = make_generator(data_kind,
+                                               gen_train_gp_params,
+                                               kernel_params)
+                    gen_valid = make_generator(data_kind,
+                                               gen_valid_gp_params,
+                                               kernel_params)     
                     
                     train_data = [gen_train.pregen_epoch() \
-                                  for epoch in trange(args.epochs + 1)]
+                                  for i, epoch in enumerate(trange(args.epochs + 1))]
                     valid_data = [gen_valid.pregen_epoch() \
-                                  for epoch in trange(args.epochs // args.validate_every + 1)]
+                                  for i, epoch in enumerate(trange(args.epochs // args.validate_every + 1))]
 
                     # Save the generating parameters
                     with open(wd.file('gen-valid-dict.pkl'), 'wb') as file:
@@ -313,7 +323,6 @@ for x_dim in args.x_dims:
 
                     # Save the kernel parameters
                     temp = {data_kind: kernel_params[data_kind]}
-                    print(temp)
                     with open(wd.file('kernel-params.pkl'), 'wb') as file:
                         pickle.dump(temp, file)
                         file.close()
