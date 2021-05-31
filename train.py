@@ -233,7 +233,7 @@ parser.add_argument('--num_basis_dim',
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=5e-4,
+                    default=1e-3,
                     type=float,
                     help='Learning rate.')
 
