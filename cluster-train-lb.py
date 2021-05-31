@@ -4,9 +4,9 @@ from itertools import product
 KEY = "elukbook"
 REPO = "kernelcnp"
 SECURITY_GROUP = "sg-00e6c4ed6ef493a3a"
-IMAGE_ID = "ami-0b9e8bb933b9914b3"
+IMAGE_ID = "ami-0742ed4d1bb1db5e3"
 
-aws.config["ssh_user"] = "ubuntu"
+aws.config["ssh_user"] = "ubuntu"  # "ec2-user"
 aws.config["ssh_key"] = f"/home/stratis/.ssh/{KEY}.pem"
 aws.config["setup_commands"] = [
     f"cd /home/ubuntu/{REPO}",
@@ -18,27 +18,36 @@ aws.config["setup_commands"] = [
 
 # Model and data generator configurations
 data_generators = [
-    "noisy-mixture-slow",
-    "weakly-periodic-slow"
+    "eq-lb",
+    "matern-lb",
+    "noisy-mixture-lb",
+    "weakly-periodic-lb",
+    "sawtooth-lb",
 ]
 
 # Conditional models -- without FullConvGNP
 cond_models = ["GNP", "AGNP", "convGNP"]
 
+# Latent models
 latent_models = ["ANP", "convNP"]
 
 # Covariances for conditional models
 covs = ["innerprod-homo", "kvv-homo", "meanfield"]
 
 # Seeds to try
-seeds = ["0"]
+seeds = [str(i) for i in range(1)]
 
 # Configs for conditional models
 cond_configs = list(product(seeds, data_generators, cond_models, covs))
-latent_configs = list(product(seeds, data_generators, latent_models, ["meanfield"]))
+
+# Configs for FullConvGNP
 fcgnp_configs = list(product(seeds, data_generators, ["FullConvGNP"], ["meanfield"]))
 
-configs = cond_configs + latent_configs + fcgnp_configs
+# Configs for latent models
+latent_configs = list(product(seeds, data_generators, latent_models, ["meanfield"]))
+
+# Configs for all experiments
+configs = cond_configs + fcgnp_configs + latent_configs
 
 commands = [
     [
@@ -60,7 +69,7 @@ aws.manage_cluster(
         f"/home/ubuntu/{REPO}/logs",
     ],
     sync_target=aws.LocalPath("sync"),
-    monitor_call=aws.shutdown_when_all_gpus_idle_call(duration=1200),
+    monitor_call=aws.shutdown_when_all_gpus_idle_call(duration=600),
     monitor_delay=120,
     monitor_aws_repo="/home/ubuntu/aws",
 )

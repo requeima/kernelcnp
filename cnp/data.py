@@ -9,6 +9,10 @@ import torch
 import lab as B
 from matrix import Diagonal
 from netCDF4 import Dataset
+import time
+
+import random
+from datetime import datetime
 
 __all__ = ['GPGenerator', 'SawtoothGenerator']
 
@@ -181,10 +185,11 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
         return batch
 
-    def __iter__(self):
-        return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
+    #def __iter__(self):
+    #    return LambdaIterator(lambda: self.generate_task(), self.iterations_per_epoch)
 
     def pregen_epoch(self):
+
         num_batches = self.iterations_per_epoch
 
         # Distribute the batches over the CPUs.
@@ -192,9 +197,13 @@ class DataGenerator(metaclass=abc.ABCMeta):
         num_batches_per_cpu = [num_batches // num_cpus] * (num_cpus - 1)
         num_batches_per_cpu.append(num_batches - sum(num_batches_per_cpu))
 
+        seeds = np.random.randint(0, int(1e9), size=(len(num_batches_per_cpu),))
+        random_state = np.random.get_state()
+
         # Perform the pregeneration.
         with multiprocessing.Pool(processes=num_cpus) as pool:
-            args = [(self, num) for num in num_batches_per_cpu]
+            args = [(self, num, seeds[i]) \
+                    for i, num in enumerate(num_batches_per_cpu)]
             batches = sum(pool.starmap(_generate_batches, args), [])
 
         batches = [
@@ -205,7 +214,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
         return batches
 
 
-def _generate_batches(self, num_batches):
+def _generate_batches(self, num_batches, seed):
     with threadpoolctl.threadpool_limits(limits=1, user_api="blas"):
         return [self.generate_task(to_torch=False) for _ in range(num_batches)]
 

@@ -1,7 +1,6 @@
 import argparse
 
 import numpy as np
-import stheno.torch as stheno
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
@@ -9,8 +8,6 @@ import pickle
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
-import cnp.data
 
 from copy import deepcopy
 
@@ -41,6 +38,14 @@ from cnp.cov import (
     AddHomoNoise,
     AddHeteroNoise,
     AddNoNoise
+)
+
+from cnp.oracle import (
+    eq_cov,
+    mat_cov,
+    nm_cov,
+    wp_cov,
+    oracle_loglik
 )
 
 from cnp.utils import plot_samples_and_data, make_generator
@@ -92,7 +97,7 @@ def train(data,
 
 
 def validate(data,
-             data_gen,
+             oracle_cov,
              model,
              args,
              device,
@@ -116,21 +121,22 @@ def validate(data,
                              batch['y_target'].to(device),
                              **loss_kwargs)
             
-            oracle_nll = np.array(0.)
+            oracle_nll = 0.
 
             # Oracle loss exists only for GP-generated data, not sawtooth
-            if (type(data_gen) == cnp.data.GPGenerator):
+            if oracle_cov is not None:
                 for b in range(batch['x_context'].shape[0]):
-                    oracle_nll = - data_gen.log_like(batch['x_context'][b],
-                                                     batch['y_context'][b],
-                                                     batch['x_target'][b],
-                                                     batch['y_target'][b])
+                    oracle_nll = oracle_nll - oracle_loglik(batch['x_context'][b],
+                                                            batch['y_context'][b],
+                                                            batch['x_target'][b],
+                                                            batch['y_target'][b],
+                                                            oracle_cov)[0]
                         
 
             # Scale by the average number of target points
             nll_list.append(nll.item())
-            oracle_nll_list.append(oracle_nll.item())
-            
+            oracle_nll_list.append(oracle_nll.item() / batch['x_context'].shape[0])
+
     mean_nll = np.mean(nll_list)
     std_nll = np.var(nll_list)**0.5
     
@@ -139,12 +145,10 @@ def validate(data,
 
     # Print validation loss and oracle loss
     print(f"Validation neg. log-lik: "
-          f"{mean_nll:.2f} +/- "
-          f"{std_nll:.2f}")
+          f"{mean_nll:.2f}")
 
     print(f"Oracle     neg. log-lik: "
-          f"{mean_oracle_nll:.2f} +/- "
-          f"{std_oracle_nll:.2f}")
+          f"{mean_oracle_nll:.2f}")
 
     return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll
         
@@ -174,7 +178,7 @@ parser.add_argument('data',
 
 parser.add_argument('--x_dim',
                     default=1,
-                    choices=[1, 2, 3],
+                    choices=[1],
                     type=int,
                     help='Input dimension of data.')
 
@@ -229,7 +233,7 @@ parser.add_argument('--num_basis_dim',
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=5e-4,
+                    default=1e-3,
                     type=float,
                     help='Learning rate.')
 
@@ -415,34 +419,42 @@ data_val = pickle.load(file)
 file.close()
 
 # Create the data generator for the oracle if gp data
-if args.data == 'sawtooth' or args.data == 'random':
-    gen_val = None
+if args.data == 'sawtooth':
+    oracle_cov = None
     
-else:
-    file = open(data_directory.file('gen-valid-dict.pkl'), 'rb')
-    gen_valid_gp_params = pickle.load(file)
-    file.close()
+elif 'eq' in args.data:
+    oracle_cov = eq_cov(lengthscale=1.,
+                        coefficient=1.,
+                        noise=5e-2)
 
-    file = open(data_directory.file('kernel-params.pkl'), 'rb')
-    kernel_params = pickle.load(file)
-    file.close()
+elif 'matern' in args.data:
+    oracle_cov = mat_cov(lengthscale=1.,
+                         coefficient=1.,
+                         noise=5e-2)
 
-    #kernel_params = {
-    #    "eq"                   : [1.0],
-    #    "matern"               : [1.0],
-    #    "weakly-periodic"      : [1.0, 0.25],
-    #    "noisy-mixture"        : [1.0, 0.25],
-    #    "weakly-periodic-slow" : [1.0, 0.50],
-    #    "noisy-mixture-slow"   : [1.0, 0.50]
-    #}
+elif 'noisy-mixture' in args.data:
+    oracle_cov = nm_cov(lengthscale1=1.,
+                        lengthscale2=0.25,
+                        coefficient=1.,
+                        noise=5e-2)
 
-    #kernel_params = {args.data : kernel_params[args.data]}
-   
-    print('===========================in train===========================')
-    print('kernel_params', kernel_params)
-    print('gen_valid_gp_params', gen_valid_gp_params)
+elif 'weakly-periodic' in args.data:
+    oracle_cov = wp_cov(period=0.25,
+                        lengthscale=1.,
+                        coefficient=1.,
+                        noise=5e-2)
 
-    gen_val = make_generator(args.data, gen_valid_gp_params, kernel_params)
+elif 'noisy-mixture-slow' in args.data:
+    oracle_cov = nm_cov(lengthscale1=1.,
+                        lengthscale2=0.5,
+                        coefficient=1.,
+                        noise=5e-2)
+
+elif 'weakly-periodic-slow' in args.data:
+    oracle_cov = wp_cov(period=0.5,
+                        lengthscale=1.,
+                        coefficient=1.,
+                        noise=5e-2)
 
         
 # =============================================================================
@@ -465,7 +477,7 @@ best_nll = np.inf
 
 epochs = len(data_train)
 
-for epoch in range(epochs): # range(101):
+for epoch in range(epochs):
 
     print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
 
@@ -475,7 +487,7 @@ for epoch in range(epochs): # range(101):
 
         # Compute validation negative log-likelihood
         val_nll, _, val_oracle, _ = validate(valid_epoch,
-                                             gen_val,
+                                             oracle_cov,
                                              model,
                                              args,
                                              device,
@@ -503,16 +515,17 @@ for epoch in range(epochs): # range(101):
 
         if args.x_dim == 1 and \
            not (args.data == 'sawtooth' or args.data == 'random'):
-
-            plot_samples_and_data(model=model,
-                                  gen_plot=gen_val,
-                                  xmin=-2,
-                                  xmax=2,
-                                  root=working_directory.root,
-                                  epoch=epoch,
-                                  latent_model=latent_model,
-                                  plot_marginals=plot_marginals,
-                                  device=device)
+            
+            pass
+            #plot_samples_and_data(model=model,
+            #                      gen_plot=gen_val,
+            #                      xmin=-2,
+            #                      xmax=2,
+            #                      root=working_directory.root,
+            #                      epoch=epoch,
+            #                      latent_model=latent_model,
+            #                      plot_marginals=plot_marginals,
+            #                      device=device)
 
 
     train_epoch = data_train[epoch]
