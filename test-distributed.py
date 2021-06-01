@@ -20,11 +20,11 @@ data_generators = ['eq',
                    'weakly-periodic-slow',
                    'sawtooth']
 
-data_generators = ['eq-lb',
-                   'matern-lb',
-                   'noisy-mixture-lb',
-                   'weakly-periodic-lb',
-                   'sawtooth-lb']
+data_generators = ['eq',
+                   'matern',
+                   'noisy-mixture',
+                   'weakly-periodic',
+                   'sawtooth']
 
 cond_models = ['GNP', 'AGNP', 'convGNP']
 latent_models = ['ANP', 'convNP']
@@ -38,10 +38,10 @@ seeds = [str(i) for i in range(1)]
 
 # Configs for conditional models
 cond_configs = list(product(seeds, x_dims, data_generators, cond_models, covs))
-latent_configs = list(product(seeds, x_dims, data_generators, latent_models, ["meanfield"]))
+#latent_configs = list(product(seeds, x_dims, data_generators, latent_models, ["meanfield"]))
 fcgnp_configs = list(product(seeds, x_dims, data_generators, fcgnp_models, ["meanfield"]))
 
-configs = cond_configs + latent_configs + fcgnp_configs
+configs = cond_configs + fcgnp_configs
 
 FNULL = open(os.devnull, 'w')
 

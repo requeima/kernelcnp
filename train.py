@@ -216,13 +216,13 @@ parser.add_argument('covtype',
                     help='Choice of covariance method.')
 
 parser.add_argument('--np_loss_samples',
-                    default=16,
+                    default=8,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
 parser.add_argument('--np_val_samples',
-                    default=1024,
+                    default=8,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')
