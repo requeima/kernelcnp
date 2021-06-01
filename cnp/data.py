@@ -198,7 +198,6 @@ class DataGenerator(metaclass=abc.ABCMeta):
         num_batches_per_cpu.append(num_batches - sum(num_batches_per_cpu))
 
         seeds = np.random.randint(0, int(1e9), size=(len(num_batches_per_cpu),))
-        random_state = np.random.get_state()
 
         # Perform the pregeneration.
         with multiprocessing.Pool(processes=num_cpus) as pool:
@@ -216,6 +215,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
 def _generate_batches(self, num_batches, seed):
     with threadpoolctl.threadpool_limits(limits=1, user_api="blas"):
+        np.random.seed(seed)
         return [self.generate_task(to_torch=False) for _ in range(num_batches)]
 
 
