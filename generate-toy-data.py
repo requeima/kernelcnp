@@ -194,7 +194,7 @@ for x_dim in args.x_dims:
             device = torch.device('cpu')
 
             path = os.path.join('toy-data',
-                                f'{data_kind}-lb',
+                                f'{data_kind}',
                                 'data',
                                 f'seed-{seed}',
                                 f'dim-{x_dim}')
@@ -266,7 +266,7 @@ for x_dim in args.x_dims:
                 if args.test:
                     
                     gen_test = make_generator(data_kind,
-                                              gen_testsawtooth_params,
+                                              gen_test_sawtooth_params,
                                               None)           
                     test_data = gen_test.pregen_epoch()
                 
