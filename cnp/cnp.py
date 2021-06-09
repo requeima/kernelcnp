@@ -56,15 +56,21 @@ class GaussianNeuralProcess(nn.Module):
 
     
     def loss(self, x_context, y_context, x_target, y_target):
+
         y_mean, _, y_cov = self.forward(x_context, y_context, x_target)
 
-        jitter = 2e-4 * torch.eye(y_cov.shape[-1], device=y_cov.device)[None, :, :]
-        y_cov = y_cov + jitter
+        y_mean = y_mean.double()
+        y_cov = y_cov.double()
+        y_target = y_target.double()
+
+        jitter = 1e-6 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
+        y_cov = y_cov + jitter[None, :, :]
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)
         nll = - torch.mean(dist.log_prob(y_target[:, :, 0]))
-        return nll
+
+        return nll.float()
 
 
     def mean_and_marginals(self, x_context, y_context, x_target):
