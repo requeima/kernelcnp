@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 import pickle
+import time
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -340,11 +341,15 @@ file.close()
 # Train or test model
 # =============================================================================
 print("Starting testing...")
+
+start_time = time.time()
 test_mean_nll, test_std_nll = test(data_test,
                                    model,
                                    args,
                                    device,
                                    latent_model)
+stop_time = time.time()
+elapsed_time = stop_time - start_time
 
 print("finished testing.")
 
@@ -354,4 +359,8 @@ file.close()
 
 file = open(working_directory.file('test_log_likelihood_standard_error.txt'), 'w')
 file.write(str(test_std_nll))
+file.close()
+
+file = open(working_directory.file('test_time.txt'), 'w')
+file.write(str(elapsed_time))
 file.close()

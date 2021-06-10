@@ -10,6 +10,7 @@ from datetime import datetime
 import pickle
 
 from torch._C import Value
+import time
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -217,7 +218,14 @@ elif 'weakly-periodic-slow' in args.data:
 # Test oracle
 # =============================================================================
 
+start_time = time.time()
 test_result = test_oracle(data_test, oracle_cov)
+end_time = time.time()
+elapsed_time = end_time - start_time
+# Record experiment time\
+with open(working_directory.file('test_time.txt'), 'w') as f:
+    f.write(str(elapsed_time))
+
 mean_oracle, std_oracle, mean_diag_oracle, std_diag_oracle = test_result
 print(f'Oracle averages a log-likelihood of {mean_oracle:.4f} '
       f'+- {std_oracle:.4f} on unseen tasks.')

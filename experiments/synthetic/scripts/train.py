@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 import pickle
+import time
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -475,6 +476,7 @@ best_nll = np.inf
 
 epochs = len(data_train)
 
+start_time = time.time()
 for epoch in range(epochs):
 
     print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
@@ -544,3 +546,10 @@ for epoch in range(epochs):
                      'optimizer'     : optimiser.state_dict()},
                     is_best=is_best,
                     epoch=epoch)
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+# Record experiment time\
+with open(working_directory.file('train_time.txt'), 'w') as f:
+    f.write(str(elapsed_time))
