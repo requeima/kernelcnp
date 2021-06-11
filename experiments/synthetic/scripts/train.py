@@ -162,8 +162,7 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
-parser.add_argument('data',
-                    help='Data set to train the CNP on. ')
+parser.add_argument('data', help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
                     default=1,
