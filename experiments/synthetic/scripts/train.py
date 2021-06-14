@@ -507,6 +507,8 @@ for epoch in range(epochs):
             
             plot_samples_and_data(model=model,
                                   valid_epoch=valid_epoch,
+                                  x_plot_min=-3.,
+                                  x_plot_max=3.,
                                   root=working_directory.root,
                                   epoch=epoch,
                                   latent_model=latent_model,
@@ -518,8 +520,6 @@ for epoch in range(epochs):
 
     # Compute training negative log-likelihood
     train_iteration = train(train_epoch,
-                            x_plot_min=-3.,
-                            x_plot_max=-3.,
                             model,
                             optimiser,
                             log_every,
