@@ -60,14 +60,11 @@ class LatentNeuralProcess(nn.Module):
             assert (len(output.shape) == 3) and (output.shape[2] == 2)
             
             mean = output[:, :, :1]
-            noise_var = torch.exp(output[:, :, 1:])
-            
-            zeros = torch.zeros(size=(mean.shape[0],
-                                      mean.shape[1],
-                                      mean.shape[1])).to(mean.device)
+            noise_var = torch.exp(output[:, :, 1])
+            noise_var = torch.diag_embed(noise_var)
             
             means.append(mean)
-            noise_vars.append(self.add_noise(noise_var, None))
+            noise_vars.append(noise_var)
             
         means = torch.stack(means, dim=0)
         noise_vars = torch.stack(noise_vars, dim=0)

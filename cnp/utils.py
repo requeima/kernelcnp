@@ -186,10 +186,16 @@ def plot_samples_and_data(model,
     # Make predictions 
     if latent_model:
         tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=num_samples)
-        sample_means = tensors[0].detach().cpu()
-        latent_marg_mean = torch.mean(tensors[0].detach().cpu(), dim=0)
-        latent_marg_var = torch.mean(tensors[1].detach().cpu(), dim=0) + \
-                          torch.var(tensors[0].detach().cpu(), dim=0)
+        
+        sample_means, noise_vars = tensors
+        sample_means = sample_means.detach().cpu()
+        
+        idx = torch.arange(noise_vars.shape[2])
+        noise_vars = noise_vars[:, :, idx, idx].detach().cpu()
+        
+        latent_marg_mean = torch.mean(sample_means[:, :, :, 0], dim=0)
+        latent_marg_var = torch.mean(noise_vars, dim=0) + \
+                          torch.var(sample_means[:, :, :, 0], dim=0)
     
     else:
         tensors = model(ctx_in, ctx_out, plot_inputs)
@@ -213,12 +219,12 @@ def plot_samples_and_data(model,
                          alpha=0.5,
                          zorder=2)
                 
-                plt.fill_between(plot_inputs[i, :, 0].cpu(),
-                                 latent_marg_mean[i, :, 0] - 2 * latent_marg_var[i, :, 0] ** 0.5,
-                                 latent_marg_mean[i, :, 0] + 2 * latent_marg_var[i, :, 0] ** 0.5,
-                                 color='blue',
-                                 alpha=0.2,
-                                 zorder=1)
+            plt.fill_between(plot_inputs[i, :, 0].cpu(),
+                             latent_marg_mean[i, :] - 2 * latent_marg_var[i, :] ** 0.5,
+                             latent_marg_mean[i, :] + 2 * latent_marg_var[i, :] ** 0.5,
+                             color='blue',
+                             alpha=0.2,
+                             zorder=1)
         
         else:
             try:
