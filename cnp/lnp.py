@@ -194,7 +194,7 @@ class StandardConvNP(LatentNeuralProcess):
         decoder_conv_output_channels = 8
         
         # Num channels of output of decoder
-        decoder_out_channels = 1
+        decoder_out_channels = 2
         
         # Standard convolutional architecture
         encoder_conv = UNet(input_dim=input_dim,
@@ -209,7 +209,7 @@ class StandardConvNP(LatentNeuralProcess):
         # Construct the convolutional encoder
         grid_multiplier =  2 ** encoder_conv.num_halving_layers
         points_per_unit = 64
-        init_length_scale = 8.0 / points_per_unit
+        init_length_scale = 2.0 / points_per_unit
         grid_margin = 0.2
         
         encoder = StandardConvNPEncoder(input_dim=input_dim,
