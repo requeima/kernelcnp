@@ -160,6 +160,8 @@ def move_channel_idx(x, to_last, num_dims):
 
 def plot_samples_and_data(model,
                           valid_epoch,
+                          x_plot_min,
+                          x_plot_max,
                           root,
                           epoch,
                           latent_model,

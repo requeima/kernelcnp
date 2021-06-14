@@ -519,7 +519,7 @@ for epoch in range(epochs):
     # Compute training negative log-likelihood
     train_iteration = train(train_epoch,
                             x_plot_min=-3.,
-                            x_plot_max=-3.,
+                            x_plot_max=3.,
                             model,
                             optimiser,
                             log_every,
