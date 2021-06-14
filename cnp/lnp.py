@@ -145,11 +145,11 @@ class StandardANP(LatentNeuralProcess):
         # Standard input/output dim and latent representation dim
         # latent_dim is common to stochastic and deterministic paths, and
         # these are concatenated, producing a (2 * latent_dim) representation
-        output_dim = 1
+        output_dim = 2
         latent_dim = 128
         
         # Decoder output dimension
-        decoder_output_dim = output_dim + add_noise.extra_noise_dim
+        decoder_output_dim = output_dim
 
         # Construct the standard encoder
         encoder = StandardANPEncoder(input_dim=input_dim+1,

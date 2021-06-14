@@ -503,25 +503,23 @@ for epoch in range(epochs):
 
         plot_marginals = args.covtype == 'meanfield'
 
-        if args.x_dim == 1 and \
-           not (args.data == 'sawtooth' or args.data == 'random'):
+        if args.x_dim == 1:
             
-            pass
-            #plot_samples_and_data(model=model,
-            #                      gen_plot=gen_val,
-            #                      xmin=-2,
-            #                      xmax=2,
-            #                      root=working_directory.root,
-            #                      epoch=epoch,
-            #                      latent_model=latent_model,
-            #                      plot_marginals=plot_marginals,
-            #                      device=device)
+            plot_samples_and_data(model=model,
+                                  valid_epoch=valid_epoch,
+                                  root=working_directory.root,
+                                  epoch=epoch,
+                                  latent_model=latent_model,
+                                  plot_marginals=plot_marginals,
+                                  device=device)
 
 
     train_epoch = data_train[epoch]
 
     # Compute training negative log-likelihood
     train_iteration = train(train_epoch,
+                            x_plot_min=-3.,
+                            x_plot_max=-3.,
                             model,
                             optimiser,
                             log_every,

@@ -159,17 +159,15 @@ def move_channel_idx(x, to_last, num_dims):
 
 
 def plot_samples_and_data(model,
-                          gen_plot,
-                          xmin,
-                          xmax,
+                          valid_epoch,
                           root,
                           epoch,
                           latent_model,
                           plot_marginals,
                           device):
 
-    # Sample datasets from generator
-    data = list(gen_plot)[0]
+    # Get single iteration from validation epoch
+    data = valid_epoch[0]
 
     # Split context and target sets out
     ctx_in = data['x_context'].to(device)[:3]
@@ -179,17 +177,17 @@ def plot_samples_and_data(model,
     trg_out = data['y_target'].to(device)[:3]
 
     # Locations to query predictions at
-    xrange = xmax - xmin
-    xmin = xmin - 0.5 * xrange
-    xmax = xmax + 0.5 * xrange
-    plot_inputs = torch.linspace(xmin, xmax, 200)[None, :, None]
+    plot_inputs = torch.linspace(x_plot_min, x_plot_max, 200)[None, :, None]
     plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
-    num_samples = 20
+    num_samples = 10
 
     # Make predictions 
     if latent_model:
         tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=num_samples)
         sample_means = tensors[0].detach().cpu()
+        latent_marg_mean = torch.mean(tensors[0].detach().cpu(), dim=0)
+        latent_marg_var = torch.mean(tensors[1].detach().cpu(), dim=0) + \
+                          torch.var(tensors[0].detach().cpu(), dim=0)
     
     else:
         tensors = model(ctx_in, ctx_out, plot_inputs)
@@ -206,11 +204,19 @@ def plot_samples_and_data(model,
         if latent_model:
 
             for j in range(num_samples):
+                
                 plt.plot(plot_inputs[i, :, 0].cpu(),
                          sample_means[j, i, :, 0],
                          color='blue',
-                         alpha=0.1,
+                         alpha=0.5,
                          zorder=2)
+                
+                plt.fill_between(plot_inputs[i, :, 0].cpu(),
+                                 latent_marg_mean[i, :, 0] - 2 * latent_marg_var[i, :, 0] ** 0.5,
+                                 latent_marg_mean[i, :, 0] + 2 * latent_marg_var[i, :, 0] ** 0.5,
+                                 color='blue',
+                                 alpha=0.2,
+                                 zorder=1)
         
         else:
             try:
@@ -220,7 +226,7 @@ def plot_samples_and_data(model,
                                      mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
                                      mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
                                      color='blue',
-                                     alpha=0.3,
+                                     alpha=0.2,
                                      zorder=1)
 
                 else:
@@ -234,7 +240,7 @@ def plot_samples_and_data(model,
                         plt.plot(plot_inputs[i, :, 0].cpu(),
                                  sample,
                                  color='blue',
-                                 alpha=0.1,
+                                 alpha=0.5,
                                  zorder=2)
 
             except Exception as e:
@@ -243,7 +249,7 @@ def plot_samples_and_data(model,
                                  mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
                                  mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
                                  color='blue',
-                                 alpha=0.3,
+                                 alpha=0.2,
                                  zorder=1)
 
             plt.plot(plot_inputs[i, :, 0].cpu(),
@@ -267,7 +273,7 @@ def plot_samples_and_data(model,
                     label='Target',
                     zorder=3)
         
-        plt.xlim([xmin, xmax])
+        plt.xlim([x_plot_min, x_plot_max])
 
     plt.tight_layout()
     
