@@ -55,14 +55,19 @@ class LatentNeuralProcess(nn.Module):
         for i in range(num_samples):
             
             r = self.encoder.sample(encoder_forward_output)
-            mean = self.decoder(r, x_context, y_context, x_target)
+            output = self.decoder(r, x_context, y_context, x_target)
+            
+            assert (len(output.shape) == 3) and (output.shape[2] == 2)
+            
+            mean = output[:, :, :1]
+            noise_var = torch.exp(output[:, :, 1:])
             
             zeros = torch.zeros(size=(mean.shape[0],
                                       mean.shape[1],
                                       mean.shape[1])).to(mean.device)
             
             means.append(mean)
-            noise_vars.append(self.add_noise(zeros, None))
+            noise_vars.append(self.add_noise(noise_var, None))
             
         means = torch.stack(means, dim=0)
         noise_vars = torch.stack(noise_vars, dim=0)
@@ -91,7 +96,7 @@ class LatentNeuralProcess(nn.Module):
         for mean, noise_var in zip(means, noise_vars):
             
             distribution = torch.distributions.Normal(loc=mean,
-                                                      scale=noise_var ** 0.5)
+                                                      scale=noise_var**0.5)
             logprob = torch.sum(distribution.log_prob(y_target[:, :, 0]),
                                 axis=-1)
             
