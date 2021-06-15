@@ -62,6 +62,7 @@ class LatentNeuralProcess(nn.Module):
             mean = output[:, :, :1]
             noise_var = torch.exp(output[:, :, 1])
             noise_var = torch.diag_embed(noise_var)
+            noise_var = self.add_noise(noise_var, None)
             
             means.append(mean)
             noise_vars.append(noise_var)

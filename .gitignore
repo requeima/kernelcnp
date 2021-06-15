@@ -1,4 +1,5 @@
 experiments/synthetic/results
+experiments/synthetic/logs
 backups
 
 # Byte-compiled / optimized / DLL files

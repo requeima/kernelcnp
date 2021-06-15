@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 import pickle
 import time
+import sys
 
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -296,7 +297,7 @@ data_root = os.path.join(f'{root}',
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
-log_filename = '{args.data}-{args.model}-{args.covtype}-{args.seed}'
+log_filename = f'{args.data}-{args.model}-{args.covtype}-{args.seed}'
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 

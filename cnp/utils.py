@@ -163,11 +163,17 @@ class Logger(object):
     
     def __init__(self, log_directory, log_filename):
         self.terminal = sys.stdout
-        self.log = open(log_directory.file(log_filename), "a")
+        self.log_directory = log_directory
+        self.log_filename = log_filename
 
     def write(self, message):
+
         self.terminal.write(message)
-        self.log.write(message)  
+
+        fhandle = open(self.log_directory.file(self.log_filename), "a")
+        fhandle.write(message)
+        fhandle.close()
+
 
     def flush(self):
         pass    
