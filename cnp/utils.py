@@ -161,9 +161,9 @@ def move_channel_idx(x, to_last, num_dims):
 
 class Logger(object):
     
-    def __init__(self, log_path):
+    def __init__(self, log_directory, log_filename):
         self.terminal = sys.stdout
-        self.log = open(log_path, "a")
+        self.log = open(log_directory.file(log_filename), "a")
 
     def write(self, message):
         self.terminal.write(message)
