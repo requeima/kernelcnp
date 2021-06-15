@@ -49,7 +49,11 @@ from cnp.oracle import (
     oracle_loglik
 )
 
-from cnp.utils import plot_samples_and_data, make_generator
+from cnp.utils import (
+    plot_samples_and_data,
+    make_generator,
+    Logger
+)
 
 import torch
 from torch.distributions import MultivariateNormal
@@ -162,7 +166,7 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
-parser.add_argument('data', help='Data set to train the CNP on. ')
+parser.add_argument('data', help='Data set to train the CNP on.')
 
 parser.add_argument('--x_dim',
                     default=1,
@@ -204,7 +208,7 @@ parser.add_argument('covtype',
                     help='Choice of covariance method.')
 
 parser.add_argument('--np_loss_samples',
-                    default=8,
+                    default=20,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
@@ -269,35 +273,33 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-root =  'experiments/synthetic'
+root = 'experiments/synthetic'
+
+# Working directory for saving results
+experiment_name = os.path.join(f'{root}',
+                               f'results',
+                               f'{args.data}',
+                               f'models',
+                               f'{args.model}',
+                               f'{args.covtype}',
+                               f'seed-{args.seed}',
+                               f'dim-{args.x_dim}')
+working_directory = WorkingDirectory(root=experiment_name)
+
+# Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
                          f'{args.data}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
+data_directory = WorkingDirectory(root=data_root)
 
-# Load working directory
-if args.root:
-    
-    working_directory = WorkingDirectory(root=args.root)
-    data_directory = WorkingDirectory(root=data_root)
-    
-    writer = SummaryWriter(f'{args.root}/log')
-    
-else:
-    experiment_name = os.path.join(f'{root}',
-                                   f'results',
-                                   f'{args.data}',
-                                   f'models',
-                                   f'{args.model}',
-                                   f'{args.covtype}',
-                                   f'seed-{args.seed}',
-                                   f'dim-{args.x_dim}')
-    working_directory = WorkingDirectory(root=experiment_name)
-    data_directory = WorkingDirectory(root=data_root)
-    
-    writer = SummaryWriter(f'{experiment_name}/log')
+log_path = f'{root}/logs/{args.data}-{args.model}-{args.covtype}-{args.seed}'
+sys.stdout = Logger(log_path=log_path)
+
+# Tensorboard writer
+writer = SummaryWriter(f'{experiment_name}/log')
     
 
 file = open(working_directory.file('data_location.txt'), 'w')

@@ -6,6 +6,7 @@ from torch.distributions.normal import Normal
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import sys
 import stheno
 import cnp
 
@@ -152,6 +153,26 @@ def move_channel_idx(x, to_last, num_dims):
     return x.permute(perm_idx)
 
 
+
+# =============================================================================
+# Logger util class
+# =============================================================================
+
+
+class Logger(object):
+    
+    def __init__(self, log_path):
+        self.terminal = sys.stdout
+        self.log = open(path, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        pass    
+
+    
 
 # =============================================================================
 # Plotting util
