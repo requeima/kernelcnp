@@ -296,7 +296,8 @@ data_root = os.path.join(f'{root}',
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs/{args.data}-{args.model}-{args.covtype}-{args.seed}'
-sys.stdout = Logger(log_path=log_path)
+log_directory = WorkingDirectory(root=log_path)
+sys.stdout = Logger(log_directory=log_directory)
 
 # Tensorboard writer
 writer = SummaryWriter(f'{experiment_name}/log')
