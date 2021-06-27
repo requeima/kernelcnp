@@ -1,7 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import lab.torch as B
+
+try:
+    import lab.torch as B
+except ModuleNotFoundError:
+    pass
 
 from cnp.utils import (
     init_sequential_weights, 

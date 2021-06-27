@@ -7,7 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import sys
-import stheno
+try:
+    import stheno
+except ModuleNotFoundError:
+    pass
 import cnp
 
 

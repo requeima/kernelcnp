@@ -4,10 +4,15 @@ import threadpoolctl
 from netCDF4 import Dataset
 
 import numpy as np
-import stheno
+
+try:
+    import stheno
+    import lab as B
+except ModuleNotFoundError:
+    pass
+
 import torch
-import lab as B
-from matrix import Diagonal
+#from matrix import Diagonal
 from netCDF4 import Dataset
 import time
 

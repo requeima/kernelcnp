@@ -1,7 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import lab.torch as B
+
+try:
+    import lab.torch as B
+except ModuleNotFoundError:
+    pass
 
 from torch.distributions import MultivariateNormal
 
@@ -66,6 +70,7 @@ class GaussianNeuralProcess(nn.Module):
         y_cov = y_cov + jitter[None, :, :]
         
         diag = torch.diagonal(y_cov, dim1=1, dim2=2)
+        print('min, max', torch.min(diag), torch.max(diag))
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)

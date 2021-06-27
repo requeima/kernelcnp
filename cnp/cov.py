@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
-import stheno.torch as stheno
 
 from abc import ABC, abstractmethod, abstractproperty
 
