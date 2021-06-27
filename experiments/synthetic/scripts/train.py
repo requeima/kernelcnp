@@ -171,7 +171,7 @@ parser.add_argument('data', help='Data set to train the CNP on.')
 
 parser.add_argument('--x_dim',
                     default=1,
-                    choices=[1],
+                    choices=[1, 2],
                     type=int,
                     help='Input dimension of data.')
 
@@ -278,7 +278,7 @@ root = 'experiments/synthetic'
 
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
-                               f'results',
+                               f'results-tmp',
                                f'{args.data}',
                                f'models',
                                f'{args.model}',
@@ -304,12 +304,10 @@ sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 # Tensorboard writer
 writer = SummaryWriter(f'{experiment_name}/log')
     
-
 file = open(working_directory.file('data_location.txt'), 'w')
 file.write(data_directory.root)
 file.close()
     
-
 
 # =============================================================================
 # Create model

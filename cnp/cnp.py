@@ -28,7 +28,6 @@ from cnp.architectures import StandardDepthwiseSeparableCNN, UNet, build_dws_net
 
 class GaussianNeuralProcess(nn.Module):
     
-    
     def __init__(self, encoder, decoder, covariance, add_noise):
         
         super().__init__()
@@ -63,8 +62,10 @@ class GaussianNeuralProcess(nn.Module):
         y_cov = y_cov.double()
         y_target = y_target.double()
 
-        jitter = 1e-6 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
+        jitter = 1e-4 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
         y_cov = y_cov + jitter[None, :, :]
+        
+        diag = torch.diagonal(y_cov, dim1=1, dim2=2)
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)

@@ -606,8 +606,9 @@ class FullyConnectedNetwork(nn.Module):
         
         for i, (W, b) in enumerate(zip(self.W, self.b)):
             
+            assert tensor.shape[-1] == W.shape[0]
+            
             tensor = torch.einsum('...i, ij -> ...j', tensor, W)
-                
             tensor = tensor + b[(None,) * (len(tensor.shape) - 1)]
             
             if i < self.num_linear - 1:
