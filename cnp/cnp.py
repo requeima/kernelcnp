@@ -64,15 +64,8 @@ class GaussianNeuralProcess(nn.Module):
 
         jitter = 1e-4 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
         y_cov = y_cov + jitter[None, :, :]
-
-        print('x_context', x_context.shape)
-        print('y_context', y_context.shape)
-        print('x_target', x_target.shape)
-        print('y_target', y_target.shape)
         
         diag = torch.diagonal(y_cov, dim1=1, dim2=2)
-        print('min, max', torch.min(diag), torch.max(diag))
-        print('cov', y_cov[0, :3, :3])
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
                                   covariance_matrix=y_cov)
