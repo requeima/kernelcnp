@@ -46,6 +46,7 @@ class StandardEncoder(nn.Module):
         self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.use_attention = use_attention
+        self.output_dim = 1
         
         # Hidden dimensions and nonlinearity type for fully-connected network
         hidden_dims = num_layers * [latent_dim]
@@ -54,7 +55,7 @@ class StandardEncoder(nn.Module):
         # Number of attentive heads - used only if use_attention is True
         num_heads = 8
         
-        self.pre_pooling = FullyConnectedNetwork(input_dim=input_dim,
+        self.pre_pooling = FullyConnectedNetwork(input_dim=input_dim+self.output_dim,
                                                  output_dim=latent_dim,
                                                  hidden_dims=hidden_dims,
                                                  nonlinearity=nonlinearity)
