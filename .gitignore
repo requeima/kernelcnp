@@ -4,6 +4,8 @@ backups
 experiments/synthetic/backup-results
 experiments/synthetictoy-data
 experiments/synthetic/results-tmp
+experiments/synthetic/tmp-results
+experiments/synthetic/tmp2-results
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
