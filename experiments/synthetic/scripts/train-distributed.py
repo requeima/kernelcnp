@@ -1,5 +1,6 @@
 import subprocess
 from itertools import product
+from cnp.experiment import WorkingDirectory
 import time
 import torch
 import nvsmi
@@ -7,38 +8,20 @@ import os
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 20.
+GPU_MEMORY_PERCENTAGE = 40.
 
 # Model and data generator configurations
-data_generators = ['random',
-                   'sawtooth',
-                   'eq',
-                   'matern',
-                   'noisy-mixture',
-                   'weakly-periodic']
-
-models = ['GNP',
-           'AGNP',
-           'ANP',
-           'convGNP',
-           'convNP',
-           'FullConvGNP']
-
-#models = ['FullConvGNP']
-# models = ['convNP']
-
-covs = ['innerprod-homo',
-         'kvv-homo',
-         'meanfield']
-
-# covs = ['innerprod-homo']
-#covs = ['meanfield']
-
+data_generators = ['weakly-periodic']
+models = ['convGNP']
+covs = ['sum-kvv-homo']
 x_dims = ['1']
+num_basis_dim = ["2", "8", "64", "128", "512", "4096"]
+num_sum_elements = ["1", "2", "8", "16", "64"]
 
 seeds = [str(i) for i in range(1)]
 
-configs = list(product(seeds, x_dims, data_generators, models, covs))
+configs = list(product(seeds, x_dims, data_generators, models, covs, num_basis_dim, num_sum_elements))
+working_directory = WorkingDirectory(root='experiments/synthetic/scripts')
 
 FNULL = open(os.devnull, 'w')
 
@@ -52,19 +35,19 @@ if __name__ == '__main__':
 
             if percent_memory_used < GPU_MEMORY_PERCENTAGE:
 
-                seed, x_dim, gen, model, cov = configs[0]
+                seed, x_dim, gen, model, cov, num_bas, num_sum = configs[0]
                 
                 command = ['python',
-                           'train.py',
+                           working_directory.file('train.py'),
                            gen,
                            model,
                            cov,
-                           '--x_dim',
-                           x_dim,
-                           '--seed',
-                           seed,
-                           '--gpu',
-                           gpu_id]
+                           '--x_dim', x_dim,
+                           '--seed', seed,
+                           '--gpu', gpu_id,
+                           '--num_basis_dim', num_bas,
+                           '--num_sum_elements', num_sum
+                           ]
                 
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
@@ -73,4 +56,4 @@ if __name__ == '__main__':
 
                 configs = configs[1:]
 
-                # time.sleep(5e0)
+                time.sleep(5e0)

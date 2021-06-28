@@ -36,6 +36,7 @@ from cnp.lnp import (
 from cnp.cov import (
     InnerProdCov,
     KvvCov,
+    SumKvvCov,
     MeanFieldCov,
     AddHomoNoise,
     AddHeteroNoise,
@@ -205,8 +206,14 @@ parser.add_argument('covtype',
                              'innerprod-hetero', 
                              'kvv-homo',
                              'kvv-hetero',
+                             'sum-kvv-homo',
                              'meanfield'],
                     help='Choice of covariance method.')
+
+parser.add_argument('--num_sum_elements',
+                    default=1,
+                    type=int,
+                    help='Number of terms to use in sum-kvv.')
 
 parser.add_argument('--np_loss_samples',
                     default=20,
@@ -284,7 +291,9 @@ experiment_name = os.path.join(f'{root}',
                                f'{args.model}',
                                f'{args.covtype}',
                                f'seed-{args.seed}',
-                               f'dim-{args.x_dim}')
+                               f'dim-{args.x_dim}',
+                               f'basis-{args.num_basis_dim}',
+                               f'sum-elements-{args.num_sum_elements}')
 working_directory = WorkingDirectory(root=experiment_name)
 
 # Data directory for loading data
@@ -328,6 +337,10 @@ elif args.covtype == 'kvv-homo':
     
 elif args.covtype == 'kvv-hetero':
     cov = KvvCov(args.num_basis_dim)
+    noise = AddHeteroNoise()
+
+elif args.covtype == 'sum-kvv-homo':
+    cov = SumKvvCov(args.num_basis_dim, args.num_sum_elements)
     noise = AddHomoNoise()
     
 elif args.covtype == 'meanfield':

@@ -53,7 +53,7 @@ class KvvCov(Covariance):
         # Extra dimension to add to the output
         extra_cov_dim = 1
         super().__init__(num_basis_dim, extra_cov_dim)
-        
+
         # Kernel Parameters
         init_length_scale = 0.5
         self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(1), requires_grad=True)
@@ -70,6 +70,40 @@ class KvvCov(Covariance):
         cov = rbf_kernel(basis_emb, scales)
         cov = cov * vv
         return cov
+
+
+class SumKvvCov(Covariance):
+    def __init__(self, num_basis_dim, num_sum_elements):
+        # Extra dimension to add to the output
+        extra_cov_dim = 1
+
+        super().__init__(num_sum_elements*num_basis_dim, extra_cov_dim*num_sum_elements)
+        
+        # Overwrite extra_cov_dim
+        self.extra_cov_dim = 1
+
+        self.num_sum_elements = num_sum_elements
+        # Kernel Parameters
+        init_length_scale = 0.5
+        self.kernel_sigma = nn.Parameter(np.log(init_length_scale)* torch.ones(num_sum_elements), requires_grad=True)
+        self.kernel_fn = torch.exp
+    
+    def forward(self, embeddings):
+        K = 0.0
+        idx_start = 0
+        for i in range(self.num_sum_elements):
+            # Extract the embeddings and v function
+            basis_emb = embeddings[:, :, idx_start:idx_start + self.num_basis_dim]
+            v = embeddings[:, :, idx_start + self.num_basis_dim: idx_start + self.num_basis_dim + self.extra_cov_dim]
+            idx_start = idx_start + self.num_basis_dim + self.extra_cov_dim
+
+            #compute the covariance
+            vv = torch.matmul(v, torch.transpose(v, dim0=-2, dim1=-1)) 
+            scales = self.kernel_fn(self.kernel_sigma[i])
+            cov = rbf_kernel(basis_emb, scales)
+            cov = cov * vv
+            K = K + cov
+        return K    
 
 
 class MeanFieldCov(Covariance):

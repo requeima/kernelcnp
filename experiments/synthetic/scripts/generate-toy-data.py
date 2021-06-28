@@ -161,6 +161,8 @@ data_kinds = ['eq',
               'weakly-periodic',
               'sawtooth']
 
+data_kinds = ['weakly-periodic']
+
 seeds = list(range(0, 1))
 
 input(f'About to do batch size {args.batch_size}. '
