@@ -150,7 +150,7 @@ class StandardANP(LatentNeuralProcess):
         decoder_output_dim = output_dim
 
         # Construct the standard encoder
-        encoder = StandardANPEncoder(input_dim=input_dim+1,
+        encoder = StandardANPEncoder(input_dim=input_dim,
                                      latent_dim=latent_dim)
         
         # Construct the standard decoder
