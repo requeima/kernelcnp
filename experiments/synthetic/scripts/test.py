@@ -126,12 +126,6 @@ parser.add_argument('--seed',
                     type=int,
                     help='Random seed to use.')
 
-parser.add_argument('--validate_every',
-                    default=10,
-                    type=int,
-                    help='Number of epochs between validations.')
-
-
 # =============================================================================
 # Model arguments
 # =============================================================================
@@ -170,16 +164,6 @@ parser.add_argument('--num_basis_dim',
                     type=int,
                     help='Number of embedding basis dimensions.')
 
-parser.add_argument('--learning_rate',
-                    default=5e-4,
-                    type=float,
-                    help='Learning rate.')
-
-parser.add_argument('--weight_decay',
-                    default=0.,
-                    type=float,
-                    help='Weight decay.')
-
 
 # =============================================================================
 # Experiment arguments
@@ -208,7 +192,7 @@ args = parser.parse_args()
 
     
 # =============================================================================
-# Set random seed, device and tensorboard writer
+# Set random seed, device and logging directories
 # =============================================================================
 
 # Set seed
@@ -222,24 +206,34 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_root = os.path.join(f'toy-data',
-                         f'{args.data}',
-                         f'data',
-                         f'seed-{args.seed}',
-                         f'dim-{args.x_dim}')
-    
-experiment_name = os.path.join(f'toy-results',
+root = 'experiments/synthetic'
+
+# Working directory for saving results
+experiment_name = os.path.join(f'{root}',
+                               f'results',
                                f'{args.data}',
                                f'models',
                                f'{args.model}',
                                f'{args.covtype}',
                                f'seed-{args.seed}',
                                f'dim-{args.x_dim}')
-
 working_directory = WorkingDirectory(root=experiment_name)
+
+# Data directory for loading data
+data_root = os.path.join(f'{root}',
+                         f'toy-data',
+                         f'{args.data}',
+                         f'data',
+                         f'seed-{args.seed}',
+                         f'dim-{args.x_dim}')
 data_directory = WorkingDirectory(root=data_root)
 
-writer = SummaryWriter(f'{experiment_name}/log')
+log_path = f'{root}/logs'
+log_filename = f'{args.data}-{args.model}-{args.covtype}-{args.seed}'
+log_directory = WorkingDirectory(root=log_path)
+sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
+sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
+
     
 # =============================================================================
 # Create model
