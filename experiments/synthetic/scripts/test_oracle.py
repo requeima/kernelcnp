@@ -158,12 +158,9 @@ experiment_name = os.path.join(f'{root}',
                                f'results',
                                f'{args.data}',
                                f'models',
-                               f'{args.model}',
-                               f'{args.covtype}',
+                               'Oracle',
                                f'seed-{args.seed}',
-                               f'dim-{args.x_dim}',
-                               f'basis-{args.num_basis_dim}',
-                               f'sum-elements-{args.num_sum_elements}')
+                               f'dim-{args.x_dim}')
 working_directory = WorkingDirectory(root=experiment_name)
 
 # Data directory for loading data
