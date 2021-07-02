@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import sys
 from datetime import datetime
 import pickle
 import time
@@ -40,7 +41,11 @@ from cnp.cov import (
     AddNoNoise
 )
 
-from cnp.utils import plot_samples_and_data, make_generator
+from cnp.utils import (
+    plot_samples_and_data,
+    make_generator,
+    Logger
+)
 
 import torch
 from torch.distributions import MultivariateNormal
@@ -64,7 +69,7 @@ def test(data,
     
     # If training a latent model, set the number of latent samples accordingly
     loss_kwargs = {'num_samples' : args.np_test_samples} if latent_model else \
-                  {'double'      : True}
+                  {}
     
     with torch.no_grad():
         
@@ -98,21 +103,10 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
-parser.add_argument('data',
-                    choices=['eq',
-                             'eq-lb',
-                             'matern',
-                             'matern-lb',
-                             'noisy-mixture',
-                             'noisy-mixture-lb',
-                             'weakly-periodic',
-                             'weakly-periodic-lb',
-                             'noisy-mixture-slow',
-                             'weakly-periodic-slow',
-                             'noisy-mixture-slow-100',
-                             'weakly-periodic-slow-100',
-                             'sawtooth',
-                             'sawtooth-lb'],
+parser.add_argument('train_data',
+                    help='Data set to train the CNP on. ')
+
+parser.add_argument('test_data',
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
@@ -211,7 +205,7 @@ root = 'experiments/synthetic'
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
                                f'results',
-                               f'{args.data}',
+                               f'{args.train_data}',
                                f'models',
                                f'{args.model}',
                                f'{args.covtype}',
@@ -222,14 +216,14 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.data}',
+                         f'{args.test_data}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
-log_filename = f'{args.data}-{args.model}-{args.covtype}-{args.seed}'
+log_filename = f'test-{args.train_data}-{args.test_data}-{args.model}-{args.covtype}-{args.seed}'
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
