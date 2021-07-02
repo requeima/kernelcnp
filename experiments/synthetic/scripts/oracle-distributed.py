@@ -4,24 +4,24 @@ import time
 import torch
 import nvsmi
 import os
+from cnp.experiment import WorkingDirectory
+
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 30.
 
 # Model and data generator configurations
-data_generators = ['eq',
-                   'matern',
-                   'noisy-mixture',
-                   'noisy-mixture-slow',
+data_generators = [
                    'weakly-periodic',
-                   'weakly-periodic-slow']
+                   ]
 
 x_dims = ['1']
 
 seeds = [str(i) for i in range(1)]
 
 configs = list(product(seeds, x_dims, data_generators))
+working_directory = WorkingDirectory(root='experiments/synthetic/scripts')
 
 FNULL = open(os.devnull, 'w')
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
                 command = ['python',
                            '-W',
                            'ignore',
-                           'test_oracle.py',
+                           working_directory.file('test_oracle.py'),
                            gen,
                            '--x_dim',
                            x_dim,
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.call(command)
+                process = subprocess.Popen(command)
 
                 configs = configs[1:]
 
