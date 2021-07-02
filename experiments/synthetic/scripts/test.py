@@ -33,6 +33,7 @@ from cnp.lnp import (
 
 from cnp.cov import (
     InnerProdCov,
+    SumKvvCov,
     KvvCov,
     MeanFieldCov,
     AddHomoNoise,
@@ -62,10 +63,7 @@ def test(data,
     nll_list = []
     oracle_nll_list = []
     
-    # If training a latent model, set the number of latent samples accordingly
-    loss_kwargs = {'num_samples' : args.np_test_samples} if latent_model else \
-                  {'double'      : True}
-    
+  
     with torch.no_grad():
         
         for step, batch in enumerate(data):
@@ -73,8 +71,7 @@ def test(data,
             nll = model.loss(batch['x_context'].to(device),
                              batch['y_context'].to(device),
                              batch['x_target'].to(device),
-                             batch['y_target'].to(device),
-                             **loss_kwargs)                        
+                             batch['y_target'].to(device))                        
 
             # Scale by the average number of target points
             nll_list.append(nll.item() / 50.)
@@ -147,7 +144,8 @@ parser.add_argument('model',
 
 parser.add_argument('covtype',
                     choices=['innerprod-homo',
-                             'innerprod-hetero', 
+                             'innerprod-hetero',
+                             'sum-kvv-homo', 
                              'kvv-homo',
                              'kvv-hetero',
                              'meanfield'],
@@ -158,6 +156,11 @@ parser.add_argument('--np_loss_samples',
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
+
+parser.add_argument('--num_sum_elements',
+                    default=1,
+                    type=int,
+                    help='Number of terms to use in sum-kvv.')
 
 parser.add_argument('--np_test_samples',
                     default=512,
@@ -222,21 +225,28 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-data_root = os.path.join(f'toy-data',
-                         f'{args.data}',
-                         f'data',
-                         f'seed-{args.seed}',
-                         f'dim-{args.x_dim}')
-    
-experiment_name = os.path.join(f'toy-results',
+root = 'experiments/synthetic'
+
+# Working directory for saving results
+experiment_name = os.path.join(f'{root}',
+                               f'results',
                                f'{args.data}',
                                f'models',
                                f'{args.model}',
                                f'{args.covtype}',
                                f'seed-{args.seed}',
-                               f'dim-{args.x_dim}')
-
+                               f'dim-{args.x_dim}',
+                               f'basis-{args.num_basis_dim}',
+                               f'sum-elements-{args.num_sum_elements}')
 working_directory = WorkingDirectory(root=experiment_name)
+
+# Data directory for loading data
+data_root = os.path.join(f'{root}',
+                         f'toy-data',
+                         f'{args.data}',
+                         f'data',
+                         f'seed-{args.seed}',
+                         f'dim-{args.x_dim}')
 data_directory = WorkingDirectory(root=data_root)
 
 writer = SummaryWriter(f'{experiment_name}/log')
@@ -253,6 +263,10 @@ if args.covtype == 'innerprod-homo':
 elif args.covtype == 'innerprod-hetero':
     cov = InnerProdCov(args.num_basis_dim)
     noise = AddHeteroNoise()
+
+elif args.covtype == 'sum-kvv-homo':
+    cov = SumKvvCov(args.num_basis_dim, args.num_sum_elements)
+    noise = AddHomoNoise()
     
 elif args.covtype == 'kvv-homo':
     cov = KvvCov(args.num_basis_dim)

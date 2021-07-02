@@ -151,21 +151,30 @@ if torch.cuda.is_available():
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
 
-data_root = os.path.join('_experiments/toy-data', 
+root = 'experiments/synthetic'
+
+# Working directory for saving results
+experiment_name = os.path.join(f'{root}',
+                               f'results',
+                               f'{args.data}',
+                               f'models',
+                               f'{args.model}',
+                               f'{args.covtype}',
+                               f'seed-{args.seed}',
+                               f'dim-{args.x_dim}',
+                               f'basis-{args.num_basis_dim}',
+                               f'sum-elements-{args.num_sum_elements}')
+working_directory = WorkingDirectory(root=experiment_name)
+
+# Data directory for loading data
+data_root = os.path.join(f'{root}',
+                         f'toy-data',
                          f'{args.data}',
-                         'data',
+                         f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
-
-experiment_name = os.path.join('_experiments/toy-results',
-                                   f'{args.data}',
-                                   f'models',
-                                   'Oracle-GP',
-                                   f'seed-{args.seed}',
-                                   f'dim-{args.x_dim}')
-
-working_directory = WorkingDirectory(root=experiment_name)
 data_directory = WorkingDirectory(root=data_root)
+
     
 # =============================================================================
 # Load data and validation oracle generator

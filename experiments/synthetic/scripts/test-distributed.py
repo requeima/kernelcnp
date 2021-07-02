@@ -4,44 +4,24 @@ import time
 import torch
 import nvsmi
 import os
+from cnp.experiment import WorkingDirectory
 
 # Use all GPUs by default, and memory % above which no experiments are sent
 GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
-GPU_MEMORY_PERCENTAGE = 30.
+GPU_MEMORY_PERCENTAGE = 50.
 
 # Model and data generator configurations
-data_generators = ['eq',
-                   'matern',
-                   'noisy-mixture',
-                   'noisy-mixture-slow-100',
-                   'noisy-mixture-slow',
-                   'weakly-periodic',
-                   'weakly-periodic-slow-100',
-                   'weakly-periodic-slow',
-                   'sawtooth']
-
-data_generators = ['eq',
-                   'matern',
-                   'noisy-mixture',
-                   'weakly-periodic',
-                   'sawtooth']
-
-cond_models = ['GNP', 'AGNP', 'convGNP']
-latent_models = ['ANP', 'convNP']
-fcgnp_models = ["FullConvGNP"]
-
-covs = ['innerprod-homo', 'kvv-homo', 'meanfield']
-
+data_generators = ['weakly-periodic']
+models = ['convGNP']
+covs = ['sum-kvv-homo']
 x_dims = ['1']
+num_basis_dim = ["2", "8", "64", "128", "512", "4096"]
+num_sum_elements = ["1", "2", "8", "16", "64"]
 
 seeds = [str(i) for i in range(1)]
 
-# Configs for conditional models
-cond_configs = list(product(seeds, x_dims, data_generators, cond_models, covs))
-#latent_configs = list(product(seeds, x_dims, data_generators, latent_models, ["meanfield"]))
-fcgnp_configs = list(product(seeds, x_dims, data_generators, fcgnp_models, ["meanfield"]))
-
-configs = cond_configs + fcgnp_configs
+configs = list(product(seeds, x_dims, data_generators, models, covs, num_basis_dim, num_sum_elements))
+working_directory = WorkingDirectory(root='experiments/synthetic/scripts')
 
 FNULL = open(os.devnull, 'w')
 
@@ -55,23 +35,22 @@ if __name__ == '__main__':
 
             if percent_memory_used < GPU_MEMORY_PERCENTAGE:
 
-                seed, x_dim, gen, model, cov = configs[0]
                 
                 
 
+                seed, x_dim, gen, model, cov, num_bas, num_sum = configs[0]
+                
                 command = ['python',
-                            '-W',
-                            'ignore',
-                           'test.py',
+                           working_directory.file('test.py'),
                            gen,
                            model,
                            cov,
-                           '--x_dim',
-                           x_dim,
-                           '--seed',
-                           seed,
-                           '--gpu',
-                           gpu_id]
+                           '--x_dim', x_dim,
+                           '--seed', seed,
+                           '--gpu', gpu_id,
+                           '--num_basis_dim', num_bas,
+                           '--num_sum_elements', num_sum
+                           ]
                 
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
