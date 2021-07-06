@@ -42,10 +42,10 @@ class GaussianNeuralProcess(nn.Module):
         self.add_noise = add_noise
 
     
-    def forward(self, x_context, y_context, x_target):
+    def forward(self, x_context, y_context, x_target, **kwargs):
         
-        r = self.encoder(x_context, y_context, x_target)
-        z = self.decoder(r, x_context, y_context, x_target)
+        r = self.encoder(x_context, y_context, x_target, **kwargs)
+        z = self.decoder(r, x_context, y_context, x_target, **kwargs)
         
         # Produce mean
         mean = z[..., 0:1]
@@ -147,22 +147,23 @@ class StandardAGNP(StandardGNP):
                          covariance=covariance,
                          add_noise=add_noise,
                          use_attention=True)
-
-        
-        
+   
+         
 # =============================================================================
-# Standard UNet Convolutional Gaussian Neural Process
+# Standard UNet Convolutional Gaussian Neural Process with Noise Channel
 # =============================================================================
         
 
 class StandardConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, input_dim, covariance, add_noise):
+    def __init__(self, input_dim, covariance, add_noise, num_noise_channels):
         
         # Standard input/output dimensions and discretisation density
         output_dim = 1
         points_per_unit = 64
-        conv_in_channels = 8
+
+        conv_channels = 8
+        conv_in_channels = conv_channels + num_noise_channels
         conv_out_channels = 8
         
         # Standard convolutional architecture
@@ -176,11 +177,12 @@ class StandardConvGNP(GaussianNeuralProcess):
         grid_margin = 0.2
         
         encoder = ConvEncoder(input_dim=input_dim,
-                              out_channels=conv_architecture.in_channels,
+                              out_channels=conv_in_channels,
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer,
-                              grid_margin=grid_margin)
+                              grid_margin=grid_margin,
+                              num_noise_channels=num_noise_channels)
         
         # Construct the convolutional decoder
         decoder_out_channels = output_dim +               \
@@ -206,7 +208,7 @@ class StandardConvGNP(GaussianNeuralProcess):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.conv_architecture = conv_architecture
-    
+
     
 # =============================================================================
 # Standard Fully Convolutional GNP (AABI model)

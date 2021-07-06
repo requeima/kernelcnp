@@ -211,7 +211,8 @@ class ConvEncoder(nn.Module):
                  points_per_unit, 
                  grid_multiplier,
                  grid_margin,
-                 density_normalize=True):
+                 density_normalize=True,
+                 num_noise_channels=0):
         
         super().__init__()
         
@@ -226,6 +227,7 @@ class ConvEncoder(nn.Module):
         self.grid_margin = grid_margin
         self.points_per_unit = points_per_unit
         self.density_normalize = density_normalize
+        self.num_noise_channels = num_noise_channels
 
     def build_weight_model(self):
         """Returns a function point-wise function that transforms the
@@ -242,9 +244,51 @@ class ConvEncoder(nn.Module):
         return model
 
     def forward(self, x_context, y_context, x_target):
+
+        r = self._forward(x_context, y_context, x_target)
+
+        # If no noise channels are used, return the latent representation
+        if self.num_noise_channels == 0:
+            return r
+
+        # If noise channels are used append noise channels to latent
+        else:
+            # Get random state
+            rng_state = torch.get_rng_state()
+
+            # Compute extents and seeds
+            minima = torch.min(x_context, axis=1)
+            maxima = torch.max(x_context, axis=1)
+
+            diffs = maxima - minima
+            seeds = [[str(number) for number in list(diff.cpu().numpy())] \
+                     for diff in diffs]
+            seeds = [''.join(_seeds) for _seeds in seeds]
+
+            # Shape of random noise tensor
+            random = []
+            random_size = (r.shape[1], self.num_noise_channels)
+
+            # Apply seeds and sample noises
+            for seed in seeds:
+                torch.manual_seed(hash(seed))
+                random.append(torch.normal(mean=0., std=1., size=random_size))
+                
+            random = torch.stack(random, axis=0)
+
+            # Concatenate representation and random values
+            r = torch.cat([r_, random_], axis=2)
+
+            # Restore random state
+            torch.set_rng_state(rng_state)
+
+            return r
+
+
+    def _forward(self, x_context, y_context, x_target):
         """Forward pass through the layer with evaluations at locations t.
 
-        Args:
+        rgs:
             x (tensor): Inputs of observations of shape (n, d).
             y (tensor): Outputs of observations of shape (n, in_channels).
             t (tensor): Inputs to evaluate function at of shape (m, d).
