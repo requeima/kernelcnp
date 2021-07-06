@@ -90,7 +90,7 @@ parser.add_argument('--validate_every',
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=100,
+                    default=400,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -198,7 +198,7 @@ for x_dim in args.x_dims:
             root = 'experiments/synthetic/'
             path = os.path.join(f'{root}'
                                 f'toy-data',
-                                f'{data_kind}-100',
+                                f'{data_kind}-400',
                                 f'data',
                                 f'seed-{seed}',
                                 f'dim-{x_dim}')

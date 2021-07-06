@@ -55,7 +55,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.Popen(command)
+                process = subprocess.call(command)
 
                 configs = configs[1:]
 
