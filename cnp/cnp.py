@@ -177,7 +177,7 @@ class StandardConvGNP(GaussianNeuralProcess):
         grid_margin = 0.2
         
         encoder = ConvEncoder(input_dim=input_dim,
-                              out_channels=conv_in_channels,
+                              out_channels=conv_channels,
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer,

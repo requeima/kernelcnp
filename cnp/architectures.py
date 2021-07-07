@@ -334,41 +334,42 @@ class UNet(nn.Module):
         self.activation = nn.ReLU()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.latent_channels = 8
         self.num_halving_layers = 6
         self.kernel_size = 5
 
         self.l1 = conv(in_channels=self.in_channels,
-                       out_channels=self.in_channels,
+                       out_channels=self.latent_channels,
                        kernel_size=self.kernel_size,
                        stride=2,
                        padding=2)
         
-        self.l2 = conv(in_channels=self.in_channels,
-                       out_channels=2*self.in_channels,
+        self.l2 = conv(in_channels=self.latent_channels,
+                       out_channels=2*self.latent_channels,
                        kernel_size=self.kernel_size,
                        stride=2,
                        padding=2)
         
-        self.l3 = conv(in_channels=2*self.in_channels,
-                       out_channels=2*self.in_channels,
+        self.l3 = conv(in_channels=2*self.latent_channels,
+                       out_channels=2*self.latent_channels,
                        kernel_size=self.kernel_size,
                        stride=2,
                        padding=2)
         
-        self.l4 = conv(in_channels=2*self.in_channels,
-                       out_channels=4*self.in_channels,
+        self.l4 = conv(in_channels=2*self.latent_channels,
+                       out_channels=4*self.latent_channels,
                        kernel_size=self.kernel_size,
                        stride=2,
                        padding=2)
         
-        self.l5 = conv(in_channels=4*self.in_channels,
-                       out_channels=4*self.in_channels,
+        self.l5 = conv(in_channels=4*self.latent_channels,
+                       out_channels=4*self.latent_channels,
                        kernel_size=self.kernel_size,
                        stride=2,
                        padding=2)
         
-        self.l6 = conv(in_channels=4*self.in_channels,
-                       out_channels=8*self.in_channels,
+        self.l6 = conv(in_channels=4*self.latent_channels,
+                       out_channels=8*self.latent_channels,
                        kernel_size=self.kernel_size,
                        stride=2,
                        padding=2)
@@ -376,42 +377,42 @@ class UNet(nn.Module):
         for layer in [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6]:
             init_layer_weights(layer)
 
-        self.l7 = convt(in_channels=8*self.in_channels,
-                        out_channels=4*self.in_channels,
+        self.l7 = convt(in_channels=8*self.latent_channels,
+                        out_channels=4*self.latent_channels,
                         kernel_size=self.kernel_size,
                         stride=2,
                         padding=2,
                         output_padding=1)
         
-        self.l8 = convt(in_channels=8*self.in_channels,
-                        out_channels=4*self.in_channels,
+        self.l8 = convt(in_channels=8*self.latent_channels,
+                        out_channels=4*self.latent_channels,
                         kernel_size=self.kernel_size,
                         stride=2,
                         padding=2,
                         output_padding=1)
         
-        self.l9 = convt(in_channels=8*self.in_channels,
-                        out_channels=2*self.in_channels,
+        self.l9 = convt(in_channels=8*self.latent_channels,
+                        out_channels=2*self.latent_channels,
                         kernel_size=self.kernel_size,
                         stride=2,
                         padding=2,
                         output_padding=1)
         
-        self.l10 = convt(in_channels=4*self.in_channels,
-                         out_channels=2*self.in_channels,
+        self.l10 = convt(in_channels=4*self.latent_channels,
+                         out_channels=2*self.latent_channels,
                          kernel_size=self.kernel_size,
                          stride=2,
                          padding=2,
                          output_padding=1)
         
-        self.l11 = convt(in_channels=4*self.in_channels,
-                         out_channels=self.in_channels,
+        self.l11 = convt(in_channels=4*self.latent_channels,
+                         out_channels=self.latent_channels,
                          kernel_size=self.kernel_size,
                          stride=2,
                          padding=2,
                          output_padding=1)
         
-        self.l12 = convt(in_channels=2*self.in_channels,
+        self.l12 = convt(in_channels=2*self.latent_channels,
                          out_channels=self.in_channels,
                          kernel_size=self.kernel_size,
                          stride=2,
@@ -439,6 +440,7 @@ class UNet(nn.Module):
         Returns:
             tensor: Outputs of shape `(batch, n_out, out_channels)`.
         """
+
         h1 = self.activation(self.l1(x))
         h2 = self.activation(self.l2(h1))
         h3 = self.activation(self.l3(h2))

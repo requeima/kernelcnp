@@ -257,8 +257,8 @@ class ConvEncoder(nn.Module):
             rng_state = torch.get_rng_state()
 
             # Compute extents and seeds
-            minima = torch.min(x_context, axis=1)
-            maxima = torch.max(x_context, axis=1)
+            minima = torch.min(x_context, axis=1)[0]
+            maxima = torch.max(x_context, axis=1)[0]
 
             diffs = maxima - minima
             seeds = [[str(number) for number in list(diff.cpu().numpy())] \
@@ -267,17 +267,22 @@ class ConvEncoder(nn.Module):
 
             # Shape of random noise tensor
             random = []
-            random_size = (r.shape[1], self.num_noise_channels)
+            random_size = (self.num_noise_channels,) + tuple(r.shape[2:])
 
             # Apply seeds and sample noises
             for seed in seeds:
+
                 torch.manual_seed(hash(seed))
-                random.append(torch.normal(mean=0., std=1., size=random_size))
+                
+                random_ = torch.normal(mean=0., std=1., size=random_size)
+                random_ = random_.to(r.device)
+
+                random.append(random_)
                 
             random = torch.stack(random, axis=0)
 
             # Concatenate representation and random values
-            r = torch.cat([r_, random_], axis=2)
+            r = torch.cat([r, random], axis=1)
 
             # Restore random state
             torch.set_rng_state(rng_state)
@@ -288,7 +293,7 @@ class ConvEncoder(nn.Module):
     def _forward(self, x_context, y_context, x_target):
         """Forward pass through the layer with evaluations at locations t.
 
-        rgs:
+        Args:
             x (tensor): Inputs of observations of shape (n, d).
             y (tensor): Outputs of observations of shape (n, in_channels).
             t (tensor): Inputs to evaluate function at of shape (m, d).

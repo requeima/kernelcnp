@@ -208,6 +208,11 @@ parser.add_argument('covtype',
                              'meanfield'],
                     help='Choice of covariance method.')
 
+parser.add_argument('--num_noise_channels',
+                    default=0,
+                    type=int,
+                    help='Number of noise channels to use in the ConvGNP.')
+
 parser.add_argument('--np_loss_samples',
                     default=20,
                     type=int,
@@ -276,12 +281,21 @@ device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
 root = 'experiments/synthetic'
 
+if args.model == 'convGNP' and args.num_noise_channels > 0:
+    model_name = f'convGNP-{args.num_noise_channels}'
+    
+elif args.num_noise_channels == 0:
+    model_name = f'{args.model}'
+    
+else:
+    raise RuntimeError
+
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
-                               f'results',
+                               f'results-tmp',
                                f'{args.data}',
                                f'models',
-                               f'{args.model}',
+                               f'{model_name}',
                                f'{args.covtype}',
                                f'seed-{args.seed}',
                                f'dim-{args.x_dim}')
@@ -297,7 +311,7 @@ data_root = os.path.join(f'{root}',
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
-log_filename = f'{args.data}-{args.model}-{args.covtype}-{args.seed}'
+log_filename = f'{args.data}-{model_name}-{args.covtype}-{args.seed}-dim-{args.x_dim}'
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
@@ -352,7 +366,8 @@ elif args.model == 'AGNP':
 elif args.model == 'convGNP':
     model = StandardConvGNP(input_dim=args.x_dim,
                             covariance=cov,
-                            add_noise=noise)
+                            add_noise=noise,
+                            num_noise_channels=args.num_noise_channels)
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
@@ -383,7 +398,7 @@ else:
     raise ValueError(f'Unknown model {args.model}.')
 
 
-print(f'{args.model} '
+print(f'{model_name} '
       f'{args.covtype} '
       f'{args.num_basis_dim}: '
       f'{model.num_params}')
