@@ -271,7 +271,8 @@ elif args.model == 'AGNP':
 elif args.model == 'convGNP':
     model = StandardConvGNP(input_dim=args.x_dim,
                             covariance=cov,
-                            add_noise=noise)
+                            add_noise=noise,
+                            num_noise_channels=0)
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
