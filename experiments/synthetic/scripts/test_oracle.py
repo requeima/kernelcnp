@@ -151,18 +151,22 @@ if torch.cuda.is_available():
 device = torch.device('cpu') if not torch.cuda.is_available() and args.gpu == 0 \
                              else torch.device('cuda')
 
-data_root = os.path.join('_experiments/toy-data', 
+root = 'experiments/synthetic'
+
+data_root = os.path.join(f'{root}',
+                         f'toy-data',
                          f'{args.data}',
-                         'data',
+                         f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
 
-experiment_name = os.path.join('_experiments/toy-results',
-                                   f'{args.data}',
-                                   f'models',
-                                   'Oracle-GP',
-                                   f'seed-{args.seed}',
-                                   f'dim-{args.x_dim}')
+experiment_name = os.path.join(f'{root}',
+                               f'results',
+                               f'{args.data}',
+                               f'models',
+                               f'Oracle-GP',
+                               f'seed-{args.seed}',
+                               f'dim-{args.x_dim}')
 
 working_directory = WorkingDirectory(root=experiment_name)
 data_directory = WorkingDirectory(root=data_root)
