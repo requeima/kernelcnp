@@ -5,7 +5,7 @@ import numpy as np
 # =============================================================================
 # Custom kernels until we resolve issue with Stheno
 # =============================================================================
-
+    
 def eq_cov(lengthscale, coefficient, noise):
     
     def _eq_cov(x, x_, use_noise):
@@ -28,9 +28,9 @@ def mat_cov(lengthscale, coefficient, noise):
     def _mat_cov(x, x_, use_noise):
     
         diff = x[:, None, :] - x_[None, :, :]
-        l1 = torch.sum(np.abs(diff / lengthscale), dim=2)
-        cov = coefficient ** 2 * (1 + 5 ** 0.5 * l1 + 5 * l1 ** 2 / 3)
-        cov = cov * np.exp(- 5 ** 0.5 * l1)
+        l2 = torch.sum((diff / lengthscale) ** 2, dim=2)
+        cov = coefficient ** 2 * (1 + 5. ** 0.5 * l2**0.5 + 5 * l2 / 3)
+        cov = cov * np.exp(- 5 ** 0.5 * l2**0.5)
         
         if use_noise:
             cov = cov + noise ** 2 * torch.eye(cov.shape[0])
@@ -38,27 +38,6 @@ def mat_cov(lengthscale, coefficient, noise):
         return cov
         
     return _mat_cov
-
-
-def wp_cov(period, lengthscale, coefficient, noise):
-    
-    def _wp_cov(x, x_, use_noise):
-    
-        diff = x[:, None, :] - x_[None, :, :]
-        l1 = torch.sum(np.abs(diff / period), dim=2)
-        l2 = torch.sum((diff / lengthscale) ** 2, dim=2)
-        
-        sin2 = (torch.sin(np.pi * l1) / lengthscale) ** 2
-        
-        cov = coefficient ** 2 * torch.exp(-2. * sin2)
-        cov = cov * np.exp(-0.5 * l2)
-        
-        if use_noise:
-            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
-            
-        return cov
-        
-    return _wp_cov
 
 
 def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
@@ -74,20 +53,76 @@ def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
         return cov1 + cov2
         
     return _nm_cov
+
+
+def wp_cov(period, lengthscale, coefficient, noise):
     
+    eq = eq_cov(lengthscale=lengthscale,
+                coefficient=coefficient,
+                noise=noise)
+    
+    def _wp_cov(x, x_, use_noise):
+    
+        x = torch.cat([torch.sin(2 * np.pi * x / period),
+                       torch.cos(2 * np.pi * x / period)],
+                      axis=-1)
+    
+        x_ = torch.cat([torch.sin(2 * np.pi * x_ / period),
+                        torch.cos(2 * np.pi * x_ / period)],
+                       axis=-1)
+        
+        cov = eq(x=x, x_=x_, use_noise=use_noise)
+            
+        return cov
+        
+    return _wp_cov
+    
+    
+def gp_sample(x, covariance):
+    
+    # Input shape is (N, D)
+    assert len(x.shape) == 2
+    
+    # Compute prior covariance
+    K = covariance(x, x, use_noise=True)
+    Kchol = np.linalg.cholesky(K)
+    
+    # Draw sample from prior
+    y = Kchol @ np.random.normal(shape=(x.shape[0],))
+    
+    return y
 
-def oracle_loglik(xc, yc, xt, yt, covariance):
-
-    Ktt = covariance(xt, xt, use_noise=True)
+    
+def gp_post_pred(xc, yc, xt, yt, covariance, use_target_noise):
+    
+    # Compute covariance matrix components
+    Ktt = covariance(xt, xt, use_noise=use_target_noise)
     Kcc = covariance(xc, xc, use_noise=True)
     Kct = covariance(xc, xt, use_noise=False)
     
-    # Compute mean and covariance of ground truth GP predictive
-    mean = np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, yc))
-    mean = torch.tensor(mean[:, 0]).double()
+    # Compute mean of ground truth GP predictive
+    mean = Kct.T @ np.linalg.solve(Kcc, yc)
+    mean = mean[:, 0]
 
-    cov = Ktt - np.einsum('ij, ik -> jk', Kct, np.linalg.solve(Kcc, Kct))
-    cov = cov.clone().detach().double()
+    # Compute covariance of ground truth GP predictive
+    cov = Ktt - Kct.T @ np.linalg.solve(Kcc, Kct)
+    
+    return mean, cov
+
+
+def gp_loglik(xc, yc, xt, yt, covariance):
+
+    # Compute posterior predictive
+    mean, cov = gp_post_pred(xc=xc,
+                             yc=yc,
+                             xt=xt,
+                             yt=yt,
+                             covariance=covariance,
+                             use_target_noise=True)
+    
+    # Convert to torch tensors
+    mean = torch.tensor(mean).double()
+    cov = torch.tensor(cov).double()
 
     # Compute log probability of ground truth GP predictive
     dist = torch.distributions.MultivariateNormal(loc=mean,
@@ -102,7 +137,3 @@ def oracle_loglik(xc, yc, xt, yt, covariance):
     diag_logprob = torch.sum(diag_logprob)
     
     return logprob, diag_logprob
-
-
-
-
