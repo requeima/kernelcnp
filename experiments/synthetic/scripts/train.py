@@ -132,11 +132,12 @@ def validate(data,
             # Oracle loss exists only for GP-generated data, not sawtooth
             if oracle_cov is not None:
                 for b in range(batch['x_context'].shape[0]):
-                    oracle_nll = oracle_nll - oracle_loglik(batch['x_context'][b],
-                                                            batch['y_context'][b],
-                                                            batch['x_target'][b],
-                                                            batch['y_target'][b],
-                                                            oracle_cov)[0]
+#                     oracle_nll = oracle_nll - oracle_loglik(batch['x_context'][b],
+#                                                             batch['y_context'][b],
+#                                                             batch['x_target'][b],
+#                                                             batch['y_target'][b],
+#                                                             oracle_cov)[0]
+                    oracle_nll = 0.
                         
 
             # Scale by the average number of target points
