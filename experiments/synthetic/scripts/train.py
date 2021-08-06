@@ -293,7 +293,7 @@ else:
 
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
-                               f'results-tmp',
+                               f'results',
                                f'{args.data}',
                                f'models',
                                f'{model_name}',
