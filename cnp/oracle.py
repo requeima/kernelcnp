@@ -19,7 +19,6 @@ def eq_cov(lengthscale, coefficient, noise):
             
         return cov
         
-    
     return _eq_cov
 
 
@@ -57,21 +56,29 @@ def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
 
 def wp_cov(period, lengthscale, coefficient, noise):
     
-    eq = eq_cov(lengthscale=lengthscale,
-                coefficient=coefficient,
-                noise=noise)
+    eq1 = eq_cov(lengthscale=lengthscale,
+                 coefficient=coefficient,
+                 noise=0.)
+    
+    eq2 = eq_cov(lengthscale=1.,
+                 coefficient=1.,
+                 noise=0.)
     
     def _wp_cov(x, x_, use_noise):
     
-        x = torch.cat([torch.sin(2 * np.pi * x / period),
-                       torch.cos(2 * np.pi * x / period)],
-                      axis=-1)
+        trig = torch.cat([torch.sin(2 * np.pi * x / period),
+                          torch.cos(2 * np.pi * x / period)],
+                         axis=-1)
     
-        x_ = torch.cat([torch.sin(2 * np.pi * x_ / period),
-                        torch.cos(2 * np.pi * x_ / period)],
-                       axis=-1)
+        trig_ = torch.cat([torch.sin(2 * np.pi * x_ / period),
+                           torch.cos(2 * np.pi * x_ / period)],
+                          axis=-1)
         
-        cov = eq(x=x, x_=x_, use_noise=use_noise)
+        cov = eq1(x=trig, x_=trig_, use_noise=False) * \
+              eq2(x=x, x_=x_, use_noise=False)
+        
+        if use_noise:
+            cov = cov + noise ** 2 * torch.eye(cov.shape[0])
             
         return cov
         
