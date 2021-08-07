@@ -155,16 +155,10 @@ def gp_loglik(xc, yc, xt, yt, covariance):
 
 def oracle_loglik(xc, yc, xt, yt, covariance, noise):
     
-#     # Convert to torch to numpy
-#     xc = xc.clone().detach().numpy()
-#     yc = yc.clone().detach().numpy()
-#     xt = xt.clone().detach().numpy()
-#     yt = xt.clone().detach().numpy()
-    
     # Create GP measure and condition on data
     p = GP(covariance)
-    p_post = p | (p(xc, noise), yc)
-    y_pred = p_post(xt, noise)
+    p_post = p | (p(xc, noise**2), yc)
+    y_pred = p_post(xt, noise**2)
     
     loglik = y_pred.logpdf(yt)
 

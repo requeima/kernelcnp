@@ -10,8 +10,7 @@ import sys
 
 from stheno import (
     EQ,
-    Matern52,
-    Periodic
+    Matern52
 )
 
 # This is for an error that is now popping up when running on macos
@@ -116,7 +115,8 @@ def validate(data,
     oracle_nll_list = []
     
     # If training a latent model, set the number of latent samples accordingly
-    loss_kwargs = {'num_samples' : args.np_val_samples} if latent_model else {}
+    loss_kwargs = {'num_samples' : args.np_val_samples} \
+                  if latent_model else {}
     
     with torch.no_grad():
         
@@ -134,22 +134,23 @@ def validate(data,
             if oracle_cov is not None:
                 for b in range(batch['x_context'].shape[0]):
                     
-                    xc = batch['x_context'][b].clone().detach().numpy()
-                    yc = batch['y_context'][b].clone().detach().numpy()
-                    xt = batch['x_target'][b].clone().detach().numpy()
-                    yt = batch['y_target'][b].clone().detach().numpy()
+                    x_context = batch['x_context'][b].clone().detach().numpy()
+                    y_context = batch['y_context'][b].clone().detach().numpy()
+                    x_target = batch['x_target'][b].clone().detach().numpy()
+                    y_target = batch['y_target'][b].clone().detach().numpy()
                     
-                    oracle_nll = oracle_nll - oracle_loglik(xc,
-                                                            yc,
-                                                            xt,
-                                                            yt,
+                    oracle_nll = oracle_nll - oracle_loglik(x_context,
+                                                            y_context,
+                                                            x_target,
+                                                            y_target,
                                                             oracle_cov,
-                                                            noise)[0]
+                                                            noise)
                         
 
             # Scale by the average number of target points
             nll_list.append(nll.item())
-            oracle_nll_list.append(oracle_nll.item() / batch['x_context'].shape[0])
+            oracle_nll_list.append(oracle_nll.item() / \
+                                   batch['x_context'].shape[0])
 
     mean_nll = np.mean(nll_list)
     std_nll = np.var(nll_list)**0.5
@@ -319,7 +320,12 @@ data_root = os.path.join(f'{root}',
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
-log_filename = f'{args.data}-{model_name}-{args.covtype}-{args.seed}-dim-{args.x_dim}'
+log_filename = f'{args.data}-'    + \
+               f'{model_name}-'   + \
+               f'{args.covtype}-' + \
+               f'{args.seed}-'    + \
+               f'dim-{args.x_dim}'
+                
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
@@ -331,7 +337,6 @@ file = open(working_directory.file('data_location.txt'), 'w')
 file.write(data_directory.root)
 file.close()
     
-
 # =============================================================================
 # Create model
 # =============================================================================
@@ -433,36 +438,18 @@ oracle_cov = None
 noise = 5e-2
 
 if 'eq' in args.data:
-#     oracle_cov = eq_cov(lengthscale=1.,
-#                         coefficient=1.,
-#                         noise=5e-2)
-    
     oracle_cov = EQ().stretch(1.)
 
 elif 'matern' in args.data:
-#     oracle_cov = mat_cov(lengthscale=1.,
-#                          coefficient=1.,
-#                          noise=5e-2)
-    
     oracle_cov = Matern52().stretch(1.)
 
 elif 'noisy-mixture' in args.data:
-#     oracle_cov = nm_cov(lengthscale1=1.,
-#                         lengthscale2=0.25,
-#                         coefficient=1.,
-#                         noise=5e-2)
-    
     oracle_cov = Matern52().stretch(1.) + \
                  Matern52().stretch(0.25)
 
 elif 'weakly-periodic' in args.data:
-#     oracle_cov = wp_cov(period=0.25,
-#                         lengthscale=1.,
-#                         coefficient=1.,
-#                         noise=5e-2)
-
-    oracle_cov = stheno.EQ().stretch(1.) * \
-                 stheno.EQ().periodic(period=0.25)
+    oracle_cov = EQ().stretch(1.) * \
+                 EQ().periodic(period=0.25)
 
         
 # =============================================================================

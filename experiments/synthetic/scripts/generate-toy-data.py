@@ -309,6 +309,7 @@ for x_dim in args.x_dims:
                     gen_train = make_generator(data_kind,
                                                gen_train_gp_params,
                                                kernel_params)
+                    
                     gen_valid = make_generator(data_kind,
                                                gen_valid_gp_params,
                                                kernel_params)     
@@ -330,7 +331,6 @@ for x_dim in args.x_dims:
                         file.close()
 
             if args.test:
-                
                 with open(wd.file('test-data.pkl'), 'wb') as file:
                     pickle.dump(test_data, file)
                     file.close()
