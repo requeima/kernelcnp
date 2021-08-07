@@ -8,6 +8,12 @@ import pickle
 import time
 import sys
 
+from stheno import (
+    EQ,
+    Matern52,
+    Periodic
+)
+
 # This is for an error that is now popping up when running on macos
 # os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -42,13 +48,7 @@ from cnp.cov import (
     AddNoNoise
 )
 
-from cnp.oracle import (
-    eq_cov,
-    mat_cov,
-    nm_cov,
-    wp_cov,
-    oracle_loglik
-)
+from cnp.oracle import oracle_loglik
 
 from cnp.utils import (
     plot_samples_and_data,
@@ -104,6 +104,7 @@ def train(data,
 
 def validate(data,
              oracle_cov,
+             noise,
              model,
              args,
              device,
@@ -132,12 +133,18 @@ def validate(data,
             # Oracle loss exists only for GP-generated data, not sawtooth
             if oracle_cov is not None:
                 for b in range(batch['x_context'].shape[0]):
-#                     oracle_nll = oracle_nll - oracle_loglik(batch['x_context'][b],
-#                                                             batch['y_context'][b],
-#                                                             batch['x_target'][b],
-#                                                             batch['y_target'][b],
-#                                                             oracle_cov)[0]
-                    oracle_nll = 0.
+                    
+                    xc = batch['x_context'][b].clone().detach().numpy()
+                    yc = batch['y_context'][b].clone().detach().numpy()
+                    xt = batch['x_target'][b].clone().detach().numpy()
+                    yt = batch['y_target'][b].clone().detach().numpy()
+                    
+                    oracle_nll = oracle_nll - oracle_loglik(xc,
+                                                            yc,
+                                                            xt,
+                                                            yt,
+                                                            oracle_cov,
+                                                            noise)[0]
                         
 
             # Scale by the average number of target points
@@ -387,13 +394,6 @@ elif args.model == 'convNP':
     model = StandardConvNP(input_dim=args.x_dim,
                            add_noise=noise,
                            num_samples=args.np_loss_samples)
-
-elif args.model == 'convNPHalfUNet':
-    
-    noise = AddHomoNoise()
-    model = StandardHalfUNetConvNP(input_dim=args.x_dim,
-                                   add_noise=noise,
-                                   num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
@@ -430,40 +430,39 @@ data_val = pickle.load(file)
 file.close()
 
 oracle_cov = None
+noise = 5e-2
 
 if 'eq' in args.data:
-    oracle_cov = eq_cov(lengthscale=1.,
-                        coefficient=1.,
-                        noise=5e-2)
+#     oracle_cov = eq_cov(lengthscale=1.,
+#                         coefficient=1.,
+#                         noise=5e-2)
+    
+    oracle_cov = EQ().stretch(1.)
 
 elif 'matern' in args.data:
-    oracle_cov = mat_cov(lengthscale=1.,
-                         coefficient=1.,
-                         noise=5e-2)
+#     oracle_cov = mat_cov(lengthscale=1.,
+#                          coefficient=1.,
+#                          noise=5e-2)
+    
+    oracle_cov = Matern52().stretch(1.)
 
 elif 'noisy-mixture' in args.data:
-    oracle_cov = nm_cov(lengthscale1=1.,
-                        lengthscale2=0.25,
-                        coefficient=1.,
-                        noise=5e-2)
+#     oracle_cov = nm_cov(lengthscale1=1.,
+#                         lengthscale2=0.25,
+#                         coefficient=1.,
+#                         noise=5e-2)
+    
+    oracle_cov = Matern52().stretch(1.) + \
+                 Matern52().stretch(0.25)
 
 elif 'weakly-periodic' in args.data:
-    oracle_cov = wp_cov(period=0.25,
-                        lengthscale=1.,
-                        coefficient=1.,
-                        noise=5e-2)
+#     oracle_cov = wp_cov(period=0.25,
+#                         lengthscale=1.,
+#                         coefficient=1.,
+#                         noise=5e-2)
 
-elif 'noisy-mixture-slow' in args.data:
-    oracle_cov = nm_cov(lengthscale1=1.,
-                        lengthscale2=0.5,
-                        coefficient=1.,
-                        noise=5e-2)
-
-elif 'weakly-periodic-slow' in args.data:
-    oracle_cov = wp_cov(period=0.5,
-                        lengthscale=1.,
-                        coefficient=1.,
-                        noise=5e-2)
+    oracle_cov = stheno.EQ().stretch(1.) * \
+                 stheno.EQ().periodic(period=0.25)
 
         
 # =============================================================================
@@ -498,6 +497,7 @@ for epoch in range(epochs):
         # Compute validation negative log-likelihood
         val_nll, _, val_oracle, _ = validate(valid_epoch,
                                              oracle_cov,
+                                             noise,
                                              model,
                                              args,
                                              device,

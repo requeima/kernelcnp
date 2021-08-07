@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from stheno import *
+
 
 # =============================================================================
 # Custom kernels until we resolve issue with Stheno
@@ -147,5 +149,23 @@ def gp_loglik(xc, yc, xt, yt, covariance):
 
 
 # =============================================================================
-# Custom kernels until we resolve issue with Stheno
+# Stheno log-likelihood calculation
 # =============================================================================
+
+
+def oracle_loglik(xc, yc, xt, yt, covariance, noise):
+    
+#     # Convert to torch to numpy
+#     xc = xc.clone().detach().numpy()
+#     yc = yc.clone().detach().numpy()
+#     xt = xt.clone().detach().numpy()
+#     yt = xt.clone().detach().numpy()
+    
+    # Create GP measure and condition on data
+    p = GP(covariance)
+    p_post = p | (p(xc, noise), yc)
+    y_pred = p_post(xt, noise)
+    
+    loglik = y_pred.logpdf(yt)
+
+    return loglik
