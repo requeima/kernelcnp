@@ -144,3 +144,8 @@ def gp_loglik(xc, yc, xt, yt, covariance):
     diag_logprob = torch.sum(diag_logprob)
     
     return logprob, diag_logprob
+
+
+# =============================================================================
+# Custom kernels until we resolve issue with Stheno
+# =============================================================================
