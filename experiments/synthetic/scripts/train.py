@@ -186,6 +186,11 @@ parser.add_argument('--validate_every',
                     type=int,
                     help='Number of epochs between validations.')
 
+parser.add_argument('--epochs',
+                    default=400,
+                    type=int,
+                    help='Number of epochs to train for.')
+
 
 # =============================================================================
 # Model arguments
@@ -286,7 +291,7 @@ root = 'experiments/synthetic'
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
                                f'results',
-                               f'{args.data}',
+                               f'{args.data}-{args.epochs}',
                                f'models',
                                f'{args.model}',
                                f'{args.covtype}',
@@ -299,10 +304,11 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.data}',
+                         f'{args.data}-{args.epochs}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
+
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'

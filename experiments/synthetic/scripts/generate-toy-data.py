@@ -155,11 +155,11 @@ parser.add_argument('--test',
 
 args = parser.parse_args()
 
-data_kinds = ['eq',
-              'matern',
-              'noisy-mixture',
-              'weakly-periodic',
-              'sawtooth']
+# data_kinds = ['eq',
+#               'matern',
+#               'noisy-mixture',
+#               'weakly-periodic',
+#               'sawtooth']
 
 data_kinds = ['weakly-periodic']
 
@@ -198,7 +198,7 @@ for x_dim in args.x_dims:
             root = 'experiments/synthetic/'
             path = os.path.join(f'{root}'
                                 f'toy-data',
-                                f'{data_kind}-400',
+                                f'{data_kind}-{args.epochs}',
                                 f'data',
                                 f'seed-{seed}',
                                 f'dim-{x_dim}')

@@ -106,8 +106,6 @@ parser.add_argument('data',
                              'weakly-periodic-lb',
                              'noisy-mixture-slow',
                              'weakly-periodic-slow',
-                             'noisy-mixture-slow-100',
-                             'weakly-periodic-slow-100',
                              'sawtooth',
                              'sawtooth-lb'],
                     help='Data set to train the CNP on. ')
@@ -128,6 +126,10 @@ parser.add_argument('--validate_every',
                     type=int,
                     help='Number of epochs between validations.')
 
+parser.add_argument('--epochs',
+                    default=400,
+                    type=int,
+                    help='Number of epochs model was trained on.')
 
 # =============================================================================
 # Model arguments
@@ -230,7 +232,7 @@ root = 'experiments/synthetic'
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
                                f'results',
-                               f'{args.data}',
+                               f'{args.data}-{args.epochs}',
                                f'models',
                                f'{args.model}',
                                f'{args.covtype}',
@@ -243,7 +245,7 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.data}',
+                         f'{args.data}-{args.epochs}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
