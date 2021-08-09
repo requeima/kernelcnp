@@ -117,6 +117,11 @@ parser.add_argument('--seed',
                     type=int,
                     help='Random seed to use.')
 
+parser.add_argument('--epochs',
+                    default=400,
+                    type=int,
+                    help='Number of epochs model was trained on.')
+
 
 # =============================================================================
 # Experiment arguments
@@ -156,7 +161,7 @@ root = 'experiments/synthetic'
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
                                f'results',
-                               f'{args.data}',
+                               f'{args.data}-{args.epochs}',
                                f'models',
                                'Oracle',
                                f'seed-{args.seed}',
@@ -166,7 +171,7 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.data}',
+                               f'{args.data}-{args.epochs}',
                          f'data',
                          f'seed-{args.seed}',
                          f'dim-{args.x_dim}')
