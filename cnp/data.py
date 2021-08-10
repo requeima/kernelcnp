@@ -332,7 +332,75 @@ class SawtoothGenerator(DataGenerator):
         return y
 
 
+# =============================================================================
+# Preditor Prey Datagenerator
+# =============================================================================
 
+
+class PredatorPreyGenerator(DataGenerator):
+    """Data generator for sawtooth samples.
+    """
+
+    def __init__(self, **kwargs):
+        DataGenerator.__init__(self, **kwargs)
+        
+
+    def generate_task(self):
+        """Generate a task."""
+        xs, fs = [], []
+        xs_train, ys_train = [], []
+        xs_test, ys_test = [], []
+        infos = []
+
+        # Determine number of test and train points.
+        max_train_points = max(self.max_train_points, 4)
+        max_test_points = max(self.max_test_points, 4)
+        num_train_points = np.random.randint(3, max_train_points)
+        num_test_points = np.random.randint(3, max_test_points)
+        num_points = num_train_points + num_test_points
+
+        for i in range(self.batch_size):
+            x, f, info = self.generate_function(num_points)
+
+            # Determine indices for train and test set.
+            inds = np.random.permutation(x.shape[0])
+            inds_train = sorted(inds[:num_train_points])
+            inds_test = sorted(inds[num_train_points:num_points])
+            all_inds = sorted(inds[:num_points])
+
+            # Record.
+            infos.append(info)
+            xs.append(x[all_inds])
+            fs.append(f[all_inds])
+            xs_train.append(x[inds_train])
+            ys_train.append(f[inds_train])
+            xs_test.append(x[inds_test])
+            ys_test.append(f[inds_test])
+
+        # Construct task.
+        task = {'x': xs,
+                'f': fs,
+                'x_train': xs_train,
+                'y_train': ys_train,
+                'x_test': xs_test,
+                'y_test': ys_test}
+
+        # Stack and create PyTorch objects.
+        task = {k: torch.Tensor(np.stack(v, axis=0))
+                for k, v in task.items()}
+
+        # Add extra information.
+        task['num_train_points'] = num_train_points
+        task['num_test_points'] = num_test_points
+        task['x_ranges'] = self.x_ranges
+        for k in infos[0].keys():  # Use keys of first `info` element.
+            task[k] = [info[k] for info in infos]
+
+        return task
+
+    def generate_function(self, num_points):
+        time, pred, prey = random_pred_pray(time_range=self.x_ranges, min_num_points=num_points, epsilon=0)
+        return time, pred, {'model': self.models[0]}
 
 
 # =============================================================================
