@@ -336,6 +336,57 @@ class SawtoothGenerator(DataGenerator):
 # Preditor Prey Datagenerator
 # =============================================================================
 
+def predator_prey(num_pred, num_prey, pred_born, pred_death, prey_born, prey_death,
+                  time_start=0, time_end=np.inf, min_num_points=0, max_num_points=10000):
+    time = []
+    pred = []
+    prey = []
+    
+    while len(time) < min_num_points:
+        time = [time_start]
+        pred = [num_pred]
+        prey = [num_prey]
+        t = 0
+        while t < time_end and num_pred + num_prey > 0 and len(time) < max_num_points:
+            pred_birth_rate = pred_born * num_prey * num_pred
+            pred_death_rate = pred_death * num_pred
+            prey_birth_rate = prey_born * num_prey
+            prey_death_rate = prey_death * num_prey * num_pred
+            total_rate = pred_birth_rate + pred_death_rate + prey_birth_rate + prey_death_rate
+
+            t += np.random.exponential(1./total_rate, 1)[0]
+            event = np.argmax(np.random.multinomial(1, [pred_birth_rate/total_rate,
+                                                        pred_death_rate/total_rate,
+                                                        prey_birth_rate/total_rate,
+                                                        prey_death_rate/total_rate]))
+
+            if event == 0:
+                num_pred += 1
+            elif event == 1:
+                num_pred -= 1
+            elif event == 2:
+                num_prey += 1
+            else:
+                num_prey -= 1
+
+            time.append(t)
+            pred.append(num_pred)
+            prey.append(num_prey)
+
+    inds = np.random.permutation(len(time))
+    inds_return = sorted(inds[:max_num_points])
+    return np.array(time)[inds_return, None], np.array(pred)[inds_return, None], np.array(prey)[inds_return, None]
+
+def random_pred_pray(time_range, min_num_points, max_num_points=10000, epsilon=0):
+    pred_born = np.random.uniform(0.01 + 0.01 * epsilon, 0.01 - 0.01 * epsilon, 1)[0]
+    pred_death = np.random.uniform(0.5 + 0.5 * epsilon, 0.5 - 0.5 * epsilon, 1)[0]
+    prey_born = np.random.uniform(1. + epsilon, 1. - epsilon, 1)[0]
+    prey_death = np.random.uniform(0.01 + 0.01 * epsilon, 0.01 - 0.01 * epsilon, 1)[0]
+    if min_num_points > max_num_points:
+        max_num_points = min_num_points
+    return predator_prey(50, 100, pred_born, pred_death, prey_born, prey_death,
+                         time_range[0], time_range[1], min_num_points, max_num_points)
+
 
 class PredatorPreyGenerator(DataGenerator):
     """Data generator for sawtooth samples.
@@ -346,6 +397,25 @@ class PredatorPreyGenerator(DataGenerator):
         
 
     def generate_task(self):
+        """Generate a task.
+
+        Returns:
+            dict: A task, which is a dictionary with keys `x`, `y`, `x_context`,
+                `y_context`, `x_target`, and `y_target.
+        """
+        batch = {'x'         : [],
+                 'y'         : [],
+                 'x_context' : [],
+                 'y_context' : [],
+                 'x_target'  : [],
+                 'y_target'  : []}
+
+        # Determine number of test and train points.
+        num_context_points = np.random.randint(3, self.max_num_context+1)
+        
+        num_target_points = np.random.randint(self.min_num_target,
+                                              self.max_num_target+1)    
+
         """Generate a task."""
         xs, fs = [], []
         xs_train, ys_train = [], []
@@ -401,6 +471,9 @@ class PredatorPreyGenerator(DataGenerator):
     def generate_function(self, num_points):
         time, pred, prey = random_pred_pray(time_range=self.x_ranges, min_num_points=num_points, epsilon=0)
         return time, pred, {'model': self.models[0]}
+
+    def sample(self, x):
+        pass
 
 
 # =============================================================================
