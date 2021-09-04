@@ -224,7 +224,7 @@ parser.add_argument('--np_loss_samples',
                          'used for ANP and ConvNP.')
 
 parser.add_argument('--np_val_samples',
-                    default=8,
+                    default=5,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')
@@ -290,7 +290,7 @@ experiment_name = os.path.join(f'{root}',
                                f'results',
                                f'{args.data}',
                                f'models',
-                               f'{model_name}',
+                               f'{args.model}',
                                f'{args.covtype}',
                                f'seed-{args.seed}',
                                f'dim-{args.x_dim}')
@@ -304,7 +304,7 @@ data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
 log_filename = f'{args.data}-'    + \
-               f'{model_name}-'   + \
+               f'{args.model}-'   + \
                f'{args.covtype}'
                 
 log_directory = WorkingDirectory(root=log_path)
@@ -384,7 +384,7 @@ else:
     raise ValueError(f'Unknown model {args.model}.')
 
 
-print(f'{model_name} '
+print(f'{args.model} '
       f'{args.covtype} '
       f'{args.num_basis_dim}: '
       f'{model.num_params}')
