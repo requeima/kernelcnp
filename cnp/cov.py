@@ -88,7 +88,7 @@ class MeanFieldCov(Covariance):
 
         cov = torch.zeros(batch, dim, dim).to(embeddings.device)
         idx = np.arange(dim)
-        cov[:, idx, idx] = torch.exp(embeddings[:, :, 0])
+        cov[:, idx, idx] = torch.Softplus()(embeddings[:, :, 0])
 
         return cov
 
