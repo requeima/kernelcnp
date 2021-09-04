@@ -223,7 +223,7 @@ parser.add_argument('--num_noise_channels',
                     help='Number of noise channels to use in the ConvGNP.')
 
 parser.add_argument('--np_loss_samples',
-                    default=20,
+                    default=10,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
