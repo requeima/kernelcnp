@@ -217,11 +217,6 @@ parser.add_argument('covtype',
                              'meanfield'],
                     help='Choice of covariance method.')
 
-parser.add_argument('--num_noise_channels',
-                    default=0,
-                    type=int,
-                    help='Number of noise channels to use in the ConvGNP.')
-
 parser.add_argument('--np_loss_samples',
                     default=10,
                     type=int,
@@ -290,15 +285,6 @@ device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
 root = 'experiments/synthetic'
 
-if args.model == 'convGNP' and args.num_noise_channels > 0:
-    model_name = f'convGNP-{args.num_noise_channels}'
-    
-elif args.num_noise_channels == 0:
-    model_name = f'{args.model}'
-    
-else:
-    raise RuntimeError
-
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
                                f'results',
@@ -313,18 +299,13 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.data}',
-                         f'data',
-                         f'seed-{args.seed}',
-                         f'dim-{args.x_dim}')
+                         f'{args.data}')
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
 log_filename = f'{args.data}-'    + \
                f'{model_name}-'   + \
-               f'{args.covtype}-' + \
-               f'{args.seed}-'    + \
-               f'dim-{args.x_dim}'
+               f'{args.covtype}'
                 
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
@@ -379,8 +360,7 @@ elif args.model == 'AGNP':
 elif args.model == 'convGNP':
     model = StandardConvGNP(input_dim=args.x_dim,
                             covariance=cov,
-                            add_noise=noise,
-                            num_noise_channels=args.num_noise_channels)
+                            add_noise=noise)
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
