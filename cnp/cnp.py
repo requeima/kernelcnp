@@ -156,14 +156,14 @@ class StandardAGNP(StandardGNP):
 
 class StandardConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, input_dim, covariance, add_noise, num_noise_channels):
+    def __init__(self, input_dim, covariance, add_noise):
         
         # Standard input/output dimensions and discretisation density
         output_dim = 1
-        points_per_unit = 64
+        points_per_unit = 64 if input_dim == 1 else 32
 
         conv_channels = 8
-        conv_in_channels = conv_channels + num_noise_channels
+        conv_in_channels = conv_channels
         conv_out_channels = 8
         
         # Standard convolutional architecture
@@ -181,8 +181,7 @@ class StandardConvGNP(GaussianNeuralProcess):
                               init_length_scale=init_length_scale,
                               points_per_unit=points_per_unit,
                               grid_multiplier=grid_multiplyer,
-                              grid_margin=grid_margin,
-                              num_noise_channels=num_noise_channels)
+                              grid_margin=grid_margin)
         
         # Construct the convolutional decoder
         decoder_out_channels = output_dim +               \

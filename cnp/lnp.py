@@ -206,7 +206,7 @@ class StandardConvNP(LatentNeuralProcess):
 
         # Construct the convolutional encoder
         grid_multiplier =  2 ** encoder_conv.num_halving_layers
-        points_per_unit = 64
+        points_per_unit = 64 if input_dim == 1 else 32
         init_length_scale = 2.0 / points_per_unit
         grid_margin = 0.2
         

@@ -480,7 +480,8 @@ class HalfUNet(nn.Module):
     def __init__(self,
                  input_dim,
                  in_channels,
-                 out_channels):
+                 out_channels,
+                 latent_channels):
         
         super().__init__()
         
@@ -490,52 +491,53 @@ class HalfUNet(nn.Module):
         self.activation = nn.ReLU()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.latent_channels = 8
         self.num_halving_layers = 6
         
         kernel_size = 5
         padding = kernel_size // 2
 
         self.l1 = conv(in_channels=self.in_channels,
-                       out_channels=2*self.in_channels,
-                       kernel_size=kernel_size,
+                       out_channels=self.latent_channels,
+                       kernel_size=self.kernel_size,
                        stride=2,
-                       padding=padding)
+                       padding=2)
         
-        self.l2 = conv(in_channels=2*self.in_channels,
-                       out_channels=4*self.in_channels,
-                       kernel_size=kernel_size,
+        self.l2 = conv(in_channels=self.latent_channels,
+                       out_channels=2*self.latent_channels,
+                       kernel_size=self.kernel_size,
                        stride=2,
-                       padding=padding)
+                       padding=2)
         
-        self.l3 = conv(in_channels=4*self.in_channels,
-                       out_channels=8*self.in_channels,
-                       kernel_size=kernel_size,
+        self.l3 = conv(in_channels=2*self.latent_channels,
+                       out_channels=2*self.latent_channels,
+                       kernel_size=self.kernel_size,
                        stride=2,
-                       padding=padding)
+                       padding=2)
             
-        self.l4 = convt(in_channels=8*self.in_channels,
-                        out_channels=4*self.in_channels,
+        self.l4 = convt(in_channels=2*self.latent_channels,
+                        out_channels=2*self.latent_channels,
                         kernel_size=kernel_size,
                         stride=2,
                         padding=padding,
                         output_padding=1)
         
-        self.l5 = convt(in_channels=8*self.in_channels,
-                        out_channels=2*self.in_channels,
+        self.l5 = convt(in_channels=2*self.latent_channels,
+                        out_channels=self.latent_channels,
                         kernel_size=kernel_size,
                         stride=2,
                         padding=padding,
                         output_padding=1)
         
-        self.l6 = convt(in_channels=4*self.in_channels,
-                        out_channels=self.in_channels,
+        self.l6 = convt(in_channels=self.latent_channels,
+                        out_channels=self.latent_channels,
                         kernel_size=kernel_size,
                         stride=2,
                         padding=padding,
                         output_padding=1)
 
 
-        self.last_layer_multiplier = conv(in_channels=2*self.in_channels,
+        self.last_layer_multiplier = conv(in_channels=self.latent_channels,
                                           out_channels=self.out_channels,
                                           kernel_size=1,
                                           stride=1,
