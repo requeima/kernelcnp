@@ -447,23 +447,23 @@ class UNet(nn.Module):
         h4 = self.activation(self.l4(h3))
         h5 = self.activation(self.l5(h4))
         h6 = self.activation(self.l6(h5))
+        
         h7 = self.activation(self.l7(h6))
-
         h7 = torch.cat([h5, h7], dim=1)
+        
         h8 = self.activation(self.l8(h7))
-        
         h8 = torch.cat([h4, h8], dim=1)
+        
         h9 = self.activation(self.l9(h8))
-        
         h9 = torch.cat([h3, h9], dim=1)
+        
         h10 = self.activation(self.l10(h9))
-        
         h10 = torch.cat([h2, h10], dim=1)
-        h11 = self.activation(self.l11(h10))
         
+        h11 = self.activation(self.l11(h10))
         h11 = torch.cat([h1, h11], dim=1)
+        
         h12 = self.activation(self.l12(h11))
-
         h12 = torch.cat([x, h12], dim=1)
 
         return self.last_layer_multiplier(h12)
