@@ -60,7 +60,7 @@ class LatentNeuralProcess(nn.Module):
             assert (len(output.shape) == 3) and (output.shape[2] == 2)
             
             mean = output[:, :, :1]
-            noise_var = torch.exp(output[:, :, 1])
+            noise_var = 1e-6 + torch.nn.Softplus()(output[:, :, 1])
             noise_var = torch.diag_embed(noise_var)
             noise_var = self.add_noise(noise_var, None)
             

@@ -304,11 +304,11 @@ class ConvEncoder(nn.Module):
         # Apply linear function
         y_out = self.linear_model(y_out)
 
-        # Apply the activation layer. 
+        # Apply the activation layer
         r = self.activation(y_out)
 
         # Move channels to second index 
-        r = move_channel_idx(r,to_last=False, num_dims=c)
+        r = move_channel_idx(r, to_last=False, num_dims=c)
 
         return r
 
@@ -426,6 +426,7 @@ class StandardConvNPEncoder(ConvEncoder):
         
         mean = r[:, ::2]
         scale = torch.nn.Sigmoid()(r[:, 1::2])
+        scale = scale + 1e-3
         
         dist = torch.distributions.Normal(loc=mean, scale=scale)
         
