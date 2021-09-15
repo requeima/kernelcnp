@@ -155,11 +155,16 @@ parser.add_argument('--test',
 
 args = parser.parse_args()
 
-data_kinds = ['eq',
-              'matern',
-              'noisy-mixture',
-              'weakly-periodic',
-              'sawtooth']
+data_kinds = ['noisy-mixture-slow',
+              'weakly-periodic-slow']
+
+#data_kinds = ['eq',
+#              'matern',
+#              'noisy-mixture',
+#              'weakly-periodic',
+#              'noisy-mixture-slow',
+#              'weakly-periodic-slow',
+#              'sawtooth']
 
 seeds = list(range(0, 1))
 
