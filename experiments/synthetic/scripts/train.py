@@ -39,12 +39,10 @@ from cnp.lnp import (
 )
 
 from cnp.cov import (
-    InnerProdCov,
-    KvvCov,
-    MeanFieldCov,
-    AddHomoNoise,
-    AddHeteroNoise,
-    AddNoNoise
+    MeanFieldGaussianLayer,
+    InnerprodGaussianLayer,
+    KvvGaussianLayer,
+    LogLogitCopulaLayer
 )
 
 from cnp.oracle import oracle_loglik
@@ -209,11 +207,9 @@ parser.add_argument('model',
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
-                    choices=['innerprod-homo',
-                             'innerprod-hetero', 
-                             'kvv-homo',
-                             'kvv-hetero',
-                             'meanfield'],
+                    choices=['meanfield',
+                             'innerprod', 
+                             'kvv'],
                     help='Choice of covariance method.')
 
 parser.add_argument('noise_type',
@@ -340,8 +336,8 @@ cov_types = {
     'kvv'       : KvvGaussianLayer
 }
 
-output_layer = cov_types[cov_type](num_embedding=args.num_basis_dim,
-                                   noise_type=args.noisetype)
+output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
+                                        noise_type=args.noise_type)
 
 if args.marginal_type == 'loglogit':
     output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
