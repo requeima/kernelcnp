@@ -464,23 +464,16 @@ class KvvGaussianLayer(GaussianLayer):
 class LogLogitCopulaLayer(OutputLayer):
     
     
-    def __init__(self,
-                 gaussian_layer_type,
-                 num_embedding,
-                 noise_type):
-        
-        assert gaussian_layer_type in [InnerprodGaussianLayer,
-                                       KvvGaussianLayer]
+    def __init__(self, gaussian_layer):
         
         super().__init__()
         
         # Initialise Gaussian layer
-        self.gaussian_layer = gaussian_layer_type(num_embedding=num_embedding,
-                                                  noise_type=noise_type)
+        self.gaussian_layer = gaussian_layer
         
         # Number of features equal to number of Gaussian layer features plus
         # two additional features for the Gamma - rate and concentration
-        self.num_features = self.gaussian_layer_num_features + 2
+        self.num_features = self.gaussian_layer.num_features + 2
 
     
     def loglik(self, tensor, y_target):
@@ -494,8 +487,8 @@ class LogLogitCopulaLayer(OutputLayer):
         """
         
         # Unpack parameters and apply inverse transformation
-        tensor, a, b = unpack_parameters(tensor=tensor)
-        v_target = self.inverse_marginal_transformation(tensor=y_target,
+        tensor, a, b = self.unpack_parameters(tensor=tensor)
+        v_target = self.inverse_marginal_transformation(x=y_target,
                                                         a=a,
                                                         b=b)
         
@@ -503,7 +496,7 @@ class LogLogitCopulaLayer(OutputLayer):
         loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
         
         # Compute change-of-variables contribution (Jacobian is diagonal)
-        grad = self.inverse_marginal_transformation(tensor=y_target,
+        grad = self.inverse_marginal_transformation(x=y_target,
                                                     a=a,
                                                     b=b,
                                                     grad=True)
@@ -512,7 +505,7 @@ class LogLogitCopulaLayer(OutputLayer):
         # Ensure shapes are compatible
         assert loglik.shape == jacobian_term.shape
         
-        return loglik + jacbian_term
+        return loglik + jacobian_term
 
     
     def sample(self, tensor, num_samples, noiseless):
@@ -527,7 +520,7 @@ class LogLogitCopulaLayer(OutputLayer):
         """
         
         # Unpack parameters and apply inverse transformation
-        tensor, a, b = unpack_parameters(tensor=tensor)
+        tensor, a, b = self.unpack_parameters(tensor=tensor)
         
         # Draw samples from Gaussian and apply marginal transformation
         v_samples = self.gaussian_layer.sample(tensor=tensor,
@@ -554,8 +547,8 @@ class LogLogitCopulaLayer(OutputLayer):
                (tensor.shape[-1] == self.num_features)
         
         # Get rate and concentration from tensor
-        a = torch.nn.SoftPlus()(tensor[:, :, 0]) + 1e-3
-        b = torch.nn.SoftPlus()(tensor[:, :, 1]) + 1e-3
+        a = torch.nn.Softplus()(tensor[:, :, 0]) + 1e-3
+        b = torch.nn.Softplus()(tensor[:, :, 1]) + 1e-3
         
         # Slice out rate and concentration
         tensor = tensor[:, :, 2:]
@@ -563,51 +556,51 @@ class LogLogitCopulaLayer(OutputLayer):
         return tensor, a, b
     
     
-    def pdf(self, tensor, a, b):
+    def pdf(self, x, a, b):
         """
         Probability distribution function of the log-logistic distribution.
         
             PDF(x) = (b/a) * (x/a)^(b-1) / (1 + (x/a)^b)^2
         
         Arguments:
-            tensor : torch.tensor, (B, T)
-            a      : torch.tensor, (B, T)
-            b      : torch.tensor, (B, T)
+            x : torch.tensor, (B, T)
+            a : torch.tensor, (B, T)
+            b : torch.tensor, (B, T)
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
         
         # Check shapes are compatible, all x values are positive
-        assert tensor.shape == a.shape == b.shape
-        assert torch.all(tensor > 0.)
+        assert x.shape == a.shape == b.shape
+        assert torch.all(x > 0.)
         
-        return (b/a) * (tensor/a)**(b-1) / (1+(tensor/a)**b)**2
+        return (b/a) * (x/a)**(b-1) / (1+(x/a)**b)**2
     
     
-    def cdf(self, tensor, a, b):
+    def cdf(self, x, a, b):
         """
         Cumulative distribution function of the log-logistic distribution.
         
             CDF(x) = 1 / (1 + (x/a)^-b)
         
         Arguments:
-            tensor : torch.tensor, (B, T)
-            a      : torch.tensor, (B, T)
-            b      : torch.tensor, (B, T)
+            x : torch.tensor, (B, T)
+            a : torch.tensor, (B, T)
+            b : torch.tensor, (B, T)
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
         
         # Check shapes are compatible, all x values are positive
-        assert tensor.shape == a.shape == b.shape
-        assert torch.all(tensor > 0.)
+        assert x.shape == a.shape == b.shape
+        assert torch.all(x > 0.)
         
-        return 1 / (1+(tensor/a)**-b)
+        return 1 / (1+(x/a)**-b)
     
     
-    def icdf(self, tensor, a, b):
+    def icdf(self, x, a, b):
         """
         Inverse cumulative distribution function of the log-logistic
         distribution.
@@ -615,75 +608,71 @@ class LogLogitCopulaLayer(OutputLayer):
             CDF^-1(x) = a * (x^-1 - 1)^(-1/b)
         
         Arguments:
-            tensor : torch.tensor, (B, T)
-            a      : torch.tensor, (B, T)
-            b      : torch.tensor, (B, T)
+            x : torch.tensor, (B, T)
+            a : torch.tensor, (B, T)
+            b : torch.tensor, (B, T)
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
         
         # Check shapes are compatible, all x values are positive
-        assert tensor.shape == a.shape == b.shape
-        assert torch.all(tensor > 0.)
+        assert x.shape == a.shape == b.shape
+        assert torch.all(x > 0.)
         
-        tensor = a * (tensor**-1 - 1) ** (-1/b)
-        
-        return tensor
+        return a * (x**-1 - 1) ** (-1/b)
     
     
-    def marginal_transformation(self, tensor, a, b):
+    def marginal_transformation(self, x, a, b):
         """
         Arguments:
-            tensor : torch.tensor, (B, T)
-            a      : torch.tensor, (B, T)
-            b      : torch.tensor, (B, T)
+            x : torch.tensor, (B, T)
+            a : torch.tensor, (B, T)
+            b : torch.tensor, (B, T)
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
         
         # Check shapes are compatible, all x values are positive
-        assert tensor.shape == a.shape == b.shape
-        assert torch.all(tensor > 0.)
+        assert x.shape == a.shape == b.shape
         
-        zeros = torch.zeros(shape=tensor.shape)
-        ones = torch.ones(shape=tensor.shape)
+        zeros = torch.zeros(size=x.shape)
+        ones = torch.ones(size=x.shape)
         
-        gaussian = Normal(loc=ones, scale=zeros)
+        gaussian = Normal(loc=zeros, scale=ones)
         
-        tensor = gaussian.cdf(tensor)
-        tensor = self.icdf(tensor, a, b)
+        x = gaussian.cdf(x)
+        x = self.icdf(x, a, b)
         
-        return tensor
+        return x
         
         
-    def inverse_marginal_transformation(self, tensor, a, b, grad=False):
+    def inverse_marginal_transformation(self, x, a, b, grad=False):
         """
         Arguments:
-            tensor : torch.tensor, (B, T)
-            a      : torch.tensor, (B, T)
-            b      : torch.tensor, (B, T)
+            x : torch.tensor, (B, T)
+            a : torch.tensor, (B, T)
+            b : torch.tensor, (B, T)
             
         Returns:
-            tensor : torch.tensor, (B, T)
+            x : torch.tensor, (B, T)
         """
         
         # Check shapes are compatible, all x values are positive
-        assert tensor.shape == a.shape == b.shape
-        assert torch.all(tensor > 0.)
+        assert x.shape == a.shape == b.shape
+        assert torch.all(x > 0.)
         
-        zeros = torch.zeros(shape=tensor.shape)
-        ones = torch.ones(shape=tensor.shape)
+        zeros = torch.zeros(size=x.shape)
+        ones = torch.ones(size=x.shape)
         
-        gaussian = Normal(loc=ones, scale=zeros)
+        gaussian = Normal(loc=zeros, scale=ones)
         
         if grad:
-            tensor = self.pdf(tensor, a, b) * \
-                     gaussian.icdf(self.cdf(tensor, a, b))
+            x = self.pdf(x, a, b) * gaussian.icdf(self.cdf(x, a, b))
         
         else:
-            tensor = self.cdf(tensor, a, b)
-            tensor = gaussian.icdf(tensor)
+            x = self.cdf(x, a, b)
+            x = gaussian.icdf(x)
         
-        return tensor
+        return x
