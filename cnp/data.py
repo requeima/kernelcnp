@@ -336,46 +336,61 @@ class SawtoothGenerator(DataGenerator):
 # Preditor Prey Datagenerator
 # =============================================================================
 
-def predator_prey(num_pred, num_prey, pred_born, pred_death, prey_born, prey_death,
+def predator_prey(init_num_pred, init_num_prey, pred_born, pred_death, prey_born, prey_death,
                   time_start=0, time_end=np.inf, min_num_points=0, max_num_points=10000):
-    time = []
-    pred = []
-    prey = []
+
     
-    while len(time) < min_num_points:
-        time = [time_start]
-        pred = [num_pred]
-        prey = [num_prey]
-        t = 0
-        while t < time_end and num_pred + num_prey > 0 and len(time) < max_num_points:
-            pred_birth_rate = pred_born * num_prey * num_pred
-            pred_death_rate = pred_death * num_pred
-            prey_birth_rate = prey_born * num_prey
-            prey_death_rate = prey_death * num_prey * num_pred
-            total_rate = pred_birth_rate + pred_death_rate + prey_birth_rate + prey_death_rate
+    def make_series(init_num_pred, init_num_prey, pred_born, pred_death, prey_born, prey_death,
+                    time_start, time_end, min_num_points, max_num_points):
 
-            t += np.random.exponential(1./total_rate, 1)[0]
-            event = np.argmax(np.random.multinomial(1, [pred_birth_rate/total_rate,
-                                                        pred_death_rate/total_rate,
-                                                        prey_birth_rate/total_rate,
-                                                        prey_death_rate/total_rate]))
+        time = []
+        pred = []
+        prey = []
+        num_pred = init_num_pred
+        num_prey = init_num_prey
+        
+        while len(time) < min_num_points:
+            time = [time_start]
+            pred = [num_pred]
+            prey = [num_prey]
+            t = 0
+            while t < time_end and num_pred + num_prey > 0 and len(time) < max_num_points:
+                pred_birth_rate = pred_born * num_prey * num_pred
+                pred_death_rate = pred_death * num_pred
+                prey_birth_rate = prey_born * num_prey
+                prey_death_rate = prey_death * num_prey * num_pred
+                total_rate = pred_birth_rate + pred_death_rate + prey_birth_rate + prey_death_rate
 
-            if event == 0:
-                num_pred += 1
-            elif event == 1:
-                num_pred -= 1
-            elif event == 2:
-                num_prey += 1
-            else:
-                num_prey -= 1
+                t += np.random.exponential(1./total_rate, 1)[0]
+                event = np.argmax(np.random.multinomial(1, [pred_birth_rate/total_rate,
+                                                            pred_death_rate/total_rate,
+                                                            prey_birth_rate/total_rate,
+                                                            prey_death_rate/total_rate]))
 
-            time.append(t)
-            pred.append(num_pred)
-            prey.append(num_prey)
+                if event == 0:
+                    num_pred += 1
+                elif event == 1:
+                    num_pred -= 1
+                elif event == 2:
+                    num_prey += 1
+                else:
+                    num_prey -= 1
 
-    inds = np.random.permutation(len(time))
-    inds_return = sorted(inds[:max_num_points])
-    return np.array(time)[inds_return, None], np.array(pred)[inds_return, None], np.array(prey)[inds_return, None]
+                time.append(t)
+                pred.append(num_pred)
+                prey.append(num_prey)
+        
+        return time, pred, prey
+
+    while True:
+        time, pred, prey = make_series(init_num_pred, init_num_prey, pred_born, pred_death, prey_born, prey_death,
+                                       time_start, time_end, min_num_points, max_num_points)
+
+        if np.all(pred > 0) and np.all(prey > 0): 
+            inds = np.random.permutation(len(time))
+            inds_return = sorted(inds[:max_num_points])
+            return np.array(time)[inds_return], np.array(pred)[inds_return], np.array(prey)[inds_return]
+
 
 def random_pred_pray(time_range, min_num_points, max_num_points=10000, epsilon=0):
     pred_born = np.random.uniform(0.01 + 0.01 * epsilon, 0.01 - 0.01 * epsilon, 1)[0]
@@ -416,61 +431,36 @@ class PredatorPreyGenerator(DataGenerator):
         num_target_points = np.random.randint(self.min_num_target,
                                               self.max_num_target+1)    
 
-        """Generate a task."""
-        xs, fs = [], []
-        xs_train, ys_train = [], []
-        xs_test, ys_test = [], []
-        infos = []
 
         # Determine number of test and train points.
-        max_train_points = max(self.max_train_points, 4)
-        max_test_points = max(self.max_test_points, 4)
-        num_train_points = np.random.randint(3, max_train_points)
-        num_test_points = np.random.randint(3, max_test_points)
-        num_points = num_train_points + num_test_points
+        num_points = num_context_points + num_target_points
 
         for i in range(self.batch_size):
-            x, f, info = self.generate_function(num_points)
+            x, y = self.generate_function(num_points)
 
             # Determine indices for train and test set.
             inds = np.random.permutation(x.shape[0])
-            inds_train = sorted(inds[:num_train_points])
-            inds_test = sorted(inds[num_train_points:num_points])
+            inds_context = sorted(inds[:num_context_points])
+            inds_target = sorted(inds[num_context_points:num_points])
             all_inds = sorted(inds[:num_points])
 
             # Record.
-            infos.append(info)
-            xs.append(x[all_inds])
-            fs.append(f[all_inds])
-            xs_train.append(x[inds_train])
-            ys_train.append(f[inds_train])
-            xs_test.append(x[inds_test])
-            ys_test.append(f[inds_test])
-
-        # Construct task.
-        task = {'x': xs,
-                'f': fs,
-                'x_train': xs_train,
-                'y_train': ys_train,
-                'x_test': xs_test,
-                'y_test': ys_test}
+            batch['x'].append(x[all_inds])
+            batch['y'].append(y[all_inds])
+            batch['x_context'].append(x[inds_context])
+            batch['y_context'].append(y[inds_context])
+            batch['x_target'].append(x[inds_target])
+            batch['y_target'].append(y[inds_target])
 
         # Stack and create PyTorch objects.
-        task = {k: torch.Tensor(np.stack(v, axis=0))
-                for k, v in task.items()}
+        batch = {k: torch.Tensor(np.stack(v, axis=0))
+                for k, v in batch.items()}
 
-        # Add extra information.
-        task['num_train_points'] = num_train_points
-        task['num_test_points'] = num_test_points
-        task['x_ranges'] = self.x_ranges
-        for k in infos[0].keys():  # Use keys of first `info` element.
-            task[k] = [info[k] for info in infos]
-
-        return task
+        return batch
 
     def generate_function(self, num_points):
         time, pred, prey = random_pred_pray(time_range=self.x_ranges, min_num_points=num_points, epsilon=0)
-        return time, pred, {'model': self.models[0]}
+        return time, pred
 
     def sample(self, x):
         pass
