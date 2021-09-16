@@ -115,7 +115,7 @@ class GaussianLayer(OutputLayer):
         mean, f_cov, y_cov = self._mean_and_cov(tensor)
         
         # Jitter to covariance for numerical stability
-        jitter = 1e-6 * torch.eye(f_cov.shape[-1], device=y_cov.device)
+        jitter = 1e-4 * torch.eye(f_cov.shape[-1], device=y_cov.device)
         
         # Add jitter to both noiseless and noisy covariance
         f_cov = f_cov + jitter[None, :, :]

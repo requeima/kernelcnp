@@ -221,7 +221,7 @@ parser.add_argument('noise_type',
                     help='Choice of noise model.')
 
 parser.add_argument('--marginal_type',
-                    default='identity'
+                    default='identity',
                     choices=['loglogit'],
                     help='Choice of marginal transformation (optional).')
 
