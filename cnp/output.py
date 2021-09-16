@@ -3,9 +3,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from torch.distributions import MultivariateNormal
+from torch.distributions import (
+    Normal,
+    MultivariateNormal,
+    LowRankMultivariateNormal
+)
 
 from abc import ABC, abstractmethod, abstractproperty
+
+from cnp.utils import Gamma
+
 
 
 # =============================================================================
@@ -32,7 +39,7 @@ class OutputLayer(nn.Module):
         
         Arguments:
             tensor   : torch.tensor, shape (B, T, C)
-            y_target : torch.tensor, shape (B, T, 1)
+            y_target : torch.tensor, shape (B, T)
         """
         pass
 
@@ -55,47 +62,61 @@ class OutputLayer(nn.Module):
         pass
     
     
+    
 # =============================================================================
 # Meanfield output layer
 # =============================================================================
 
-class MeanFieldGaussianLayer(nn.Module):
+class GaussianLayer(OutputLayer):
     
     
     def __init__(self):
-        
         super().__init__()
+    
+    
+    @abstractmethod
+    def distribution(self, tensor, noiseless):
+        pass
         
-        self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        
+    @abstractmethod
+    def _mean_and_cov(self, tensor):
+        """
+        Computes mean and covariance of mean-field Gaussian layer, as
+        specified by the parameters in *tensor*. This method may give
+        covariances which are close to singular, so the method mean_and_cov
+        should be used instead.
+        
+        Arguments:
+            tensor : torch.tensor, (B, T, 2)
+            
+        Returns:
+            mean  : torch.tensor, (B, T)
+            f_cov : torch.tensor, (B, T, T)
+            y_cov : torch.tensor, (B, T, T)
+        """
+        pass
         
         
     def mean_and_cov(self, tensor, double=False):
         """
         Computes mean and covariance of mean-field Gaussian layer, as
-        specified by the parameters in *tensor*.
+        specified by the parameters in *tensor*. This method internally
+        calls _mean_and_cov, and adds jitter to the covariances which this
+        method produces.
         
         Arguments:
             tensor : torch.tensor, (B, T, 2)
-            double : optional bool, whether to use double precision
             
         Returns:
-            mean   : torch.tensor, (B, T)
-            cov    : torch.tensor, (B, T, T)
+            mean  : torch.tensor, (B, T)
+            f_cov : torch.tensor, (B, T, T)
+            y_cov : torch.tensor, (B, T, T)
         """
         
-        # Check tensor has three dimensions, and last dimension has size 2
-        assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)
+        # Compute mean and covariance
+        mean, f_cov, y_cov = self._mean_and_cov(tensor)
         
-        # Mean is the first feature of the tensor
-        mean = tensor[:, :, 0]
-        
-        # Covariance is a matrix with a 
-        f_var = torch.nn.Softplus()(tensor[:, :, 1])
-        y_var = f_var + torch.nn.Softplus()(self.noise_unconstrained)
-        
-        f_cov = torch.diag_embed(f_var)
-        y_cov = torch.diag_embed(y_var)
-
         # Jitter to covariance for numerical stability
         jitter = 1e-6 * torch.eye(f_cov.shape[-1], device=y_cov.device)
         
@@ -103,6 +124,7 @@ class MeanFieldGaussianLayer(nn.Module):
         f_cov = f_cov + jitter[None, :, :]
         y_cov = y_cov + jitter[None, :, :]
         
+        # If specified, use double precision
         if double:
             mean = mean.double()
             f_cov = f_cov.double()
@@ -112,27 +134,40 @@ class MeanFieldGaussianLayer(nn.Module):
     
     
     def loglik(self, tensor, y_target):
+        """
+        Computes the log-likelihood of *y_target* under mean-field Gaussian
+        layer, specified by the parameters in *tensor*.
         
-        # Compute mean and covariance from feature vector
-        y_mean, _, y_cov = self.mean_and_cov(tensor, double=True)
+        Arguments:
+            tensor   : torch.tensor, (B, T, 2)
+            y_target : torch.tensor, (B, T)
+            
+        Returns:
+            loglik   : torch.tensor, ()
+        """
         
-        # Initialise distribution to compute log probability
-        dist = MultivariateNormal(loc=y_mean, covariance_matrix=y_cov)
-        
-        # Compute log likelihood and return
-        loglik = dist.log_prob(y_target[:, :, 0]).float()
-        loglik = torch.mean(loglik)
+        # Initialise distribution and compute log probability
+        dist = self.distribution(tensor, noiseless=False)
+        loglik = dist.log_prob(y_target).float()
         
         return loglik
     
     
-    def sample(self, tensor, num_samples):
+    def sample(self, tensor, num_samples, noiseless):
+        """
+        Draws samples from the mean-field Gaussian
+        layer, specified by the parameters in *tensor*.
         
-        # Compute mean and covariance from feature vector
-        y_mean, _, y_cov = self.mean_and_cov(tensor, double=True)
+        Arguments:
+            tensor   : torch.tensor, (B, T, 2)
+            y_target : torch.tensor, (B, T)
+            
+        Returns:
+            loglik   : torch.tensor, ()
+        """
         
         # Initialise distribution to compute log probability
-        dist = MultivariateNormal(loc=y_mean, covariance_matrix=y_cov)
+        dist = self.distribution(tensor=tensor, noiseless=noiseless)
         
         # Draw samples and return
         samples = dist.sample(sample_shape=[num_samples])
@@ -142,35 +177,185 @@ class MeanFieldGaussianLayer(nn.Module):
     
     
 # =============================================================================
-# Innerprod output layer
+# Meanfield output layer
 # =============================================================================
 
-class InnerprodGaussianLayer(nn.Module):
+
+class MeanFieldGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, feature_dim, noise_type):
+    def __init__(self):
         
         super().__init__()
         
-        self.feature_dim
+        self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
         
         
-    def mean_and_cov(self, tensor):
+    def _mean_and_cov(self, tensor):
         """
-        tensor : torch.tensor, (B, T, D)
+        Computes mean and covariance of mean-field Gaussian layer, as
+        specified by the parameters in *tensor*. This method may give
+        covariances which are close to singular, so the method mean_and_cov
+        should be used instead.
+        
+        Arguments:
+            tensor : torch.tensor, (B, T, 2)
+            
+        Returns:
+            mean  : torch.tensor, (B, T)
+            f_cov : torch.tensor, (B, T, T)
+            y_cov : torch.tensor, (B, T, T)
         """
         
-
-    def loglik(self, tensor, y_target):
-        pass
-
+        # Check tensor has three dimensions, and last dimension has size 2
+        assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)
+        
+        # Compute mean vector
+        mean = tensor[:, :, 0]
+        
+        # Compute diagonal covariance matrix
+        f_var = torch.nn.Softplus()(tensor[:, :, 1])
+        y_var = f_var + torch.nn.Softplus()(self.noise_unconstrained)
+        
+        f_cov = torch.diag_embed(f_var)
+        y_cov = torch.diag_embed(y_var)
+        
+        return mean, f_cov, y_cov
     
-    def sample(self, tensor, num_samples):
-        pass
-
     
-    def marginals(self, tensor):
-        pass
+    def distribution(self, tensor, noiseless):
+        
+        # Get mean and covariances of distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor)
+        
+        # Set lower triangular scale equal to either noiseless or noisy scale
+        scale_tril = f_cov**0.5 if noiseless else y_cov**0.5
+        
+        # Create distribution and return
+        dist = MultivariateNormal(loc=mean, scale_tril=scale_tril)
+        
+        return dist
+    
+    
+    
+# =============================================================================
+# Innerprod output layer
+# =============================================================================
+
+class InnerprodGaussianLayer(GaussianLayer):
+    
+    
+    def __init__(self, num_embedding, noise_type):
+        
+        super().__init__()
+        
+        # Noise type can be homoscedastic or heteroscedastic
+        assert noise_type in ["homo", "hetero"]
+        
+        # Set noise type, initialise noise variable if necessary
+        self.noise_type = noise_type
+        
+        if self.noise_type == "homo":
+            self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        
+        # Compute total number of features expected by layer
+        self.mean_dim = 1
+        self.extra_noise_dim = int(self.noise_type == "hetero")
+        self.num_embedding = num_embedding
+        
+        self.num_features = self.mean_dim        + \
+                            self.num_embedding   + \
+                            self.extra_noise_dim
+        
+        
+    def _mean_and_cov(self, tensor):
+        """
+        Computes mean and covariance of kvv Gaussian layer, as specified
+        by the parameters in *tensor*. This method may give covariances
+        which are close to singular, so the method mean_and_cov should be
+        used instead.
+        
+        Arguments:
+            tensor : torch.tensor, (B, T, 2)
+            
+        Returns:
+            mean  : torch.tensor, (B, T)
+            f_cov : torch.tensor, (B, T, T)
+            y_cov : torch.tensor, (B, T, T)
+        """
+        
+        # Check tensor has three dimensions, and last dimension has size 2
+        assert (len(tensor.shape) == 3) and \
+               (tensor.shape[2] == self.num_features)
+        
+        # Batch and datapoint dimensions
+        B, T, C = tensor.shape
+        
+        # Compute mean vector
+        mean = tensor[:, :, 0]
+        
+        # Slice out components of covariance (z and noise)
+        z = tensor[:, :, 1:-1] / C**0.5
+        
+        if self.noise_type == "homo":
+            noise = torch.nn.Softplus()(self.noise_unconstrained)
+            noise = noise[None, None].repeat(B, T)
+            noise = torch.diag_embed(noise)
+            
+        else:
+            noise = torch.nn.Softplus()(tensor[:, :, -1])
+            noise = torch.diag_embed(noise)
+        
+        # Covariance is the product of the RBF and the v terms
+        f_cov = torch.einsum("bnc, bmc -> bnm", z, z)
+        y_cov = f_cov + noise
+        
+        return mean, f_cov, y_cov
+    
+    
+    def distribution(self, tensor, noiseless):
+        
+        # Check tensor has three dimensions, and last dimension has size 2
+        assert (len(tensor.shape) == 3) and \
+               (tensor.shape[2] == self.num_features)
+        
+        B, T, C = tensor.shape
+        
+        # If num datapoints smaller than num embedding, return full-rank
+        if tensor.shape[1] - 1 <= self.num_embedding:
+            
+            mean, f_cov, y_cov = self.mean_and_cov(tensor)
+            cov = f_cov if noiseless else y_cov
+            
+            dist = MultivariateNormal(loc=mean, covariance_matrix=cov)
+            
+            return dist
+        
+        
+        # Otherwise, return low-rank 
+        else:
+            
+            # Split tensor into mean and embedding
+            mean = tensor[:, :, 0]
+            z = tensor[:, :, 1:-1] / C**0.5
+            jitter = torch.tensor(1e-6).repeat(B, T)
+        
+            if noiseless:
+                noise = jitter
+                
+            elif self.noise_type == "homo":
+                noise = torch.nn.Softplus()(self.noise_unconstrained)
+                noise = noise[None, None].repeat(B, T)
+                noise = noise + jitter
+
+            else:
+                noise = torch.nn.Softplus()(tensor[:, :, -1])
+                noise = noise + jitter
+            
+            dist = LowRankMultivariateNormal(loc=mean,
+                                             cov_factor=z,
+                                             cov_diag=noise)
+            return dist
     
     
     
@@ -178,46 +363,327 @@ class InnerprodGaussianLayer(nn.Module):
 # Kvv output layer
 # =============================================================================
 
-class KvvGaussianLayer(nn.Module):
+
+class KvvGaussianLayer(GaussianLayer):
     
     
-    def __init__(self):
+    def __init__(self, num_embedding, noise_type):
         
         super().__init__()
-
+        
+        # Noise type can be homoscedastic or heteroscedastic
+        assert noise_type in ["homo", "hetero"]
+        
+        # Set noise type, initialise noise variable if necessary
+        self.noise_type = noise_type
+        
+        if self.noise_type == "homo":
+            self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        
+        # Compute total number of features expected by layer
+        self.mean_dim = 1
+        self.v_dim = 1
+        self.extra_noise_dim = int(self.noise_type == "hetero")
+        self.num_embedding = num_embedding
+        
+        self.num_features = self.mean_dim        + \
+                            self.num_embedding   + \
+                            self.v_dim           + \
+                            self.extra_noise_dim 
+        
+        
+    def _mean_and_cov(self, tensor):
+        """
+        Computes mean and covariance of kvv Gaussian layer, as specified
+        by the parameters in *tensor*. This method may give covariances
+        which are close to singular, so the method mean_and_cov should be
+        used instead.
+        
+        Arguments:
+            tensor : torch.tensor, (B, T, 2)
+            
+        Returns:
+            mean  : torch.tensor, (B, T)
+            f_cov : torch.tensor, (B, T, T)
+            y_cov : torch.tensor, (B, T, T)
+        """
+        
+        # Check tensor has three dimensions, and last dimension has size 2
+        assert (len(tensor.shape) == 3) and \
+               (tensor.shape[2] == self.num_features)
+        
+        # Batch and datapoint dimensions
+        B, T, _ = tensor.shape
+        
+        # Compute mean vector
+        mean = tensor[:, :, 0]
+        
+        # Slice out components of covariance
+        z = tensor[:, :, 1:-2]
+        v = tensor[:, :, -2]
+        
+        if self.noise_type == "homo":
+            noise = torch.nn.Softplus()(self.noise_unconstrained)
+            noise = noise[None, None].repeat(B, T)
+            noise = torch.diag_embed(noise)
+            
+        else:
+            noise = torch.nn.Softplus()(tensor[:, :, -1])
+            noise = torch.diag_embed(noise)
+            
+        # Apply RBF function to embedding
+        quad = -0.5 * (z[:, :, None, :] - z[:, None, :, :]) ** 2
+        exp = torch.exp(torch.sum(quad, axis=-1))
+        
+        # Covariance is the product of the RBF and the v terms
+        f_cov = exp * v[:, :, None] * v[:, None, :]
+        y_cov = f_cov + noise
+        
+        return mean, f_cov, y_cov
     
-    def loglik(self, tensor, y_target):
-        pass
-
     
-    def sample(self, tensor, num_samples):
-        pass
-
-    
-    def marginals(self, tensor):
-        pass
+    def distribution(self, tensor, noiseless):
+        
+        # Get mean and covariances of distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor)
+        
+        # Set covariance to either noiseless or noisy covariance
+        cov = f_cov if noiseless else y_cov
+        
+        # Create distribution and return
+        dist = MultivariateNormal(loc=mean, covariance_matrix=cov)
+        
+        return dist
     
     
     
 # =============================================================================
-# Gamma Gaussian output layer
+# Log-logit copula output layer
 # =============================================================================
 
-class GammaGaussianCopulaLayer(nn.Module):
+class LogLogitCopulaLayer(OutputLayer):
     
     
-    def __init__(self):
+    def __init__(self,
+                 gaussian_layer_type,
+                 num_embedding,
+                 noise_type):
+        
+        assert gaussian_layer_type in [InnerprodGaussianLayer,
+                                       KvvGaussianLayer]
         
         super().__init__()
+        
+        # Initialise Gaussian layer
+        self.gaussian_layer = gaussian_layer_type(num_embedding=num_embedding,
+                                                  noise_type=noise_type)
+        
+        # Number of features equal to number of Gaussian layer features plus
+        # two additional features for the Gamma - rate and concentration
+        self.num_features = self.gaussian_layer_num_features + 2
 
     
     def loglik(self, tensor, y_target):
-        pass
+        """
+        Arguments:
+            tensor   : torch.tensor, (B, T, C)
+            y_target : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Unpack parameters and apply inverse transformation
+        tensor, a, b = unpack_parameters(tensor=tensor)
+        v_target = self.inverse_marginal_transformation(tensor=y_target,
+                                                        a=a,
+                                                        b=b)
+        
+        # Log-likelihood of transformed variables under Gaussian
+        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
+        
+        # Compute change-of-variables contribution (Jacobian is diagonal)
+        grad = self.inverse_marginal_transformation(tensor=y_target,
+                                                    a=a,
+                                                    b=b,
+                                                    grad=True)
+        jacobian_term = torch.sum(torch.log(torch.abs(grad)), dim=-1)
+        
+        # Ensure shapes are compatible
+        assert loglik.shape == jacobian_term.shape
+        
+        return loglik + jacbian_term
 
     
-    def sample(self, tensor, num_samples):
-        pass
-
+    def sample(self, tensor, num_samples, noiseless):
+        """
+        Arguments:
+            tensor      : torch.tensor, (B, T, C)
+            num_samples : int, number of samples to draw
+            noiseless   : bool, whether to include the noise term
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Unpack parameters and apply inverse transformation
+        tensor, a, b = unpack_parameters(tensor=tensor)
+        
+        # Draw samples from Gaussian and apply marginal transformation
+        v_samples = self.gaussian_layer.sample(tensor=tensor,
+                                               num_samples=num_samples)
+        
+        samples = self.marginal_transformation(v_samples, a=a, b=b)
+        
+        return samples
+        
+        
+    def unpack_parameters(self, tensor):
+        """
+        Arguments:
+            tensor : torch.tensor, (B, T, C)
+            
+        Returns:
+            tensor : torch.tensor, (B, T, C-2)
+            a      : torch.tensor, (B, T)
+            b      : torch.tensor, (B, T)
+        """
+        
+        # Check tensor has correct number of features
+        assert (len(tensor.shape) == 3) and \
+               (tensor.shape[-1] == self.num_features)
+        
+        # Get rate and concentration from tensor
+        a = torch.nn.SoftPlus()(tensor[:, :, 0]) + 1e-3
+        b = torch.nn.SoftPlus()(tensor[:, :, 1]) + 1e-3
+        
+        # Slice out rate and concentration
+        tensor = tensor[:, :, 2:]
+        
+        return tensor, a, b
     
-    def marginals(self, tensor):
-        pass
+    
+    def pdf(self, tensor, a, b):
+        """
+        Probability distribution function of the log-logistic distribution.
+        
+            PDF(x) = (b/a) * (x/a)^(b-1) / (1 + (x/a)^b)^2
+        
+        Arguments:
+            tensor : torch.tensor, (B, T)
+            a      : torch.tensor, (B, T)
+            b      : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Check shapes are compatible, all x values are positive
+        assert tensor.shape == a.shape == b.shape
+        assert torch.all(tensor > 0.)
+        
+        return (b/a) * (tensor/a)**(b-1) / (1+(tensor/a)**b)**2
+    
+    
+    def cdf(self, tensor, a, b):
+        """
+        Cumulative distribution function of the log-logistic distribution.
+        
+            CDF(x) = 1 / (1 + (x/a)^-b)
+        
+        Arguments:
+            tensor : torch.tensor, (B, T)
+            a      : torch.tensor, (B, T)
+            b      : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Check shapes are compatible, all x values are positive
+        assert tensor.shape == a.shape == b.shape
+        assert torch.all(tensor > 0.)
+        
+        return 1 / (1+(tensor/a)**-b)
+    
+    
+    def icdf(self, tensor, a, b):
+        """
+        Inverse cumulative distribution function of the log-logistic
+        distribution.
+        
+            CDF^-1(x) = a * (x^-1 - 1)^(-1/b)
+        
+        Arguments:
+            tensor : torch.tensor, (B, T)
+            a      : torch.tensor, (B, T)
+            b      : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Check shapes are compatible, all x values are positive
+        assert tensor.shape == a.shape == b.shape
+        assert torch.all(tensor > 0.)
+        
+        tensor = a * (tensor**-1 - 1) ** (-1/b)
+        
+        return tensor
+    
+    
+    def marginal_transformation(self, tensor, a, b):
+        """
+        Arguments:
+            tensor : torch.tensor, (B, T)
+            a      : torch.tensor, (B, T)
+            b      : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Check shapes are compatible, all x values are positive
+        assert tensor.shape == a.shape == b.shape
+        assert torch.all(tensor > 0.)
+        
+        zeros = torch.zeros(shape=tensor.shape)
+        ones = torch.ones(shape=tensor.shape)
+        
+        gaussian = Normal(loc=ones, scale=zeros)
+        
+        tensor = gaussian.cdf(tensor)
+        tensor = self.icdf(tensor, a, b)
+        
+        return tensor
+        
+        
+    def inverse_marginal_transformation(self, tensor, a, b, grad=False):
+        """
+        Arguments:
+            tensor : torch.tensor, (B, T)
+            a      : torch.tensor, (B, T)
+            b      : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Check shapes are compatible, all x values are positive
+        assert tensor.shape == a.shape == b.shape
+        assert torch.all(tensor > 0.)
+        
+        zeros = torch.zeros(shape=tensor.shape)
+        ones = torch.ones(shape=tensor.shape)
+        
+        gaussian = Normal(loc=ones, scale=zeros)
+        
+        if grad:
+            tensor = self.pdf(tensor, a, b) * \
+                     gaussian.icdf(self.cdf(tensor, a, b))
+        
+        else:
+            tensor = self.cdf(tensor, a, b)
+            tensor = gaussian.icdf(tensor)
+        
+        return tensor

@@ -3,23 +3,187 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
+import tensorflow as tf
+import tensorflow_probability as tfp
+
+tfd = tfp.distributions
+
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import sys
+
 try:
     import stheno
 except ModuleNotFoundError:
     pass
+
 import cnp
 
 
-__all__ = ['to_multiple',
-           'init_layer_weights',
-           'init_sequential_weights',
-           'compute_dists',
-           'pad_concat']
+# =============================================================================
+# Differentiable Gamma CDF and inverse CDF
+# =============================================================================
 
+
+class __gamma_cdf(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x, rate, concentration):
+        
+        assert x.shape == rate.shape == concentration.shape
+        
+        ctx.save_for_backward(x, rate, concentration)
+        
+        # Convert torch to TF
+        x = x.detach().cpu().numpy()
+        x = tf.convert_to_tensor(x)
+        
+        rate = rate.detach().cpu().numpy()
+        rate = tf.convert_to_tensor(rate)
+        
+        concentration = concentration.detach().cpu().numpy()
+        concentration = tf.convert_to_tensor(concentration)
+        
+        # Initialise distribution and compute cdf
+        distribution = tfd.Gamma(rate=rate, concentration=concentration)
+        cdf = distribution.cdf(x)
+        
+        # Convert TF to torch
+        cdf = torch.tensor(cdf.numpy())
+        
+        return cdf
+
+    
+    @staticmethod
+    def backward(ctx, gradient_output):
+        
+        # Unpack inputs
+        x, rate, concentration = ctx.saved_tensors
+        gradient_input = gradient_output.clone()
+        
+        # Convert torch to TF
+        x = x.detach().cpu().numpy()
+        x = tf.convert_to_tensor(x)
+        
+        rate = rate.detach().cpu().numpy()
+        rate = tf.convert_to_tensor(rate)
+        
+        concentration = concentration.detach().cpu().numpy()
+        concentration = tf.convert_to_tensor(concentration)
+        
+        # Compute gradients using TF gradient tape
+        with tf.GradientTape() as tape:
+            
+            tape.watch(x)
+            tape.watch(rate)
+            tape.watch(concentration)
+            
+            distribution = tfd.Gamma(rate, concentration)
+            cdf = distribution.cdf(x)
+            
+        gradients = tape.gradient(cdf, [x, rate, concentration])
+            
+        # Convert to torch
+        gradients = [torch.tensor(gradient.numpy()) \
+                     for gradient in gradients]
+        
+        gradients = [gradient * gradient_input for gradient in gradients]
+        
+        return tuple(gradients)
+    
+    
+class __gamma_icdf(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x, rate, concentration):
+        
+        assert x.shape == rate.shape == concentration.shape
+        
+        ctx.save_for_backward(x, rate, concentration)
+        
+        # Convert torch to TF
+        x = x.detach().cpu().numpy()
+        x = tf.convert_to_tensor(x)
+        
+        rate = rate.detach().cpu().numpy()
+        rate = tf.convert_to_tensor(rate)
+        
+        concentration = concentration.detach().cpu().numpy()
+        concentration = tf.convert_to_tensor(concentration)
+        
+        # Initialise distribution and compute inverse CDF
+        distribution = tfd.Gamma(rate=rate, concentration=concentration)
+        icdf = distribution.quantile(x)
+        
+        # Convert TF to torch
+        icdf = torch.tensor(icdf.numpy())
+        
+        return icdf
+
+    
+    @staticmethod
+    def backward(ctx, gradient_output):
+        
+        # Unpack inputs
+        x, rate, concentration = ctx.saved_tensors
+        gradient_input = gradient_output.clone()
+        
+        # Convert torch to TF
+        x = x.detach().cpu().numpy()
+        x = tf.convert_to_tensor(x)
+        
+        rate = rate.detach().cpu().numpy()
+        rate = tf.convert_to_tensor(rate)
+        
+        concentration = concentration.detach().cpu().numpy()
+        concentration = tf.convert_to_tensor(concentration)
+        
+        # Compute gradients using TF gradient tape
+        with tf.GradientTape() as tape:
+            
+            tape.watch(x)
+            tape.watch(rate)
+            tape.watch(concentration)
+            
+            distribution = tfd.Gamma(rate=rate,
+                                     concentration=concentration)
+            icdf = distribution.quantile(x)
+            
+        gradients = tape.gradient(icdf, [x, rate, concentration])
+            
+        # Convert TF to torch
+        gradients = [torch.tensor(gradient.numpy()) \
+                     for gradient in gradients]
+        
+        gradients = [gradient * gradient_input for gradient in gradients]
+        
+        return tuple(gradients)
+    
+_gamma_cdf = __gamma_cdf.apply
+_gamma_icdf = __gamma_icdf.apply
+
+
+# =============================================================================
+# Gamma distribution supporting CDF and inverse CDF calculations
+# =============================================================================
+
+class Gamma(torch.distributions.gamma.Gamma):
+
+    def __init__(self, rate, concentration):
+        
+        super().__init__(rate=rate, concentration=concentration)
+    
+    
+    def cdf(self, x):
+        return _gamma_cdf(x, self.rate, self.concentration)
+        
+        
+    def icdf(self, x):
+        return _gamma_icdf(x, self.rate, self.concentration)
+    
+    
+    
 
 def to_multiple(x, multiple):
     """Convert `x` to the nearest above multiple.
@@ -229,7 +393,8 @@ def plot_samples_and_data(model,
     
     else:
         tensors = model(ctx_in, ctx_out, plot_inputs)
-        mean, cov, cov_plus_noise = [tensor.detach().cpu() for tensor in tensors]
+        mean, cov, cov_plus_noise = [tensor.detach().cpu() \
+                                     for tensor in tensors]
 
     plt.figure(figsize=(16, 3))
 
@@ -238,7 +403,7 @@ def plot_samples_and_data(model,
         plt.subplot(1, 3, i + 1)
 
         # Plot samples from predictive distribution
-        # Try samlping and plotting with jitter -- if error is raised, plot marginals
+        # Try samlping with jitter - if error raised, plot marginals
         if latent_model:
 
             for j in range(num_samples):
