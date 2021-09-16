@@ -205,17 +205,25 @@ parser.add_argument('model',
                              'convGNP',
                              'FullConvGNP',
                              'ANP',
-                             'convNP',
-                             'convNPHalfUNet'],
+                             'convNP'],
                     help='Choice of model. ')
 
-parser.add_argument('covtype',
+parser.add_argument('cov_type',
                     choices=['innerprod-homo',
                              'innerprod-hetero', 
                              'kvv-homo',
                              'kvv-hetero',
                              'meanfield'],
                     help='Choice of covariance method.')
+
+parser.add_argument('noise_type',
+                    choices=['homo', 'hetero'],
+                    help='Choice of noise model.')
+
+parser.add_argument('--marginal_type',
+                    default='identity'
+                    choices=['loglogit'],
+                    help='Choice of marginal transformation (optional).')
 
 parser.add_argument('--np_loss_samples',
                     default=10,
@@ -291,7 +299,9 @@ experiment_name = os.path.join(f'{root}',
                                f'{args.data}',
                                f'models',
                                f'{args.model}',
-                               f'{args.covtype}',
+                               f'{args.cov_type}',
+                               f'{args.noise_type}',
+                               f'{args.marginal_type}',
                                f'seed-{args.seed}',
                                f'dim-{args.x_dim}')
 working_directory = WorkingDirectory(root=experiment_name)
@@ -303,9 +313,11 @@ data_root = os.path.join(f'{root}',
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
-log_filename = f'{args.data}-'    + \
-               f'{args.model}-'   + \
-               f'{args.covtype}'
+log_filename = f'{args.data}-'          + \
+               f'{args.model}-'         + \
+               f'{args.cov_type}-'      + \
+               f'{args.noise_type}-'    + \
+               f'{args.marginal_type}'
                 
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
@@ -322,62 +334,39 @@ file.close()
 # Create model
 # =============================================================================
 
-# Create covariance method
-if args.covtype == 'innerprod-homo':
-    cov = InnerProdCov(args.num_basis_dim)
-    noise = AddHomoNoise()
-    
-elif args.covtype == 'innerprod-hetero':
-    cov = InnerProdCov(args.num_basis_dim)
-    noise = AddHeteroNoise()
-    
-elif args.covtype == 'kvv-homo':
-    cov = KvvCov(args.num_basis_dim)
-    noise = AddHomoNoise()
-    
-elif args.covtype == 'kvv-hetero':
-    cov = KvvCov(args.num_basis_dim)
-    noise = AddHomoNoise()
-    
-elif args.covtype == 'meanfield':
-    cov = MeanFieldCov(num_basis_dim=1)
-    noise = AddNoNoise()
-    
-else:
-    raise ValueError(f'Unknown covariance method {args.covtype}.')
+cov_types = {
+    'meanfield' : MeanFieldGaussianLayer,
+    'innerprod' : InnerprodGaussianLayer,
+    'kvv'       : KvvGaussianLayer
+}
+
+output_layer = cov_types[cov_type](num_embedding=args.num_basis_dim,
+                                   noise_type=args.noisetype)
+
+if args.marginal_type == 'loglogit':
+    output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
     
 # Create model architecture
 if args.model == 'GNP':
-    model = StandardGNP(input_dim=args.x_dim,
-                        covariance=cov,
-                        add_noise=noise)
+    model = StandardGNP(input_dim=args.x_dim, output_layer=output_layer)
     
 elif args.model == 'AGNP':
-    model = StandardAGNP(input_dim=args.x_dim,
-                         covariance=cov,
-                         add_noise=noise)
+    model = StandardAGNP(input_dim=args.x_dim, output_layer=output_layer)
     
 elif args.model == 'convGNP':
-    model = StandardConvGNP(input_dim=args.x_dim,
-                            covariance=cov,
-                            add_noise=noise)
+    model = StandardConvGNP(input_dim=args.x_dim, output_layer=output_layer)
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
-    
 
 elif args.model == 'ANP':
-    
     noise = AddHomoNoise()
     model = StandardANP(input_dim=args.x_dim,
-                        add_noise=noise,
                         num_samples=args.np_loss_samples)
     
 elif args.model == 'convNP':
-    
     noise = AddHomoNoise()
     model = StandardConvNP(input_dim=args.x_dim,
-                           add_noise=noise,
                            num_samples=args.np_loss_samples)
     
 else:
@@ -385,7 +374,9 @@ else:
 
 
 print(f'{args.model} '
-      f'{args.covtype} '
+      f'{args.cov_type} '
+      f'{args.noise_type} '
+      f'{args.marginal_type} '
       f'{args.num_basis_dim}: '
       f'{model.num_params}')
 
@@ -495,19 +486,19 @@ for epoch in range(epochs):
         is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                             (False, best_nll)
 
-        plot_marginals = args.covtype == 'meanfield'
+#         plot_marginals = args.cov_type == 'meanfield'
 
-        if args.x_dim == 1:
+#         if args.x_dim == 1:
             
-            plot_samples_and_data(model=model,
-                                  valid_epoch=valid_epoch,
-                                  x_plot_min=-3.,
-                                  x_plot_max=3.,
-                                  root=working_directory.root,
-                                  epoch=epoch,
-                                  latent_model=latent_model,
-                                  plot_marginals=plot_marginals,
-                                  device=device)
+#             plot_samples_and_data(model=model,
+#                                   valid_epoch=valid_epoch,
+#                                   x_plot_min=-3.,
+#                                   x_plot_max=3.,
+#                                   root=working_directory.root,
+#                                   epoch=epoch,
+#                                   latent_model=latent_model,
+#                                   plot_marginals=plot_marginals,
+#                                   device=device)
 
 
     train_epoch = data_train[epoch]
