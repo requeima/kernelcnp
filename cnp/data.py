@@ -380,16 +380,21 @@ def predator_prey(init_num_pred, init_num_prey, pred_born, pred_death, prey_born
                 pred.append(num_pred)
                 prey.append(num_prey)
         
-        return time, pred, prey
+        return np.array(time), np.array(pred), np.array(prey)
 
     while True:
         time, pred, prey = make_series(init_num_pred, init_num_prey, pred_born, pred_death, prey_born, prey_death,
                                        time_start, time_end, min_num_points, max_num_points)
 
-        if np.all(pred > 0) and np.all(prey > 0): 
+        # check that all of the requirements are satisfied
+        if (np.all(pred > 0) and 
+            np.all(prey > 0) and 
+            time[-1] < time_end and 
+            len(time) > min_num_points): 
+            
             inds = np.random.permutation(len(time))
             inds_return = sorted(inds[:max_num_points])
-            return np.array(time)[inds_return], np.array(pred)[inds_return], np.array(prey)[inds_return]
+            return time[inds_return], pred[inds_return], prey[inds_return]
 
 
 def random_pred_pray(time_range, min_num_points, max_num_points=10000, epsilon=0):
@@ -417,7 +422,8 @@ class PredatorPreyGenerator(DataGenerator):
         Returns:
             dict: A task, which is a dictionary with keys `x`, `y`, `x_context`,
                 `y_context`, `x_target`, and `y_target.
-        """
+        """ 
+
         batch = {'x'         : [],
                  'y'         : [],
                  'x_context' : [],
@@ -446,11 +452,11 @@ class PredatorPreyGenerator(DataGenerator):
 
             # Record.
             batch['x'].append(x[all_inds])
-            batch['y'].append(y[all_inds])
+            batch['y'].append(y[:, all_inds])
             batch['x_context'].append(x[inds_context])
-            batch['y_context'].append(y[inds_context])
+            batch['y_context'].append(y[:, inds_context])
             batch['x_target'].append(x[inds_target])
-            batch['y_target'].append(y[inds_target])
+            batch['y_target'].append(y[:, inds_target])
 
         # Stack and create PyTorch objects.
         batch = {k: torch.Tensor(np.stack(v, axis=0))
@@ -459,8 +465,8 @@ class PredatorPreyGenerator(DataGenerator):
         return batch
 
     def generate_function(self, num_points):
-        time, pred, prey = random_pred_pray(time_range=self.x_ranges, min_num_points=num_points, epsilon=0)
-        return time, pred
+        time, pred, prey = random_pred_pray(time_range=self.x_context_ranges, min_num_points=num_points, epsilon=0)
+        return time, np.array([pred, prey])
 
     def sample(self, x):
         pass
