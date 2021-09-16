@@ -21,6 +21,8 @@ from cnp.decoders import (
     ConvPDDecoder,
 )
 
+from cnp.cov import GaussianLayer
+
 from cnp.architectures import StandardDepthwiseSeparableCNN, UNet, build_dws_net
 
 
@@ -32,54 +34,48 @@ from cnp.architectures import StandardDepthwiseSeparableCNN, UNet, build_dws_net
 
 class GaussianNeuralProcess(nn.Module):
     
-    def __init__(self, encoder, decoder, covariance, add_noise):
+    def __init__(self, encoder, decoder, output_layer):
         
         super().__init__()
         
         self.encoder = encoder
         self.decoder = decoder
-        self.covariance = covariance
-        self.add_noise = add_noise
+        self.output_layer = output_layer
 
     
-    def forward(self, x_context, y_context, x_target, **kwargs):
+    def loss(self, x_context, y_context, x_target, y_target, **kwargs):
         
         r = self.encoder(x_context, y_context, x_target, **kwargs)
         z = self.decoder(r, x_context, y_context, x_target, **kwargs)
         
-        # Produce mean
-        mean = z[..., 0:1]
-        
-        # Produce cov
-        embedding = z[..., 1:]
-        cov = self.covariance(embedding)
-        cov_plus_noise = self.add_noise(cov, embedding)
-        
-        return mean, cov, cov_plus_noise
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+        nll = - torch.mean(loglik).float()
 
+        return nll
     
-    def loss(self, x_context, y_context, x_target, y_target):
-
-        y_mean, _, y_cov = self.forward(x_context, y_context, x_target)
-
-        y_mean = y_mean.double()
-        y_cov = y_cov.double()
-        y_target = y_target.double()
-
-        jitter = 1e-3 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
-        y_cov = y_cov + jitter[None, :, :]
+    
+    def sample(self, x_context, y_context, x_target, num_samples, noiseless, **kwargs):
         
-        dist = MultivariateNormal(loc=y_mean[:, :, 0],
-                                  covariance_matrix=y_cov)
-        nll = - torch.mean(dist.log_prob(y_target[:, :, 0]))
-
-        return nll.float()
+        r = self.encoder(x_context, y_context, x_target, **kwargs)
+        z = self.decoder(r, x_context, y_context, x_target, **kwargs)
+        
+        samples = self.output_layer.sample(z, num_samples, noiseless)
+        
+        return samples
 
 
     def mean_and_marginals(self, x_context, y_context, x_target):
-        mean, cov, cov_plus_noise = self.forward(x_context, y_context, x_target)
+        
+        assert type(self.output_layer) == GaussianLayer
+        
+        r = self.encoder(x_context, y_context, x_target, **kwargs)
+        z = self.decoder(r, x_context, y_context, x_target, **kwargs)
+        
+        mean, cov, cov_plus_noise = self.output_layer.mean_and_cov(z)
+
         var = torch.diagonal(cov, dim1=-2, dim2=-2)
         var_plus_noise = torch.diagonal(cov_plus_noise, dim1=-2, dim2=-2)
+        
         return mean, var, var_plus_noise
 
 
@@ -97,7 +93,7 @@ class GaussianNeuralProcess(nn.Module):
 
 class StandardGNP(GaussianNeuralProcess):
     
-    def __init__(self, input_dim, covariance, add_noise, use_attention=False):
+    def __init__(self, input_dim, output_layer, use_attention=False):
         
         # Standard input/output dimensions and latent representation dimension
         output_dim = 1
@@ -105,10 +101,7 @@ class StandardGNP(GaussianNeuralProcess):
         num_layers = 6
         
         # Decoder output dimension
-        decoder_output_dim = output_dim +               \
-                             covariance.num_basis_dim + \
-                             covariance.extra_cov_dim + \
-                             add_noise.extra_noise_dim
+        decoder_output_dim = output_layer.num_features
 
         # Construct the standard encoder
         encoder = StandardEncoder(input_dim=input_dim,
@@ -123,8 +116,7 @@ class StandardGNP(GaussianNeuralProcess):
 
         super().__init__(encoder=encoder,
                          decoder=decoder,
-                         covariance=covariance,
-                         add_noise=add_noise)
+                         output_layer=output_layer)
         
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -141,11 +133,10 @@ class StandardGNP(GaussianNeuralProcess):
 
 class StandardAGNP(StandardGNP):
     
-    def __init__(self, input_dim, covariance, add_noise):
+    def __init__(self, input_dim, output_layer):
         
         super().__init__(input_dim=input_dim,
-                         covariance=covariance,
-                         add_noise=add_noise,
+                         output_layer=output_layer,
                          use_attention=True)
    
          
@@ -156,7 +147,7 @@ class StandardAGNP(StandardGNP):
 
 class StandardConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, input_dim, covariance, add_noise):
+    def __init__(self, input_dim, output_layer):
         
         # Standard input/output dimensions and discretisation density
         output_dim = 1
@@ -184,10 +175,7 @@ class StandardConvGNP(GaussianNeuralProcess):
                               grid_margin=grid_margin)
         
         # Construct the convolutional decoder
-        decoder_out_channels = output_dim +               \
-                               covariance.num_basis_dim + \
-                               covariance.extra_cov_dim + \
-                               add_noise.extra_noise_dim
+        decoder_out_channels = output_layer.num_features
         
         decoder = ConvDecoder(input_dim=input_dim,
                               conv_architecture=conv_architecture,
@@ -201,8 +189,7 @@ class StandardConvGNP(GaussianNeuralProcess):
 
         super().__init__(encoder=encoder,
                          decoder=decoder,
-                         covariance=covariance,
-                         add_noise=add_noise)
+                         output_layer=output_layer)
         
         self.input_dim = input_dim
         self.output_dim = output_dim
