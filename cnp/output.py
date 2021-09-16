@@ -597,7 +597,14 @@ class LogLogitCopulaLayer(OutputLayer):
         assert x.shape == a.shape == b.shape
         assert torch.all(x > 0.)
         
-        return 1 / (1+(x/a)**-b)
+        x = x.double()
+        a = a.double()
+        b = b.double()
+        
+        cdf = 1 / (1+(x/a)**-b)
+        cdf = cdf.float()
+        
+        return cdf
     
     
     def icdf(self, x, a, b):
@@ -620,7 +627,14 @@ class LogLogitCopulaLayer(OutputLayer):
         assert x.shape == a.shape == b.shape
         assert torch.all(x > 0.)
         
-        return a * (x**-1 - 1) ** (-1/b)
+        x = x.double()
+        a = a.double()
+        b = b.double()
+        
+        icdf = a * (x**-1 - 1) ** (-1/b)
+        icdf = icdf.float()
+        
+        return icdf
     
     
     def marginal_transformation(self, x, a, b):
@@ -637,8 +651,8 @@ class LogLogitCopulaLayer(OutputLayer):
         # Check shapes are compatible, all x values are positive
         assert x.shape == a.shape == b.shape
         
-        zeros = torch.zeros(size=x.shape)
-        ones = torch.ones(size=x.shape)
+        zeros = torch.zeros(size=x.shape).double()
+        ones = torch.ones(size=x.shape).double()
         
         gaussian = Normal(loc=zeros, scale=ones)
         
@@ -663,16 +677,18 @@ class LogLogitCopulaLayer(OutputLayer):
         assert x.shape == a.shape == b.shape
         assert torch.all(x > 0.)
         
-        zeros = torch.zeros(size=x.shape)
-        ones = torch.ones(size=x.shape)
+        zeros = torch.zeros(size=x.shape).double()
+        ones = torch.ones(size=x.shape).double()
         
         gaussian = Normal(loc=zeros, scale=ones)
         
         if grad:
-            x = self.pdf(x, a, b) * gaussian.icdf(self.cdf(x, a, b))
+            x = self.pdf(x, a, b) / gaussian.icdf(self.cdf(x, a, b))
+            x = x.float()
         
         else:
             x = self.cdf(x, a, b)
             x = gaussian.icdf(x)
+            x = x.float()
         
         return x
