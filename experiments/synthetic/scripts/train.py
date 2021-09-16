@@ -423,15 +423,22 @@ if 'eq' in args.data:
 elif 'matern' in args.data:
     oracle_cov = Matern52().stretch(1.)
 
+elif 'noisy-mixture-slow' in args.data:
+    oracle_cov = EQ().stretch(1.) + \
+                 EQ().stretch(0.5)
+
+elif 'weakly-periodic-slow' in args.data:
+    oracle_cov = EQ().stretch(1.) * \
+                 EQ().periodic(period=0.5)
+        
 elif 'noisy-mixture' in args.data:
-    oracle_cov = Matern52().stretch(1.) + \
-                 Matern52().stretch(0.25)
+    oracle_cov = EQ().stretch(1.) + \
+                 EQ().stretch(0.25)
 
 elif 'weakly-periodic' in args.data:
     oracle_cov = EQ().stretch(1.) * \
                  EQ().periodic(period=0.25)
 
-        
 # =============================================================================
 # Train or test model
 # =============================================================================
