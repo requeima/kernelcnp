@@ -10,14 +10,12 @@ from tqdm import trange
 import pickle
 import itertools
 
-import cnp.data
-from cnp.utils import make_generator
+from cnp.data import PredatorPreyGenerator
 
 from itertools import product
 from copy import deepcopy
 
 from cnp.experiment import WorkingDirectory, log_args
-
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
@@ -37,12 +35,12 @@ parser.add_argument('--max_num_context',
                     help='Maximum number of context points.')
 
 parser.add_argument('--min_num_target',
-                    default=50,
+                    default=100,
                     type=int,
                     help='Maximum number of target points.')
 
 parser.add_argument('--max_num_target',
-                    default=50,
+                    default=100,
                     type=int,
                     help='Maximum number of target points.')
 
@@ -85,14 +83,11 @@ args = parser.parse_args()
 
 seeds = list(range(0, 1))
 
-input(f'About to do batch size {args.batch_size}. '
+input(f'About to generate predator-prey data, batch size {args.batch_size}, '
+      f'# train iters {args.num_train_iters}. \n'
       f'Enter to continue, Ctrl+C to cancel generation.')
 
 for seed in seeds:
-
-    # =================================================================
-    # Set random seed and device
-    # =================================================================
 
     # Set seed
     np.random.seed(seed)
@@ -107,7 +102,7 @@ for seed in seeds:
 
     device = torch.device('cpu')
 
-    root = 'experiments/synthetic/'
+    root = 'experiments/predator-prey/simulated-data'
     data_name = f'sim-pred-prey-'          + \
                 f'{args.batch_size}-'      + \
                 f'{args.max_num_context}-' + \
@@ -115,7 +110,7 @@ for seed in seeds:
                 f'{args.max_num_target}-'  + \
                 f'{seed}'
 
-    path = os.path.join(root, 'toy-data', data_name)
+    path = os.path.join(root, data_name)
 
     # =========================================================================
     # Create data generators
@@ -142,10 +137,12 @@ for seed in seeds:
 
     else:
         
+        gen_train_params = gen_params.copy()
         gen_train_params.update(
             {'iterations_per_epoch' : args.num_train_iters}
         )
         
+        gen_valid_params = gen_params.copy()
         gen_valid_params.update(
             {'iterations_per_epoch' : args.num_valid_iters}
         )
@@ -158,6 +155,9 @@ for seed in seeds:
         
         valid_data = [gen_valid.pregen_epoch() \
                       for i, epoch in enumerate(trange(args.epochs // args.validate_every + 1))]
+        
+
+wd = WorkingDirectory(root=path)
 
 if args.test:
     with open(wd.file('test-data.pkl'), 'wb') as file:
