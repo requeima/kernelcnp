@@ -199,6 +199,7 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
         # Distribute the batches over the CPUs
         num_cpus = multiprocessing.cpu_count()
+        print(num_cpus)
         num_batches_per_cpu = [num_batches // num_cpus] * (num_cpus - 1)
         num_batches_per_cpu.append(num_batches - sum(num_batches_per_cpu))
 
@@ -345,7 +346,7 @@ def predator_prey(init_num_pred,
                   time_start=0.,
                   time_end=np.inf,
                   min_num_points=0,
-                  max_num_points=5000):
+                  max_num_points=10000):
     """
     Arguments:
         init_num_pred  : int, initial number of predators
@@ -418,19 +419,19 @@ def predator_prey(init_num_pred,
                 
                 # Predator born
                 if event == 0:
-                    num_pred = num_pred + 2
+                    num_pred = num_pred + 1
                     
                 # Predator dies
                 elif event == 1:
-                    num_pred = max(num_pred - 2, 0)
+                    num_pred = max(num_pred - 1, 0)
                 
                 # Prey born
                 elif event == 2:
-                    num_prey = num_prey + 2
+                    num_prey = num_prey + 1
                     
                 # Prey dies
                 else:
-                    num_prey = max(num_prey - 2, 0)
+                    num_prey = max(num_prey - 1, 0)
 
                 # Record time and populations
                 time.append(t)
@@ -471,10 +472,10 @@ def random_pred_pray(init_num_pred,
                      max_num_points,
                      epsilon):
     
-    pred_born = 1e-2 * ((1 - epsilon) + epsilon * np.random.rand())
-    pred_death = 5e-1 * ((1 - epsilon) + epsilon * np.random.rand())
-    prey_born = 1e0 * ((1 - epsilon) + epsilon * np.random.rand())
-    prey_death = 1e-2 * ((1 - epsilon) + epsilon * np.random.rand())
+    pred_born = 1e-2 * (1 + epsilon * (2 * np.random.rand() - 1))
+    pred_death = 5e-1 * (1 + epsilon * (2 * np.random.rand() - 1))
+    prey_born = 1e0 * (1 + epsilon * (2 * np.random.rand() - 1))
+    prey_death = 1e-2 * (1 + epsilon * (2 * np.random.rand() - 1))
     
     if min_num_points > max_num_points:
         max_num_points = min_num_points

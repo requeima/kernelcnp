@@ -1,9 +1,7 @@
 import argparse
 
 import numpy as np
-import stheno.torch as stheno
 import torch
-import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 from tqdm import trange
