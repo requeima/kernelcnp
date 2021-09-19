@@ -67,8 +67,10 @@ class OutputLayer(nn.Module):
 class GaussianLayer(OutputLayer):
     
     
-    def __init__(self):
+    def __init__(self, jitter=1e-4):
         super().__init__()
+        
+        self.jitter = jitter
     
     
     @abstractmethod
@@ -115,17 +117,18 @@ class GaussianLayer(OutputLayer):
         mean, f_cov, y_cov = self._mean_and_cov(tensor)
         
         # Jitter to covariance for numerical stability
-        jitter = 1e-4 * torch.eye(f_cov.shape[-1], device=y_cov.device)
-        
-        # Add jitter to both noiseless and noisy covariance
-        f_cov = f_cov + jitter[None, :, :]
-        y_cov = y_cov + jitter[None, :, :]
+        jitter = self.jitter * torch.eye(f_cov.shape[-1], device=y_cov.device)
         
         # If specified, use double precision
         if double:
             mean = mean.double()
             f_cov = f_cov.double()
             y_cov = y_cov.double()
+            jitter = jitter.double()
+        
+        # Add jitter to both noiseless and noisy covariance
+        f_cov = f_cov + jitter[None, :, :]
+        y_cov = y_cov + jitter[None, :, :]
         
         return mean, f_cov, y_cov
     
@@ -168,6 +171,7 @@ class GaussianLayer(OutputLayer):
         
         # Draw samples and return
         samples = dist.sample(sample_shape=[num_samples])
+        samples = samples.float()
         
         return samples
     
@@ -181,9 +185,9 @@ class GaussianLayer(OutputLayer):
 class MeanFieldGaussianLayer(GaussianLayer):
     
     
-    def __init__(self):
+    def __init__(self, jitter=1e-4):
         
-        super().__init__()
+        super().__init__(jitter=jitter)
         
         self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
         self.mean_dim = 1
@@ -228,7 +232,8 @@ class MeanFieldGaussianLayer(GaussianLayer):
         mean, f_cov, y_cov = self.mean_and_cov(tensor)
         
         # Set lower triangular scale equal to either noiseless or noisy scale
-        scale_tril = f_cov**0.5 if noiseless else y_cov**0.5
+        sqrt_diag = lambda x : torch.diag_embed(torch.diag_part(x)**0.5)
+        scale_tril = sqrt_diag(f_cov) if noiseless else sqrt_diag(y_cov)**0.5
         
         # Create distribution and return
         dist = MultivariateNormal(loc=mean, scale_tril=scale_tril)
@@ -244,9 +249,9 @@ class MeanFieldGaussianLayer(GaussianLayer):
 class InnerprodGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, num_embedding, noise_type):
+    def __init__(self, num_embedding, noise_type, jitter=1e-4):
         
-        super().__init__()
+        super().__init__(jitter=jitter)
         
         # Noise type can be homoscedastic or heteroscedastic
         assert noise_type in ["homo", "hetero"]
@@ -293,15 +298,17 @@ class InnerprodGaussianLayer(GaussianLayer):
         # Compute mean vector
         mean = tensor[:, :, 0]
         
-        # Slice out components of covariance (z and noise)
-        z = tensor[:, :, 1:-1] / C**0.5
-        
+        # Slice out components of covariance - z and noise
         if self.noise_type == "homo":
+            z = tensor[:, :, 1:] / C**0.5
+            
             noise = torch.nn.Softplus()(self.noise_unconstrained)
             noise = noise[None, None].repeat(B, T)
             noise = torch.diag_embed(noise)
             
         else:
+            z = tensor[:, :, 1:-1] / C**0.5
+            
             noise = torch.nn.Softplus()(tensor[:, :, -1])
             noise = torch.diag_embed(noise)
         
@@ -366,9 +373,9 @@ class InnerprodGaussianLayer(GaussianLayer):
 class KvvGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, num_embedding, noise_type):
+    def __init__(self, num_embedding, noise_type, jitter=1e-4):
         
-        super().__init__()
+        super().__init__(jitter=jitter)
         
         # Noise type can be homoscedastic or heteroscedastic
         assert noise_type in ["homo", "hetero"]
@@ -431,6 +438,7 @@ class KvvGaussianLayer(GaussianLayer):
             noise = torch.diag_embed(noise)
             
         # Apply RBF function to embedding
+        z = z / z.shape[-1]**0.5
         quad = -0.5 * (z[:, :, None, :] - z[:, None, :, :]) ** 2
         exp = torch.exp(torch.sum(quad, axis=-1))
         
@@ -444,7 +452,7 @@ class KvvGaussianLayer(GaussianLayer):
     def distribution(self, tensor, noiseless):
         
         # Get mean and covariances of distribution
-        mean, f_cov, y_cov = self.mean_and_cov(tensor)
+        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=True)
         
         # Set covariance to either noiseless or noisy covariance
         cov = f_cov if noiseless else y_cov
@@ -507,7 +515,7 @@ class LogLogitCopulaLayer(OutputLayer):
         return loglik + jacobian_term
 
     
-    def sample(self, tensor, num_samples, noiseless):
+    def sample(self, tensor, num_samples, noiseless, double=False):
         """
         Arguments:
             tensor      : torch.tensor, (B, T, C)
@@ -524,7 +532,8 @@ class LogLogitCopulaLayer(OutputLayer):
         # Draw samples from Gaussian and apply marginal transformation
         v_samples = self.gaussian_layer.sample(tensor=tensor,
                                                num_samples=num_samples,
-                                               noiseless=noiseless)
+                                               noiseless=noiseless,
+                                               double=double)
         
         # Repeat a and b, (num_samples, B, T)
         a = a[None, :, :].repeat(num_samples, 1, 1)
