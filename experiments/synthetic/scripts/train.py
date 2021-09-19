@@ -336,8 +336,12 @@ cov_types = {
     'kvv'       : KvvGaussianLayer
 }
 
-output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
-                                        noise_type=args.noise_type)
+if args.cov_type == 'meanfield':
+    output_layer = MeanFieldGaussianLayer()
+    
+else:
+    output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
+                                            noise_type=args.noise_type)
 
 if args.marginal_type == 'loglogit':
     output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
@@ -356,12 +360,10 @@ elif args.model == 'FullConvGNP':
     model = FullConvGNP()
 
 elif args.model == 'ANP':
-    noise = AddHomoNoise()
     model = StandardANP(input_dim=args.x_dim,
                         num_samples=args.np_loss_samples)
     
 elif args.model == 'convNP':
-    noise = AddHomoNoise()
     model = StandardConvNP(input_dim=args.x_dim,
                            num_samples=args.np_loss_samples)
     

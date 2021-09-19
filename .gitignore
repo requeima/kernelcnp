@@ -9,6 +9,7 @@ experiments/synthetic/tmp2-results
 experiments/synthetic/results-backup
 experiments/environmental/data
 experiments/predator-prey/simulated-data
+experiments/synthetic/results-2d-old-output-layer
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
