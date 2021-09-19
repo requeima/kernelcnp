@@ -186,6 +186,8 @@ class MeanFieldGaussianLayer(GaussianLayer):
         super().__init__()
         
         self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        self.mean_dim = 1
+        self.num_features = self.mean_dim + 1
         
         
     def _mean_and_cov(self, tensor):
