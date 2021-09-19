@@ -547,13 +547,17 @@ class LogLogitCopulaLayer(OutputLayer):
             b      : torch.tensor, (B, T)
         """
         
+        epsilon = 1e-3
+        
         # Check tensor has correct number of features
         assert (len(tensor.shape) == 3) and \
                (tensor.shape[-1] == self.num_features)
         
         # Get rate and concentration from tensor
-        a = torch.nn.Softplus()(tensor[:, :, 0]) + 1e-3
-        b = torch.nn.Softplus()(tensor[:, :, 1]) + 1e-3
+        a = 2e-2 * torch.nn.Softplus()(tensor[:, :, 0]) + 1e0 + epsilon
+        b = 2e-2 * torch.nn.Softplus()(tensor[:, :, 1]) + 1e0 + epsilon
+        
+#         print(f'{a.min():.3f}, {a.max():.3f}, {b.min():.3f}, {b.max():.3f}')
         
         # Slice out rate and concentration
         tensor = tensor[:, :, 2:]
@@ -652,8 +656,6 @@ class LogLogitCopulaLayer(OutputLayer):
         Returns:
             tensor : torch.tensor, (B, T)
         """
-        
-        print(x.shape, a.shape, b.shape)
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == a.shape == b.shape
