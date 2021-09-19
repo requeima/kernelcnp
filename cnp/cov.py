@@ -67,7 +67,7 @@ class OutputLayer(nn.Module):
 class GaussianLayer(OutputLayer):
     
     
-    def __init__(self, jitter=1e-4):
+    def __init__(self, jitter=1e-6):
         super().__init__()
         
         self.jitter = jitter
@@ -185,7 +185,7 @@ class GaussianLayer(OutputLayer):
 class MeanFieldGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, jitter=1e-4):
+    def __init__(self, jitter=1e-6):
         
         super().__init__(jitter=jitter)
         
@@ -249,7 +249,7 @@ class MeanFieldGaussianLayer(GaussianLayer):
 class InnerprodGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, num_embedding, noise_type, jitter=1e-4):
+    def __init__(self, num_embedding, noise_type, jitter=1e-6):
         
         super().__init__(jitter=jitter)
         
@@ -373,7 +373,7 @@ class InnerprodGaussianLayer(GaussianLayer):
 class KvvGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, num_embedding, noise_type, jitter=1e-4):
+    def __init__(self, num_embedding, noise_type, jitter=1e-6):
         
         super().__init__(jitter=jitter)
         
