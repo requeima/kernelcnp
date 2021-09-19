@@ -1,21 +1,11 @@
 import argparse
 
-import numpy as np
-import matplotlib.pyplot as plt
 import os
-from datetime import datetime
+import sys
 import pickle
 import time
-import sys
 
-from stheno import (
-    EQ,
-    Matern52
-)
-
-# This is for an error that is now popping up when running on macos
-# os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
+from datetime import datetime
 from copy import deepcopy
 
 from cnp.experiment import (
@@ -25,17 +15,8 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import (
-    StandardGNP,
-    StandardAGNP,
-    StandardConvGNP,
-    FullConvGNP
-)
-
-from cnp.lnp import (
-    StandardANP,
-    StandardConvNP
-)
+from cnp.cnp import StandardConvGNP
+from cnp.lnp import StandardConvNP
 
 from cnp.cov import (
     MeanFieldGaussianLayer,
@@ -44,16 +25,12 @@ from cnp.cov import (
     LogLogitCopulaLayer
 )
 
-from cnp.oracle import oracle_loglik
+from cnp.utils import Logger
 
-from cnp.utils import (
-    plot_samples_and_data,
-    make_generator,
-    Logger
-)
+import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
-from torch.distributions import MultivariateNormal
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -142,7 +119,6 @@ def validate(data,
                                                             y_target,
                                                             oracle_cov,
                                                             noise)
-                        
 
             # Scale by the average number of target points
             nll_list.append(nll.item())
@@ -175,12 +151,6 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('data', help='Data set to train the CNP on.')
 
-parser.add_argument('--x_dim',
-                    default=1,
-                    choices=[1, 2],
-                    type=int,
-                    help='Input dimension of data.')
-
 parser.add_argument('--seed',
                     default=0,
                     type=int,
@@ -197,18 +167,11 @@ parser.add_argument('--validate_every',
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['GNP',
-                             'AGNP',
-                             'convGNP',
-                             'FullConvGNP',
-                             'ANP',
-                             'convNP'],
+                    choices=['convGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
-                    choices=['meanfield',
-                             'innerprod', 
-                             'kvv'],
+                    choices=['meanfield', 'innerprod',  'kvv'],
                     help='Choice of covariance method.')
 
 parser.add_argument('noise_type',
@@ -217,7 +180,7 @@ parser.add_argument('noise_type',
 
 parser.add_argument('--marginal_type',
                     default='identity',
-                    choices=['loglogit'],
+                    choices=['identity', 'loglogit'],
                     help='Choice of marginal transformation (optional).')
 
 parser.add_argument('--np_loss_samples',
@@ -268,7 +231,6 @@ parser.add_argument('--gpu',
                     type=int,
                     help='GPU to run experiment on. Defaults to 0.')
 
-
 args = parser.parse_args()
     
 # =============================================================================
@@ -286,7 +248,7 @@ if torch.cuda.is_available():
 use_cpu = not torch.cuda.is_available() and args.gpu == 0
 device = torch.device('cpu') if use_cpu else torch.device('cuda')
 
-root = 'experiments/synthetic'
+root = 'experiments/predator-prey'
 
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
@@ -297,13 +259,12 @@ experiment_name = os.path.join(f'{root}',
                                f'{args.cov_type}',
                                f'{args.noise_type}',
                                f'{args.marginal_type}',
-                               f'seed-{args.seed}',
-                               f'dim-{args.x_dim}')
+                               f'seed-{args.seed}')
 working_directory = WorkingDirectory(root=experiment_name)
 
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
-                         f'toy-data',
+                         f'simulated-data',
                          f'{args.data}')
 data_directory = WorkingDirectory(root=data_root)
 
@@ -346,31 +307,19 @@ if args.marginal_type == 'loglogit':
     output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
     
 # Create model architecture
-if args.model == 'GNP':
-    model = StandardGNP(input_dim=args.x_dim, output_layer=output_layer)
-    
-elif args.model == 'AGNP':
-    model = StandardAGNP(input_dim=args.x_dim, output_layer=output_layer)
-    
-elif args.model == 'convGNP':
-    model = StandardConvGNP(input_dim=args.x_dim, output_layer=output_layer)
-
-elif args.model == 'FullConvGNP':
-    model = FullConvGNP()
-
-elif args.model == 'ANP':
-    model = StandardANP(input_dim=args.x_dim,
-                        num_samples=args.np_loss_samples)
+if args.model == 'convGNP':
+    model = StandardConvGNP(input_dim=1, output_layer=output_layer)
     
 elif args.model == 'convNP':
-    model = StandardConvNP(input_dim=args.x_dim,
+    model = StandardConvNP(input_dim=1,
                            num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
 
 
-print(f'{args.model} '
+print(f'{args.data} '
+      f'{args.model} '
       f'{args.cov_type} '
       f'{args.noise_type} '
       f'{args.marginal_type} '
@@ -383,11 +332,10 @@ with open(working_directory.file('num_params.txt'), 'w') as f:
 if args.num_params:
     exit()
     
-    
 # Load model to appropriate device
 model = model.to(device)
 
-latent_model = args.model in ['ANP', 'convNP']
+latent_model = args.model == 'convNP'
 
 
 # =============================================================================
@@ -402,38 +350,13 @@ file = open(data_directory.file('valid-data.pkl'), 'rb')
 data_val = pickle.load(file)
 file.close()
 
-oracle_cov = None
-noise = 5e-2
-
-if 'eq' in args.data:
-    oracle_cov = EQ().stretch(1.)
-
-elif 'matern' in args.data:
-    oracle_cov = Matern52().stretch(1.)
-
-elif 'noisy-mixture-slow' in args.data:
-    oracle_cov = EQ().stretch(1.) + \
-                 EQ().stretch(0.5)
-
-elif 'weakly-periodic-slow' in args.data:
-    oracle_cov = EQ().stretch(1.) * \
-                 EQ().periodic(period=0.5)
-        
-elif 'noisy-mixture' in args.data:
-    oracle_cov = EQ().stretch(1.) + \
-                 EQ().stretch(0.25)
-
-elif 'weakly-periodic' in args.data:
-    oracle_cov = EQ().stretch(1.) * \
-                 EQ().periodic(period=0.25)
-
 # =============================================================================
 # Train or test model
 # =============================================================================
 
 # Number of epochs between validations
 train_iteration = 0
-log_every = 500
+log_every = 100
     
 log_args(working_directory, args)
 
@@ -455,8 +378,8 @@ for epoch in range(epochs):
     if epoch % args.validate_every == 0:
 
         valid_epoch = data_val[epoch // args.validate_every]
-
-        # Compute validation negative log-likelihood
+        
+        # Compute negative log-likelihood on validation data
         val_nll, _, val_oracle, _ = validate(valid_epoch,
                                              oracle_cov,
                                              noise,
@@ -467,35 +390,18 @@ for epoch in range(epochs):
                                              latent_model)
 
         # Log information to tensorboard
-        writer.add_scalar('Valid log-lik.',
+        writer.add_scalar('True data log-lik.',
+                          -true_nll,
+                          epoch)
+
+        # Log information to tensorboard
+        writer.add_scalar('Validation log-lik.',
                           -val_nll,
-                          epoch)
-
-        writer.add_scalar('Valid oracle log-lik.',
-                          -val_oracle,
-                          epoch)
-
-        writer.add_scalar('Oracle minus valid log-lik.',
-                          -val_oracle + val_nll,
                           epoch)
 
         # Update the best objective value and checkpoint the model
         is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                             (False, best_nll)
-
-#         plot_marginals = args.cov_type == 'meanfield'
-
-#         if args.x_dim == 1:
-            
-#             plot_samples_and_data(model=model,
-#                                   valid_epoch=valid_epoch,
-#                                   x_plot_min=-3.,
-#                                   x_plot_max=3.,
-#                                   root=working_directory.root,
-#                                   epoch=epoch,
-#                                   latent_model=latent_model,
-#                                   plot_marginals=plot_marginals,
-#                                   device=device)
 
 
     train_epoch = data_train[epoch]
