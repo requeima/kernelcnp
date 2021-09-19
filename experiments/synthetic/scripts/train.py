@@ -34,8 +34,7 @@ from cnp.cnp import (
 
 from cnp.lnp import (
     StandardANP,
-    StandardConvNP,
-    StandardHalfUNetConvNP
+    StandardConvNP
 )
 
 from cnp.cov import (
