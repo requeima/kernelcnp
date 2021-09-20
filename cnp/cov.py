@@ -25,7 +25,7 @@ class OutputLayer(nn.Module):
 
     
     @abstractmethod
-    def loglik(self, tensor, y_target):
+    def loglik(self, tensor, y_target, double):
         """
         Implemented by child class.
         
@@ -37,12 +37,13 @@ class OutputLayer(nn.Module):
         Arguments:
             tensor   : torch.tensor, shape (B, T, C)
             y_target : torch.tensor, shape (B, T)
+            double   : bool, compute in double
         """
         pass
 
     
     @abstractmethod
-    def sample(self, tensor, num_samples):
+    def sample(self, tensor, num_samples, double):
         """
         Implemented by child class.
         
@@ -55,6 +56,7 @@ class OutputLayer(nn.Module):
         Arguments:
             tensor      : torch.tensor, shape (B, T, C)
             num_samples : int
+            double      : bool, compute in double
         """
         pass
     
@@ -74,7 +76,7 @@ class GaussianLayer(OutputLayer):
     
     
     @abstractmethod
-    def distribution(self, tensor, noiseless):
+    def distribution(self, tensor, noiseless, double):
         pass
         
         
@@ -97,7 +99,7 @@ class GaussianLayer(OutputLayer):
         pass
         
         
-    def mean_and_cov(self, tensor, double=False):
+    def mean_and_cov(self, tensor, double):
         """
         Computes mean and covariance of mean-field Gaussian layer, as
         specified by the parameters in *tensor*. This method internally
@@ -133,7 +135,7 @@ class GaussianLayer(OutputLayer):
         return mean, f_cov, y_cov
     
     
-    def loglik(self, tensor, y_target):
+    def loglik(self, tensor, y_target, double=True):
         """
         Computes the log-likelihood of *y_target* under mean-field Gaussian
         layer, specified by the parameters in *tensor*.
@@ -147,13 +149,13 @@ class GaussianLayer(OutputLayer):
         """
         
         # Initialise distribution and compute log probability
-        dist = self.distribution(tensor, noiseless=False)
-        loglik = dist.log_prob(y_target).float()
+        dist = self.distribution(tensor, noiseless=False, double=double)
+        loglik = dist.log_prob(y_target)
         
         return loglik
     
     
-    def sample(self, tensor, num_samples, noiseless):
+    def sample(self, tensor, num_samples, noiseless, double):
         """
         Draws samples from the mean-field Gaussian
         layer, specified by the parameters in *tensor*.
@@ -167,11 +169,12 @@ class GaussianLayer(OutputLayer):
         """
         
         # Initialise distribution to compute log probability
-        dist = self.distribution(tensor=tensor, noiseless=noiseless)
+        dist = self.distribution(tensor=tensor,
+                                 noiseless=noiseless,
+                                 double=double)
         
         # Draw samples and return
         samples = dist.sample(sample_shape=[num_samples])
-        samples = samples.float()
         
         return samples
     
@@ -226,13 +229,15 @@ class MeanFieldGaussianLayer(GaussianLayer):
         return mean, f_cov, y_cov
     
     
-    def distribution(self, tensor, noiseless):
+    def distribution(self, tensor, noiseless, double):
         
         # Get mean and covariances of distribution
-        mean, f_cov, y_cov = self.mean_and_cov(tensor)
+        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)
         
         # Set lower triangular scale equal to either noiseless or noisy scale
-        sqrt_diag = lambda x : torch.diag_embed(torch.diag_part(x)**0.5)
+        sqrt_diag = lambda x : torch.diag_embed(torch.diagonal(x,
+                                                               dim1=-2,
+                                                               dim2=-1)**0.5)
         scale_tril = sqrt_diag(f_cov) if noiseless else sqrt_diag(y_cov)**0.5
         
         # Create distribution and return
@@ -319,7 +324,7 @@ class InnerprodGaussianLayer(GaussianLayer):
         return mean, f_cov, y_cov
     
     
-    def distribution(self, tensor, noiseless):
+    def distribution(self, tensor, noiseless, double):
         
         # Check tensor has three dimensions, and last dimension has size 2
         assert (len(tensor.shape) == 3) and \
@@ -330,7 +335,7 @@ class InnerprodGaussianLayer(GaussianLayer):
         # If num datapoints smaller than num embedding, return full-rank
         if tensor.shape[1] - 1 <= self.num_embedding:
             
-            mean, f_cov, y_cov = self.mean_and_cov(tensor)
+            mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)
             cov = f_cov if noiseless else y_cov
             
             dist = MultivariateNormal(loc=mean, covariance_matrix=cov)
@@ -341,10 +346,15 @@ class InnerprodGaussianLayer(GaussianLayer):
         # Otherwise, return low-rank 
         else:
             
+            # Convert tensor to double if required
+            tensor = tensor.double() if double else tensor
+            
             # Split tensor into mean and embedding
             mean = tensor[:, :, 0]
             z = tensor[:, :, 1:-1] / C**0.5
+            
             jitter = torch.tensor(1e-6).repeat(B, T)
+            jitter = jitter.double() if double else jitter
         
             if noiseless:
                 noise = jitter
@@ -352,11 +362,12 @@ class InnerprodGaussianLayer(GaussianLayer):
             elif self.noise_type == "homo":
                 noise = torch.nn.Softplus()(self.noise_unconstrained)
                 noise = noise[None, None].repeat(B, T)
-                noise = noise + jitter
 
             else:
                 noise = torch.nn.Softplus()(tensor[:, :, -1])
-                noise = noise + jitter
+                
+            noise = noise.double() if double else noise
+            noise = noise + jitter
             
             dist = LowRankMultivariateNormal(loc=mean,
                                              cov_factor=z,
@@ -449,10 +460,10 @@ class KvvGaussianLayer(GaussianLayer):
         return mean, f_cov, y_cov
     
     
-    def distribution(self, tensor, noiseless):
+    def distribution(self, tensor, noiseless, double):
         
         # Get mean and covariances of distribution
-        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=True)
+        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)
         
         # Set covariance to either noiseless or noisy covariance
         cov = f_cov if noiseless else y_cov
@@ -465,13 +476,123 @@ class KvvGaussianLayer(GaussianLayer):
     
     
 # =============================================================================
+# General copula output layer
+# =============================================================================
+
+class CopulaLayer(OutputLayer):
+    
+    
+    def __init__(self, gaussian_layer, device):
+        
+        super().__init__()
+        
+        # Initialise Gaussian layer
+        self.gaussian_layer = gaussian_layer
+        
+        # Set device
+        self.device = device
+
+    
+    def loglik(self, tensor, y_target):
+        """
+        Arguments:
+            tensor   : torch.tensor, (B, T, C)
+            y_target : torch.tensor, (B, T)
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Unpack parameters and apply inverse transformation
+        tensor, marg_params = self.unpack_parameters(tensor=tensor)
+        v_target = self.inverse_marginal_transformation(x=y_target,
+                                                        marg_params=marg_params)
+        
+        # Log-likelihood of transformed variables under Gaussian
+        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
+        
+        # Compute change-of-variables contribution (Jacobian is diagonal)
+        grad = self.inverse_marginal_transformation(x=y_target,
+                                                    marg_params=marg_params,
+                                                    grad=True)
+        jacobian_term = torch.sum(torch.log(torch.abs(grad)), dim=-1)
+        
+        # Ensure shapes are compatible
+        assert loglik.shape == jacobian_term.shape
+        
+        return loglik + jacobian_term
+
+    
+    def sample(self, tensor, num_samples, noiseless, double=False):
+        """
+        Arguments:
+            tensor      : torch.tensor, (B, T, C)
+            num_samples : int, number of samples to draw
+            noiseless   : bool, whether to include the noise term
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        # Unpack parameters and apply inverse transformation
+        tensor, marg_params = self.unpack_parameters(tensor=tensor)
+        
+        # Draw samples from Gaussian and apply marginal transformation
+        v_samples = self.gaussian_layer.sample(tensor=tensor,
+                                               num_samples=num_samples,
+                                               noiseless=noiseless,
+                                               double=double)
+        
+        # Repeat a and b, (num_samples, B, T)
+        marg_params = [marg_param[None, :, :].repeat(num_samples, 1, 1) \
+                       for marg_param in marg_params]
+        
+        # Apply marginal transformation to Gaussian samples
+        samples = self.marginal_transformation(v_samples,
+                                               marg_params=marg_params)
+        
+        return samples
+        
+        
+    @abstractmethod
+    def unpack_parameters(self, tensor):
+        pass
+    
+    
+    @abstractmethod
+    def pdf(self, x, marg_params):
+        pass
+    
+    
+    @abstractmethod
+    def cdf(self, x, marg_params):
+        pass
+    
+    
+    @abstractmethod
+    def icdf(self, x, marg_params):
+        pass
+    
+    
+    @abstractmethod
+    def marginal_transformation(self, x, marg_params):
+        pass
+        
+        
+    @abstractmethod    
+    def inverse_marginal_transformation(self, x, marg_params, grad=False):
+        pass
+    
+    
+    
+# =============================================================================
 # Log-logit copula output layer
 # =============================================================================
 
 class LogLogitCopulaLayer(OutputLayer):
     
     
-    def __init__(self, gaussian_layer):
+    def __init__(self, gaussian_layer, device):
         
         super().__init__()
         
@@ -481,6 +602,9 @@ class LogLogitCopulaLayer(OutputLayer):
         # Number of features equal to number of Gaussian layer features plus
         # two additional features for the Gamma - rate and concentration
         self.num_features = self.gaussian_layer.num_features + 2
+        
+        # Set device
+        self.device = device
 
     
     def loglik(self, tensor, y_target):
@@ -556,17 +680,15 @@ class LogLogitCopulaLayer(OutputLayer):
             b      : torch.tensor, (B, T)
         """
         
-        epsilon = 1e-3
+        epsilon = 1e-2
         
         # Check tensor has correct number of features
         assert (len(tensor.shape) == 3) and \
                (tensor.shape[-1] == self.num_features)
         
         # Get rate and concentration from tensor
-        a = 2e-2 * torch.nn.Softplus()(tensor[:, :, 0]) + 1e0 + epsilon
-        b = 2e-2 * torch.nn.Softplus()(tensor[:, :, 1]) + 1e0 + epsilon
-        
-#         print(f'{a.min():.3f}, {a.max():.3f}, {b.min():.3f}, {b.max():.3f}')
+        a = 0. * tensor[:, :, 0] + 1. #torch.nn.Softplus()(tensor[:, :, 0]) + epsilon
+        b = torch.nn.Softplus()(1e-2 * tensor[:, :, 1]) + 1e0 + epsilon
         
         # Slice out rate and concentration
         tensor = tensor[:, :, 2:]
@@ -669,8 +791,8 @@ class LogLogitCopulaLayer(OutputLayer):
         # Check shapes are compatible, all x values are positive
         assert x.shape == a.shape == b.shape
         
-        zeros = torch.zeros(size=x.shape).double()
-        ones = torch.ones(size=x.shape).double()
+        zeros = torch.zeros(size=x.shape).double().to(self.device)
+        ones = torch.ones(size=x.shape).double().to(self.device)
         
         gaussian = Normal(loc=zeros, scale=ones)
         
@@ -695,18 +817,16 @@ class LogLogitCopulaLayer(OutputLayer):
         assert x.shape == a.shape == b.shape
         assert torch.all(x > 0.)
         
-        zeros = torch.zeros(size=x.shape).double()
-        ones = torch.ones(size=x.shape).double()
+        zeros = torch.zeros(size=x.shape).double().to(self.device)
+        ones = torch.ones(size=x.shape).double().to(self.device)
         
         gaussian = Normal(loc=zeros, scale=ones)
         
         if grad:
             x = self.pdf(x, a, b) / gaussian.icdf(self.cdf(x, a, b))
-            x = x.float()
         
         else:
             x = self.cdf(x, a, b)
             x = gaussian.icdf(x)
-            x = x.float()
         
         return x

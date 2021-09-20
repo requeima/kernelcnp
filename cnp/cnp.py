@@ -54,12 +54,22 @@ class GaussianNeuralProcess(nn.Module):
         return nll
     
     
-    def sample(self, x_context, y_context, x_target, num_samples, noiseless, **kwargs):
+    def sample(self,
+               x_context,
+               y_context,
+               x_target,
+               num_samples,
+               noiseless,
+               double,
+               **kwargs):
         
         r = self.encoder(x_context, y_context, x_target, **kwargs)
         z = self.decoder(r, x_context, y_context, x_target, **kwargs)
         
-        samples = self.output_layer.sample(z, num_samples, noiseless)
+        samples = self.output_layer.sample(z,
+                                           num_samples,
+                                           noiseless,
+                                           double=double)
         
         return samples
 
