@@ -201,6 +201,7 @@ for x_dim in args.x_dims:
             root = 'experiments/synthetic/'
             data_name = f'{data_kind}-'            + \
                         f'{x_dim}-'                + \
+                        f'{args.epochs}-'          + \
                         f'{args.batch_size}-'      + \
                         f'{args.max_num_context}-' + \
                         f'{args.min_num_target}-'  + \

@@ -69,9 +69,11 @@ class OutputLayer(nn.Module):
 class GaussianLayer(OutputLayer):
     
     
-    def __init__(self, jitter=1e-6):
+    def __init__(self, constrain_variance, jitter=1e-6):
+        
         super().__init__()
         
+        self.constrain_variance = constrain_variance
         self.jitter = jitter
     
     
@@ -132,6 +134,18 @@ class GaussianLayer(OutputLayer):
         f_cov = f_cov + jitter[None, :, :]
         y_cov = y_cov + jitter[None, :, :]
         
+        if self.constrain_variance:
+            
+            diag = torch.diagonal(y_cov, dim1=-2, dim2=-1)
+            
+            ones = torch.ones_like(diag)
+            ones = ones.double() if double else ones
+            
+            factor = torch.max(torch.stack([diag, ones], dim=-1), dim=-1)[0]**-0.5
+            
+            f_cov = factor[:, :, None] * f_cov * factor[:, None, :]
+            y_cov = factor[:, :, None] * y_cov * factor[:, None, :]
+        
         return mean, f_cov, y_cov
     
     
@@ -188,9 +202,10 @@ class GaussianLayer(OutputLayer):
 class MeanFieldGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, jitter=1e-6):
+    def __init__(self, constrain_variance, jitter=1e-6):
         
-        super().__init__(jitter=jitter)
+        super().__init__(constrain_variance=constrain_variance,
+                         jitter=jitter)
         
         self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
         self.mean_dim = 1
@@ -256,7 +271,7 @@ class InnerprodGaussianLayer(GaussianLayer):
     
     def __init__(self, num_embedding, noise_type, jitter=1e-6):
         
-        super().__init__(jitter=jitter)
+        super().__init__(constrain_variance=False, jitter=jitter)
         
         # Noise type can be homoscedastic or heteroscedastic
         assert noise_type in ["homo", "hetero"]
@@ -386,7 +401,7 @@ class KvvGaussianLayer(GaussianLayer):
     
     def __init__(self, num_embedding, noise_type, jitter=1e-6):
         
-        super().__init__(jitter=jitter)
+        super().__init__(constrain_variance=False, jitter=jitter)
         
         # Noise type can be homoscedastic or heteroscedastic
         assert noise_type in ["homo", "hetero"]
@@ -552,6 +567,52 @@ class CopulaLayer(OutputLayer):
                                                marg_params=marg_params)
         
         return samples
+    
+    
+    def marginal_transformation(self, x, marg_params):
+        """
+        Arguments:
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), ..., (B, T)]
+            
+        Returns:
+            x : torch.tensor, (B, T)
+        """
+        
+        zeros = torch.zeros(size=x.shape).double().to(self.device)
+        ones = torch.ones(size=x.shape).double().to(self.device)
+        
+        gaussian = Normal(loc=zeros, scale=ones)
+        
+        x = gaussian.cdf(x)
+        x = self.icdf(x, marg_params)
+        
+        return x
+        
+        
+    def inverse_marginal_transformation(self, x, marg_params, grad=False):
+        """
+        Arguments:
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), ..., (B, T)]
+            
+        Returns:
+            x : torch.tensor, (B, T)
+        """
+        
+        zeros = torch.zeros(size=x.shape).double().to(self.device)
+        ones = torch.ones(size=x.shape).double().to(self.device)
+        
+        gaussian = Normal(loc=zeros, scale=ones)
+        
+        if grad:
+            x = self.pdf(x, marg_params) / gaussian.icdf(self.cdf(x, marg_params))
+        
+        else:
+            x = self.cdf(x, marg_params)
+            x = gaussian.icdf(x)
+        
+        return x
         
         
     @abstractmethod
@@ -574,99 +635,20 @@ class CopulaLayer(OutputLayer):
         pass
     
     
-    @abstractmethod
-    def marginal_transformation(self, x, marg_params):
-        pass
-        
-        
-    @abstractmethod    
-    def inverse_marginal_transformation(self, x, marg_params, grad=False):
-        pass
-    
-    
-    
 # =============================================================================
-# Log-logit copula output layer
+# Exponential copula output layer
 # =============================================================================
 
-class LogLogitCopulaLayer(OutputLayer):
+
+class ExponentialCopulaLayer(CopulaLayer):
     
     
     def __init__(self, gaussian_layer, device):
         
-        super().__init__()
+        super().__init__(gaussian_layer=gaussian_layer, device=device)
         
-        # Initialise Gaussian layer
-        self.gaussian_layer = gaussian_layer
-        
-        # Number of features equal to number of Gaussian layer features plus
-        # two additional features for the Gamma - rate and concentration
-        self.num_features = self.gaussian_layer.num_features + 2
-        
-        # Set device
-        self.device = device
-
-    
-    def loglik(self, tensor, y_target):
-        """
-        Arguments:
-            tensor   : torch.tensor, (B, T, C)
-            y_target : torch.tensor, (B, T)
-            
-        Returns:
-            tensor : torch.tensor, (B, T)
-        """
-        
-        # Unpack parameters and apply inverse transformation
-        tensor, a, b = self.unpack_parameters(tensor=tensor)
-        v_target = self.inverse_marginal_transformation(x=y_target,
-                                                        a=a,
-                                                        b=b)
-        
-        # Log-likelihood of transformed variables under Gaussian
-        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
-        
-        # Compute change-of-variables contribution (Jacobian is diagonal)
-        grad = self.inverse_marginal_transformation(x=y_target,
-                                                    a=a,
-                                                    b=b,
-                                                    grad=True)
-        jacobian_term = torch.sum(torch.log(torch.abs(grad)), dim=-1)
-        
-        # Ensure shapes are compatible
-        assert loglik.shape == jacobian_term.shape
-        
-        return loglik + jacobian_term
-
-    
-    def sample(self, tensor, num_samples, noiseless, double=False):
-        """
-        Arguments:
-            tensor      : torch.tensor, (B, T, C)
-            num_samples : int, number of samples to draw
-            noiseless   : bool, whether to include the noise term
-            
-        Returns:
-            tensor : torch.tensor, (B, T)
-        """
-        
-        # Unpack parameters and apply inverse transformation
-        tensor, a, b = self.unpack_parameters(tensor=tensor)
-        
-        # Draw samples from Gaussian and apply marginal transformation
-        v_samples = self.gaussian_layer.sample(tensor=tensor,
-                                               num_samples=num_samples,
-                                               noiseless=noiseless,
-                                               double=double)
-        
-        # Repeat a and b, (num_samples, B, T)
-        a = a[None, :, :].repeat(num_samples, 1, 1)
-        b = b[None, :, :].repeat(num_samples, 1, 1)
-        
-        # Apply marginal transformation to Gaussian samples
-        samples = self.marginal_transformation(v_samples, a=a, b=b)
-        
-        return samples
+        self.num_features = self.gaussian_layer.num_features + 1
+        self.min_unconstrained_scale = torch.nn.Parameter(torch.tensor(0.))
         
         
     def unpack_parameters(self, tensor):
@@ -675,9 +657,8 @@ class LogLogitCopulaLayer(OutputLayer):
             tensor : torch.tensor, (B, T, C)
             
         Returns:
-            tensor : torch.tensor, (B, T, C-2)
-            a      : torch.tensor, (B, T)
-            b      : torch.tensor, (B, T)
+            tensor      : torch.tensor, (B, T, C-2)
+            marg_params : List[torch.tensor], [(B, T),]
         """
         
         epsilon = 1e-2
@@ -687,29 +668,154 @@ class LogLogitCopulaLayer(OutputLayer):
                (tensor.shape[-1] == self.num_features)
         
         # Get rate and concentration from tensor
-        a = 0. * tensor[:, :, 0] + 1. #torch.nn.Softplus()(tensor[:, :, 0]) + epsilon
-        b = torch.nn.Softplus()(1e-2 * tensor[:, :, 1]) + 1e0 + epsilon
+#         scale = torch.nn.Softplus()(tensor[:, :, 0]) + \
+#                 torch.nn.Softplus()(self.min_unconstrained_scale)
+        scale = 0. * tensor[:, :, 0] + 2.
         
-        # Slice out rate and concentration
-        tensor = tensor[:, :, 2:]
+        # Slice out scale
+        tensor = tensor[:, :, 1:]
         
-        return tensor, a, b
+        return tensor, [scale]
     
     
-    def pdf(self, x, a, b):
+    def pdf(self, x, marg_params):
         """
         Probability distribution function of the log-logistic distribution.
         
             PDF(x) = (b/a) * (x/a)^(b-1) / (1 + (x/a)^b)^2
         
         Arguments:
-            x : torch.tensor, (B, T)
-            a : torch.tensor, (B, T)
-            b : torch.tensor, (B, T)
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T)]
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
+        
+        scale, = marg_params
+        
+        # Check shapes are compatible, all x values are positive
+        assert x.shape == scale.shape
+        assert torch.all(x > 0.)
+        
+        return scale**-1. * torch.exp(-(x/scale))
+    
+    
+    def cdf(self, x, marg_params):
+        """
+        Cumulative distribution function of the log-logistic distribution.
+        
+            CDF(x) = 1 / (1 + (x/a)^-b)
+        
+        Arguments:
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        scale, = marg_params
+        
+        # Check shapes are compatible, all x values are positive
+        assert x.shape == scale.shape
+        assert torch.all(x > 0.)
+        
+        x = x.double()
+        scale = scale.double()
+        
+        cdf = 1 - torch.exp(-(x/scale))
+        cdf = cdf.float()
+        
+        return cdf
+    
+    
+    def icdf(self, x, marg_params):
+        """
+        Inverse cumulative distribution function of the log-logistic
+        distribution.
+        
+            CDF^-1(x) = a * (x^-1 - 1)^(-1/b)
+        
+        Arguments:
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        scale, = marg_params
+        
+        # Check shapes are compatible, all x values are positive
+        assert x.shape == scale.shape
+        assert torch.all(x > 0.)
+        
+        x = x.double()
+        scale = scale.double()
+        
+        icdf = -scale * torch.log(1. - x)
+        icdf = icdf.float()
+        
+        return icdf
+    
+    
+# =============================================================================
+# Log-logit copula output layer
+# =============================================================================
+
+
+class LogLogitCopulaLayer(CopulaLayer):
+    
+    
+    def __init__(self, gaussian_layer, device):
+        
+        super().__init__(gaussian_layer=gaussian_layer, device=device)
+        
+        self.num_features = self.gaussian_layer.num_features + 2
+        
+        
+    def unpack_parameters(self, tensor):
+        """
+        Arguments:
+            tensor : torch.tensor, (B, T, C)
+            
+        Returns:
+            tensor      : torch.tensor, (B, T, C-2)
+            marg_params : List[torch.tensor], [(B, T), (B, T)]
+        """
+        
+        epsilon = 1e-2
+        
+        # Check tensor has correct number of features
+        assert (len(tensor.shape) == 3) and \
+               (tensor.shape[-1] == self.num_features)
+        
+        # Get rate and concentration from tensor
+        a = 0. * tensor[:, :, 0] + 3. #torch.nn.Softplus()(tensor[:, :, 0]) + epsilon
+        b = torch.nn.Softplus()(1e-2 * tensor[:, :, 1]) + 1e0 + epsilon
+        
+        # Slice out rate and concentration
+        tensor = tensor[:, :, 2:]
+        
+        return tensor, [a, b]
+    
+    
+    def pdf(self, x, marg_params):
+        """
+        Probability distribution function of the log-logistic distribution.
+        
+            PDF(x) = (b/a) * (x/a)^(b-1) / (1 + (x/a)^b)^2
+        
+        Arguments:
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            
+        Returns:
+            tensor : torch.tensor, (B, T)
+        """
+        
+        a, b = marg_params
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == a.shape == b.shape
@@ -718,20 +824,21 @@ class LogLogitCopulaLayer(OutputLayer):
         return (b/a) * (x/a)**(b-1) / (1+(x/a)**b)**2
     
     
-    def cdf(self, x, a, b):
+    def cdf(self, x, marg_params):
         """
         Cumulative distribution function of the log-logistic distribution.
         
             CDF(x) = 1 / (1 + (x/a)^-b)
         
         Arguments:
-            x : torch.tensor, (B, T)
-            a : torch.tensor, (B, T)
-            b : torch.tensor, (B, T)
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), (B, T)]
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
+        
+        a, b = marg_params
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == a.shape == b.shape
@@ -747,7 +854,7 @@ class LogLogitCopulaLayer(OutputLayer):
         return cdf
     
     
-    def icdf(self, x, a, b):
+    def icdf(self, x, marg_params):
         """
         Inverse cumulative distribution function of the log-logistic
         distribution.
@@ -755,13 +862,14 @@ class LogLogitCopulaLayer(OutputLayer):
             CDF^-1(x) = a * (x^-1 - 1)^(-1/b)
         
         Arguments:
-            x : torch.tensor, (B, T)
-            a : torch.tensor, (B, T)
-            b : torch.tensor, (B, T)
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), (B, T)]
             
         Returns:
             tensor : torch.tensor, (B, T)
         """
+        
+        a, b = marg_params
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == a.shape == b.shape
@@ -775,58 +883,3 @@ class LogLogitCopulaLayer(OutputLayer):
         icdf = icdf.float()
         
         return icdf
-    
-    
-    def marginal_transformation(self, x, a, b):
-        """
-        Arguments:
-            x : torch.tensor, (B, T)
-            a : torch.tensor, (B, T)
-            b : torch.tensor, (B, T)
-            
-        Returns:
-            tensor : torch.tensor, (B, T)
-        """
-        
-        # Check shapes are compatible, all x values are positive
-        assert x.shape == a.shape == b.shape
-        
-        zeros = torch.zeros(size=x.shape).double().to(self.device)
-        ones = torch.ones(size=x.shape).double().to(self.device)
-        
-        gaussian = Normal(loc=zeros, scale=ones)
-        
-        x = gaussian.cdf(x)
-        x = self.icdf(x, a, b)
-        
-        return x
-        
-        
-    def inverse_marginal_transformation(self, x, a, b, grad=False):
-        """
-        Arguments:
-            x : torch.tensor, (B, T)
-            a : torch.tensor, (B, T)
-            b : torch.tensor, (B, T)
-            
-        Returns:
-            x : torch.tensor, (B, T)
-        """
-        
-        # Check shapes are compatible, all x values are positive
-        assert x.shape == a.shape == b.shape
-        assert torch.all(x > 0.)
-        
-        zeros = torch.zeros(size=x.shape).double().to(self.device)
-        ones = torch.ones(size=x.shape).double().to(self.device)
-        
-        gaussian = Normal(loc=zeros, scale=ones)
-        
-        if grad:
-            x = self.pdf(x, a, b) / gaussian.icdf(self.cdf(x, a, b))
-        
-        else:
-            x = self.cdf(x, a, b)
-            x = gaussian.icdf(x)
-        
-        return x

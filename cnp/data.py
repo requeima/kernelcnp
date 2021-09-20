@@ -379,7 +379,7 @@ def predator_prey(init_num_pred,
         num_prey = init_num_prey
         
         # Regenerate until minimum number of points present in the series
-        while len(time) < min_num_points:
+        while True:
             
             # Reset initial time and predator/prey populations
             t = time_start
@@ -387,13 +387,10 @@ def predator_prey(init_num_pred,
             pred = [num_pred]
             prey = [num_prey]
             
-            # Generate series - quit if either of the three occurs
+            # Generate series - quit if either of the two occurs
             # (1) final time reached
-            # (2) either population dies out
-            # (3) maximum number of points reached
-            while (t < time_end) and            \
-                  (num_pred * num_prey > 0) and \
-                  (len(time) < max_num_points):
+            # (2) maximum number of points reached
+            while (t < time_end) and (len(time) < max_num_points):
                 
                 # Predator and prey birth and death rates
                 pred_birth_rate = pred_born * num_prey * num_pred
@@ -437,6 +434,9 @@ def predator_prey(init_num_pred,
                 time.append(t)
                 pred.append(num_pred)
                 prey.append(num_prey)
+                
+            if len(time) >= min_num_points:
+                break
         
         return np.array(time), np.array(pred), np.array(prey)
 
