@@ -390,7 +390,10 @@ def predator_prey(init_num_pred,
             # Generate series - quit if either of the two occurs
             # (1) final time reached
             # (2) maximum number of points reached
-            while (t < time_end) and (len(time) < max_num_points):
+            # (3) both predator and prey populations are wiped out
+            while (t < time_end) and \
+                  (len(time) < max_num_points) and \
+                  (num_pred + num_prey > 0):
                 
                 # Predator and prey birth and death rates
                 pred_birth_rate = pred_born * num_prey * num_pred

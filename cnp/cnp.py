@@ -74,19 +74,30 @@ class GaussianNeuralProcess(nn.Module):
         return samples
 
 
-    def mean_and_marginals(self, x_context, y_context, x_target):
-        
-        assert type(self.output_layer) == GaussianLayer
+    def mean_and_marginals(self, x_context, y_context, x_target, **kwargs):
         
         r = self.encoder(x_context, y_context, x_target, **kwargs)
         z = self.decoder(r, x_context, y_context, x_target, **kwargs)
         
-        mean, cov, cov_plus_noise = self.output_layer.mean_and_cov(z)
+        mean, cov, cov_plus_noise = self.output_layer.mean_and_cov(z, double=True)
 
-        var = torch.diagonal(cov, dim1=-2, dim2=-2)
-        var_plus_noise = torch.diagonal(cov_plus_noise, dim1=-2, dim2=-2)
+        var = torch.diagonal(cov, dim1=-2, dim2=-1)
+        var_plus_noise = torch.diagonal(cov_plus_noise, dim1=-2, dim2=-1)
         
         return mean, var, var_plus_noise
+    
+    
+    def forward(self,
+                x_context,
+                y_context,
+                x_target,
+                **kwargs):
+        
+        r = self.encoder(x_context, y_context, x_target, **kwargs)
+        z = self.decoder(r, x_context, y_context, x_target, **kwargs)
+        
+        return z, self.output_layer
+        
 
 
     @property

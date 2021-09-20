@@ -60,12 +60,12 @@ parser.add_argument('--max_num_context',
                     help='Maximum number of context points.')
 
 parser.add_argument('--min_num_target',
-                    default=50,
+                    default=100,
                     type=int,
                     help='Maximum number of target points.')
 
 parser.add_argument('--max_num_target',
-                    default=50,
+                    default=100,
                     type=int,
                     help='Maximum number of target points.')
 
@@ -155,16 +155,12 @@ parser.add_argument('--test',
 
 args = parser.parse_args()
 
-data_kinds = ['noisy-mixture-slow',
+data_kinds = ['eq',
+              'matern',
+              'noisy-mixture',
+              'weakly-periodic',
+              'noisy-mixture-slow',
               'weakly-periodic-slow']
-
-#data_kinds = ['eq',
-#              'matern',
-#              'noisy-mixture',
-#              'weakly-periodic',
-#              'noisy-mixture-slow',
-#              'weakly-periodic-slow',
-#              'sawtooth']
 
 seeds = list(range(0, 1))
 

@@ -69,11 +69,10 @@ class OutputLayer(nn.Module):
 class GaussianLayer(OutputLayer):
     
     
-    def __init__(self, constrain_variance, jitter=1e-6):
+    def __init__(self, jitter=1e-6):
         
         super().__init__()
         
-        self.constrain_variance = constrain_variance
         self.jitter = jitter
     
     
@@ -134,18 +133,6 @@ class GaussianLayer(OutputLayer):
         f_cov = f_cov + jitter[None, :, :]
         y_cov = y_cov + jitter[None, :, :]
         
-        if self.constrain_variance:
-            
-            diag = torch.diagonal(y_cov, dim1=-2, dim2=-1)
-            
-            ones = torch.ones_like(diag)
-            ones = ones.double() if double else ones
-            
-            factor = torch.max(torch.stack([diag, ones], dim=-1), dim=-1)[0]**-0.5
-            
-            f_cov = factor[:, :, None] * f_cov * factor[:, None, :]
-            y_cov = factor[:, :, None] * y_cov * factor[:, None, :]
-        
         return mean, f_cov, y_cov
     
     
@@ -202,10 +189,9 @@ class GaussianLayer(OutputLayer):
 class MeanFieldGaussianLayer(GaussianLayer):
     
     
-    def __init__(self, constrain_variance, jitter=1e-6):
+    def __init__(self, jitter=1e-6):
         
-        super().__init__(constrain_variance=constrain_variance,
-                         jitter=jitter)
+        super().__init__(jitter=jitter)
         
         self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
         self.mean_dim = 1
@@ -271,7 +257,7 @@ class InnerprodGaussianLayer(GaussianLayer):
     
     def __init__(self, num_embedding, noise_type, jitter=1e-6):
         
-        super().__init__(constrain_variance=False, jitter=jitter)
+        super().__init__(jitter=jitter)
         
         # Noise type can be homoscedastic or heteroscedastic
         assert noise_type in ["homo", "hetero"]

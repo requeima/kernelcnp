@@ -109,6 +109,7 @@ def validate(data,
     
     # Lists for logging model's training NLL and oracle NLL
     nll_list = []
+    mae_list = []
     oracle_nll_list = []
     
     # If training a latent model, set the number of latent samples accordingly
@@ -124,6 +125,26 @@ def validate(data,
                              batch['x_target'].to(device),
                              batch['y_target'].to(device),
                              **loss_kwargs)
+            
+            if latent_model:
+                mean, _ = model.forward(batch['x_context'].to(device),
+                                        batch['y_context'].to(device),
+                                        batch['x_target'].to(device),
+                                        **loss_kwargs)
+                
+                diff = batch['y_target'][None, :, :, 0].to(device) - mean[:, :, :, 0]
+                mae = torch.sum(torch.abs(diff), axis=-1)
+                mae = torch.mean(mae)
+                
+            else:
+                mean, _, _ = model.mean_and_marginals(batch['x_context'].to(device),
+                                                      batch['y_context'].to(device),
+                                                      batch['x_target'].to(device))
+                
+                diff = batch['y_target'][:, :, 0].to(device) - mean
+                mae = torch.sum(torch.abs(diff), axis=1)
+                mae = torch.mean(mae, axis=0)
+                
             
             oracle_nll = torch.tensor(0.)
 
@@ -142,10 +163,10 @@ def validate(data,
                                                             y_target,
                                                             oracle_cov,
                                                             noise)
-                        
 
             # Scale by the average number of target points
             nll_list.append(nll.item())
+            mae_list.append(mae.item())
             oracle_nll_list.append(oracle_nll.item() / \
                                    batch['x_context'].shape[0])
 
@@ -154,6 +175,9 @@ def validate(data,
     
     mean_oracle_nll = np.mean(oracle_nll_list)
     std_oracle_nll = np.var(oracle_nll_list)**0.5
+    
+    mean_mae = np.mean(mae_list)
+    std_mae = np.var(mae_list)**0.5
 
     # Print validation loss and oracle loss
     print(f"Validation neg. log-lik: "
@@ -161,8 +185,11 @@ def validate(data,
 
     print(f"Oracle     neg. log-lik: "
           f"{mean_oracle_nll:.2f}")
+    
+    print(f"Validation          MAE: "
+          f"{mean_mae:.2f}")
 
-    return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll
+    return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll, mean_mae, std_mae
         
 
 # Parse arguments given to the script.
@@ -457,18 +484,22 @@ for epoch in range(epochs):
         valid_epoch = data_val[epoch // args.validate_every]
 
         # Compute validation negative log-likelihood
-        val_nll, _, val_oracle, _ = validate(valid_epoch,
-                                             oracle_cov,
-                                             noise,
-                                             model,
-                                             args,
-                                             device,
-                                             writer,
-                                             latent_model)
+        val_nll, _, val_oracle, _, val_mae, _ = validate(valid_epoch,
+                                                         oracle_cov,
+                                                         noise,
+                                                         model,
+                                                         args,
+                                                         device,
+                                                         writer,
+                                                         latent_model)
 
         # Log information to tensorboard
         writer.add_scalar('Valid log-lik.',
                           -val_nll,
+                          epoch)
+        
+        writer.add_scalar('Valid MAE',
+                          val_mae,
                           epoch)
 
         writer.add_scalar('Valid oracle log-lik.',
@@ -482,20 +513,6 @@ for epoch in range(epochs):
         # Update the best objective value and checkpoint the model
         is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                             (False, best_nll)
-
-#         plot_marginals = args.cov_type == 'meanfield'
-
-#         if args.x_dim == 1:
-            
-#             plot_samples_and_data(model=model,
-#                                   valid_epoch=valid_epoch,
-#                                   x_plot_min=-3.,
-#                                   x_plot_max=3.,
-#                                   root=working_directory.root,
-#                                   epoch=epoch,
-#                                   latent_model=latent_model,
-#                                   plot_marginals=plot_marginals,
-#                                   device=device)
 
 
     train_epoch = data_train[epoch]
