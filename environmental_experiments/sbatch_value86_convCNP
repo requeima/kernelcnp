@@ -1,0 +1,21 @@
+#!/bin/bash
+#!
+#! Example SLURM job script for Wilkes2 (Broadwell, ConnectX-4, P100)
+#! Last updated: Mon 13 Nov 12:06:57 GMT 2017
+#!
+
+#!#############################################################
+#!#### Modify the options in this section as appropriate ######
+#!#############################################################
+
+#! sbatch directives begin here ###############################
+#SBATCH -J value86_convCNP
+#SBATCH -A LANE-SL2-GPU
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gres=gpu:1
+#SBATCH --time=05:00:00
+#SBATCH -p pascal
+
+source ~/iclr_exps/bin/activate
+python3 train_value86_convCNP.py
