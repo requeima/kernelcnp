@@ -465,8 +465,8 @@ def predator_prey(init_num_pred,
             # Ensure datapoints returned <= maximum number of datapoints
             inds_return = np.random.permutation(len(time))
             if len(inds_return) > max_num_points:
-                inds_return = sorted(inds[:max_num_points])
-            
+                inds_return = inds[:max_num_points]
+            inds_return = sorted(inds_return)
             return time[inds_return], pred[inds_return], prey[inds_return]
 
 
@@ -501,11 +501,6 @@ class PredatorPreyGenerator(DataGenerator):
 
     def __init__(self, **kwargs):
         DataGenerator.__init__(self, **kwargs)
-    
-    def interpolate(time, pred, prey)
-        # linear interpolation
-        f_pred = interp1d(time. pred)
-        f_prey = interp1d(time. prey)
 
     def generate_task(self, to_torch=True):
 
@@ -566,7 +561,7 @@ class PredatorPreyGenerator(DataGenerator):
 
         # Randomly select points from domain
         start_time, end_time = time[0], time[-1]
-        time = start_time + numpy.random.randint(start_time, end_time, num_points)
+        time = start_time + sorted(np.random.uniform(start_time, end_time, num_points))
         pred = f_pred(time)
         prey = f_prey(time)
 
