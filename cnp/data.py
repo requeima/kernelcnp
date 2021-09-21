@@ -18,6 +18,7 @@ import time
 
 import random
 from datetime import datetime
+from scipy.interpolate import interp1d
 
 __all__ = ['GPGenerator', 'SawtoothGenerator']
 
@@ -442,8 +443,8 @@ def predator_prey(init_num_pred,
                 break
         
         return np.array(time), np.array(pred), np.array(prey)
-
     
+
     # Generate series until constraints are met
     while True:
         
@@ -462,8 +463,9 @@ def predator_prey(init_num_pred,
         if (time[-1] < time_end) and (len(time) > min_num_points): 
             
             # Ensure datapoints returned <= maximum number of datapoints
-            inds = np.random.permutation(len(time))
-            inds_return = sorted(inds[:max_num_points])
+            inds_return = np.random.permutation(len(time))
+            if len(inds_return) > max_num_points:
+                inds_return = sorted(inds[:max_num_points])
             
             return time[inds_return], pred[inds_return], prey[inds_return]
 
@@ -499,6 +501,11 @@ class PredatorPreyGenerator(DataGenerator):
 
     def __init__(self, **kwargs):
         DataGenerator.__init__(self, **kwargs)
+    
+    def interpolate(time, pred, prey)
+        # linear interpolation
+        f_pred = interp1d(time. pred)
+        f_prey = interp1d(time. prey)
 
     def generate_task(self, to_torch=True):
 
@@ -553,6 +560,16 @@ class PredatorPreyGenerator(DataGenerator):
                                             min_num_points=num_points,
                                             max_num_points=10000,
                                             epsilon=0.1)
+        # Linearly interpolate
+        f_pred = interp1d(time, pred)
+        f_prey = interp1d(time, prey)
+
+        # Randomly select points from domain
+        start_time, end_time = time[0], time[-1]
+        time = start_time + numpy.random.randint(start_time, end_time, num_points)
+        pred = f_pred(time)
+        prey = f_prey(time)
+
         return time, np.array([pred, prey])
 
     def sample(self, x):
