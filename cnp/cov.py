@@ -387,7 +387,7 @@ class KvvGaussianLayer(GaussianLayer):
     
     def __init__(self, num_embedding, noise_type, jitter=1e-6):
         
-        super().__init__(constrain_variance=False, jitter=jitter)
+        super().__init__(jitter=jitter)
         
         # Noise type can be homoscedastic or heteroscedastic
         assert noise_type in ["homo", "hetero"]
