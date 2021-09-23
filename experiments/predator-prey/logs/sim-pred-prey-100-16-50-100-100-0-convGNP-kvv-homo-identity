@@ -1,0 +1,22 @@
+Gaussian marginals
+sim-pred-prey-100-16-50-100-100-0 convGNP kvv homo identity 32: 50989.0
+
+Epoch: 1/101
+Validation data neg. log-lik: 104.17
+Holdout    data neg. log-lik: 14.12
+Subsampled data neg. log-lik: 57.16
+Training   neg. log-lik: 107.68, Encoder/decoder scales 0.100 0.100
+Training   neg. log-lik: 82.19, Encoder/decoder scales 0.102 0.101
+Training   neg. log-lik: 80.01, Encoder/decoder scales 0.103 0.102
+Training   neg. log-lik: 71.32, Encoder/decoder scales 0.104 0.102
+Training   neg. log-lik: 78.99, Encoder/decoder scales 0.104 0.103
+Training   neg. log-lik: 68.36, Encoder/decoder scales 0.105 0.103
+Training   neg. log-lik: 65.22, Encoder/decoder scales 0.105 0.103
+Training   neg. log-lik: 70.46, Encoder/decoder scales 0.105 0.103
+Training   neg. log-lik: 69.54, Encoder/decoder scales 0.106 0.104
+Training   neg. log-lik: 76.17, Encoder/decoder scales 0.107 0.104
+Training   neg. log-lik: 63.61, Encoder/decoder scales 0.107 0.104
+
+Epoch: 2/101
+Training   neg. log-lik: 56.77, Encoder/decoder scales 0.107 0.104
+Training   neg. log-lik: 55.36, Encoder/decoder scales 0.107 0.104

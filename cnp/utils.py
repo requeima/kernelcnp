@@ -374,7 +374,7 @@ def draw_1d_predictive_samples(model,
         xmax = max(torch.max(x_context), torch.max(x_target))
     
     x_pad = (xmax - xmin) / 10.
-    x_plot = torch.linspace(xmin-x_pad, xmax+x_pad, 500)[None, :, None]
+    x_plot = torch.linspace(xmin-x_pad, xmax+x_pad, 200)[None, :, None]
     
     samples = model.sample(x_context=x_context.to(device),
                            y_context=y_context.to(device),

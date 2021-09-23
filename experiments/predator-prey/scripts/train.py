@@ -16,7 +16,7 @@ from cnp.experiment import (
 )
 
 from cnp.cnp import StandardPredPreyConvGNP # StandardConvGNP
-from cnp.lnp import StandardConvNP
+from cnp.lnp import StandardPredPreyConvNP # StandardConvNP
 
 from cnp.cov import (
     MeanFieldGaussianLayer,
@@ -57,7 +57,7 @@ def train(data,
                          batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)
 
         # Log information to tensorboard
-        writer.add_scalar('Training data log-lik.', -nll, epoch)
+        writer.add_scalar('Train log-lik.', -nll, iteration)
         
         encoder_scale = torch.exp(model.encoder.sigma).detach().cpu().numpy().squeeze()
         decoder_scale = torch.exp(model.decoder.sigma).detach().cpu().numpy().squeeze()
@@ -98,7 +98,7 @@ def validate(data,
     oracle_nll_list = []
     
     # If training a latent model, set the number of latent samples accordingly
-    loss_kwargs = {'num_samples' : args_np_val_samples} \
+    loss_kwargs = {'num_samples' : args.np_val_samples} \
                   if latent_model else {}
     
     with torch.no_grad():
@@ -356,8 +356,8 @@ if args.model == 'convGNP':
                                     output_layer=output_layer)
     
 elif args.model == 'convNP':
-    model = StandardConvNP(input_dim=1,
-                           num_samples=args.np_loss_samples)
+    model = StandardPredPreyConvNP(input_dim=1,
+                                   num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
@@ -460,9 +460,7 @@ for epoch in range(epochs):
 
 
         # Log information to tensorboard
-        writer.add_scalar('Validation log-lik.',
-                          -val_nll,
-                          epoch)
+        writer.add_scalar('Valid log-lik.', -val_nll, epoch)
 
         # Update the best objective value and checkpoint the model
         is_best, best_obj = (True, val_nll) if val_nll < best_nll else \

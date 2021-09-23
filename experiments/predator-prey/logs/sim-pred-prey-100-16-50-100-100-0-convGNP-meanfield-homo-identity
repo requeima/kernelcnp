@@ -1314,3 +1314,24 @@ Traceback (most recent call last):
   File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/utils.py", line 176, in write
         fhandle.close()fhandle.close()KeyboardInterruptKeyboardInterrupt
 
+Gaussian marginals
+sim-pred-prey-100-16-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/101
+Validation data neg. log-lik: 238.02
+Holdout    data neg. log-lik: 18.21
+Subsampled data neg. log-lik: 76.12
+Training   neg. log-lik: 284.10, Encoder/decoder scales 0.100 0.100
+Training   neg. log-lik: 104.95, Encoder/decoder scales 0.099 0.099
+Training   neg. log-lik: 94.64, Encoder/decoder scales 0.100 0.099
+Training   neg. log-lik: 84.83, Encoder/decoder scales 0.101 0.100
+Training   neg. log-lik: 94.32, Encoder/decoder scales 0.101 0.100
+Training   neg. log-lik: 86.39, Encoder/decoder scales 0.102 0.100
+Training   neg. log-lik: 84.11, Encoder/decoder scales 0.102 0.100
+Training   neg. log-lik: 90.38, Encoder/decoder scales 0.103 0.101
+Training   neg. log-lik: 88.23, Encoder/decoder scales 0.103 0.101
+Training   neg. log-lik: 95.01, Encoder/decoder scales 0.104 0.101
+Training   neg. log-lik: 87.28, Encoder/decoder scales 0.105 0.101
+
+Epoch: 2/101
+Training   neg. log-lik: 78.12, Encoder/decoder scales 0.105 0.101
