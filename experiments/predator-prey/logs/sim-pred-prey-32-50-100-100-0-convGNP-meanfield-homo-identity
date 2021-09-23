@@ -1,0 +1,275 @@
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 110, in validate
+  File "experiments/predator-prey/scripts/train.py", line 110, in validate
+        print(batch['x_context'].shape)print(batch['x_context'].shape)
+
+KeyErrorKeyError: : 'x_context''x_context'
+
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 110, in validate
+  File "experiments/predator-prey/scripts/train.py", line 110, in validate
+        print(batch['x_context'].shape)print(batch['x_context'].shape)
+
+KeyErrorKeyError: : 'x_context''x_context'
+
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+torch.Size([6, 75, 1])
+torch.Size([16, 6, 1])
+torch.Size([16, 41, 1])
+torch.Size([16, 10, 1])
+torch.Size([16, 16, 1])
+torch.Size([16, 12, 1])
+torch.Size([16, 37, 1])
+torch.Size([16, 45, 1])
+torch.Size([16, 28, 1])
+torch.Size([16, 35, 1])
+torch.Size([16, 41, 1])
+torch.Size([16, 46, 1])
+torch.Size([16, 43, 1])
+torch.Size([16, 49, 1])
+torch.Size([16, 40, 1])
+torch.Size([16, 7, 1])
+torch.Size([16, 17, 1])
+torch.Size([16, 25, 1])
+torch.Size([16, 26, 1])
+torch.Size([16, 22, 1])
+torch.Size([16, 43, 1])
+torch.Size([16, 1, 1])
+torch.Size([16, 42, 1])
+torch.Size([16, 44, 1])
+torch.Size([16, 43, 1])
+torch.Size([16, 43, 1])
+torch.Size([16, 5, 1])
+torch.Size([16, 9, 1])
+torch.Size([16, 26, 1])Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+
+
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 428.58
+Holdout    data neg. log-lik: 428.58
+Subsampled data neg. log-lik: 428.58
+Training   neg. log-lik: 512.31, Encoder/decoder scales 0.031 0.031
+
+Epoch: 2/11
+Training   neg. log-lik: 112.82, Encoder/decoder scales 0.031 0.031
+
+Epoch: 3/11
+Training   neg. log-lik: 105.53, Encoder/decoder scales 0.031 0.031
+
+Epoch: 4/11
+Training   neg. log-lik: 95.99, Encoder/decoder scales 0.031 0.031
+
+Epoch: 5/11
+Training   neg. log-lik: 90.50, Encoder/decoder scales 0.031 0.031
+
+Epoch: 6/11
+Training   neg. log-lik: 86.19, Encoder/decoder scales 0.031 0.031
+
+Epoch: 7/11
+Training   neg. log-lik: 86.19, Encoder/decoder scales 0.031 0.031
+
+Epoch: 8/11
+Training   neg. log-lik: 86.72, Encoder/decoder scales 0.031 0.031
+
+Epoch: 9/11
+Training   neg. log-lik: 83.75, Encoder/decoder scales 0.031 0.031
+
+Epoch: 10/11
+Training   neg. log-lik: 82.62, Encoder/decoder scales 0.031 0.031
+
+Epoch: 11/11
+Validation data neg. log-lik: 83.50
+Holdout    data neg. log-lik: 83.50
+Subsampled data neg. log-lik: 83.50
+Training   neg. log-lik: 82.51, Encoder/decoder scales 0.032 0.031
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 428.58
+Holdout    data neg. log-lik: 40.08
+Subsampled data neg. log-lik: 165.81
+Training   neg. log-lik: 512.31, Encoder/decoder scales 0.031 0.031
+
+Epoch: 2/11
+Training   neg. log-lik: 112.82, Encoder/decoder scales 0.031 0.031
+
+Epoch: 3/11
+Training   neg. log-lik: 105.53, Encoder/decoder scales 0.031 0.031
+
+Epoch: 4/11
+Training   neg. log-lik: 95.99, Encoder/decoder scales 0.031 0.031
+
+Epoch: 5/11
+Training   neg. log-lik: 90.51, Encoder/decoder scales 0.031 0.031
+
+Epoch: 6/11
+Training   neg. log-lik: 86.25, Encoder/decoder scales 0.031 0.031
+
+Epoch: 7/11
+Training   neg. log-lik: 86.23, Encoder/decoder scales 0.031 0.031
+
+Epoch: 8/11
+Training   neg. log-lik: 86.86, Encoder/decoder scales 0.031 0.031
+
+Epoch: 9/11
+Training   neg. log-lik: 83.79, Encoder/decoder scales 0.031 0.031
+
+Epoch: 10/11
+Training   neg. log-lik: 82.61, Encoder/decoder scales 0.031 0.031
+
+Epoch: 11/11
+Validation data neg. log-lik: 83.63
+Holdout    data neg. log-lik: 32.08
+Subsampled data neg. log-lik: 122.35
+Training   neg. log-lik: 82.58, Encoder/decoder scales 0.032 0.031
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 8902.42
+Holdout    data neg. log-lik: 811.19
+Subsampled data neg. log-lik: 6833.31
+Training   neg. log-lik: 7346.67, Encoder/decoder scales 1.000 1.000
+
+Epoch: 2/11
+Training   neg. log-lik: 199.18, Encoder/decoder scales 1.001 0.989
+
+Epoch: 3/11
+Training   neg. log-lik: 168.02, Encoder/decoder scales 1.000 0.989
+
+Epoch: 4/11
+Training   neg. log-lik: 170.13, Encoder/decoder scales 0.998 0.988
+
+Epoch: 5/11
+Training   neg. log-lik: 163.40, Encoder/decoder scales 0.996 0.988
+
+Epoch: 6/11
+Training   neg. log-lik: 160.94, Encoder/decoder scales 0.993 0.988
+
+Epoch: 7/11
+Training   neg. log-lik: 123.22, Encoder/decoder scales 0.990 0.987
+
+Epoch: 8/11
+Training   neg. log-lik: 124.51, Encoder/decoder scales 0.986 0.986
+
+Epoch: 9/11
+Training   neg. log-lik: 141.84, Encoder/decoder scales 0.982 0.986
+
+Epoch: 10/11
+Training   neg. log-lik: 152.23, Encoder/decoder scales 0.975 0.984
+
+Epoch: 11/11
+Validation data neg. log-lik: 115.21
+Holdout    data neg. log-lik: 31.82
+Subsampled data neg. log-lik: 114.37
+Training   neg. log-lik: 131.34, Encoder/decoder scales 0.971 0.983
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 909.51
+Holdout    data neg. log-lik: 37.88
+Subsampled data neg. log-lik: 157.05
+Training   neg. log-lik: 984.73, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 119.66, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 107.58, Encoder/decoder scales 0.098 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 92.87, Encoder/decoder scales 0.098 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 85.69, Encoder/decoder scales 0.098 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 85.29, Encoder/decoder scales 0.098 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 84.65, Encoder/decoder scales 0.098 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 84.54, Encoder/decoder scales 0.098 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 83.58, Encoder/decoder scales 0.098 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 83.11, Encoder/decoder scales 0.098 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 83.66
+Holdout    data neg. log-lik: 31.70
+Subsampled data neg. log-lik: 113.58
+Training   neg. log-lik: 82.73, Encoder/decoder scales 0.098 0.099
+Gaussian marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo identity 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 909.51
+Holdout    data neg. log-lik: 37.88
+Subsampled data neg. log-lik: 157.05
+Training   neg. log-lik: 984.73, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 119.66, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 107.58, Encoder/decoder scales 0.098 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 92.86, Encoder/decoder scales 0.098 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 85.72, Encoder/decoder scales 0.098 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 85.24, Encoder/decoder scales 0.098 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 84.69, Encoder/decoder scales 0.098 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 84.53, Encoder/decoder scales 0.098 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 83.56, Encoder/decoder scales 0.098 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 83.15, Encoder/decoder scales 0.098 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 83.74
+Holdout    data neg. log-lik: 31.51
+Subsampled data neg. log-lik: 113.04
+Training   neg. log-lik: 82.77, Encoder/decoder scales 0.098 0.099

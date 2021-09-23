@@ -1,0 +1,1293 @@
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 370, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 370, in <module>
+        file = open(true_data_root.file('subsampled_tasks.pkl'), 'rb')file = open(true_data_root.file('subsampled_tasks.pkl'), 'rb')
+
+AttributeErrorAttributeError: : 'str' object has no attribute 'file''str' object has no attribute 'file'
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 418, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 418, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+        dist = self.distribution(tensor, noiseless=False, double=double)dist = self.distribution(tensor, noiseless=False, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 236, in distribution
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 236, in distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 120, in mean_and_cov
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 120, in mean_and_cov
+        mean, f_cov, y_cov = self._mean_and_cov(tensor)mean, f_cov, y_cov = self._mean_and_cov(tensor)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 218, in _mean_and_cov
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 218, in _mean_and_cov
+        assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 422, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+        dist = self.distribution(tensor, noiseless=False, double=double)dist = self.distribution(tensor, noiseless=False, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 236, in distribution
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 236, in distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 120, in mean_and_cov
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 120, in mean_and_cov
+        mean, f_cov, y_cov = self._mean_and_cov(tensor)mean, f_cov, y_cov = self._mean_and_cov(tensor)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 218, in _mean_and_cov
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 218, in _mean_and_cov
+        assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 418, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 418, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+        dist = self.distribution(tensor, noiseless=False, double=double)dist = self.distribution(tensor, noiseless=False, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 236, in distribution
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 236, in distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)mean, f_cov, y_cov = self.mean_and_cov(tensor, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 120, in mean_and_cov
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 120, in mean_and_cov
+        mean, f_cov, y_cov = self._mean_and_cov(tensor)mean, f_cov, y_cov = self._mean_and_cov(tensor)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 218, in _mean_and_cov
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 218, in _mean_and_cov
+        assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)assert (len(tensor.shape) == 3) and (tensor.shape[2] == 2)
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 313.49
+Holdout    data neg. log-lik: 46.46
+Subsampled data neg. log-lik: 195.08
+Training   neg. log-lik: 319.65, Encoder/decoder scales 0.031 0.031
+
+Epoch: 2/11
+Training   neg. log-lik: 241.43, Encoder/decoder scales 0.031 0.031
+
+Epoch: 3/11
+Training   neg. log-lik: 226.67, Encoder/decoder scales 0.031 0.031
+
+Epoch: 4/11
+Training   neg. log-lik: 220.33, Encoder/decoder scales 0.032 0.031
+
+Epoch: 5/11
+Training   neg. log-lik: 223.96, Encoder/decoder scales 0.032 0.031
+
+Epoch: 6/11
+Training   neg. log-lik: 225.71, Encoder/decoder scales 0.032 0.031
+
+Epoch: 7/11
+Training   neg. log-lik: 220.80, Encoder/decoder scales 0.032 0.031
+
+Epoch: 8/11
+Training   neg. log-lik: 217.89, Encoder/decoder scales 0.032 0.031
+
+Epoch: 9/11
+Training   neg. log-lik: 216.58, Encoder/decoder scales 0.032 0.031
+
+Epoch: 10/11
+Training   neg. log-lik: 214.30, Encoder/decoder scales 0.033 0.031
+
+Epoch: 11/11
+Validation data neg. log-lik: 215.25
+Holdout    data neg. log-lik: 38.66
+Subsampled data neg. log-lik: 160.67
+Training   neg. log-lik: 222.37, Encoder/decoder scales 0.033 0.031
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 6876.53
+Holdout    data neg. log-lik: 589.76
+Subsampled data neg. log-lik: 5135.71
+Training   neg. log-lik: 6349.24, Encoder/decoder scales 1.000 1.000
+
+Epoch: 2/11
+Training   neg. log-lik: 342.07, Encoder/decoder scales 0.998 0.990
+
+Epoch: 3/11
+Training   neg. log-lik: 305.06, Encoder/decoder scales 0.996 0.989
+
+Epoch: 4/11
+Training   neg. log-lik: 303.06, Encoder/decoder scales 0.994 0.988
+
+Epoch: 5/11
+Training   neg. log-lik: 298.68, Encoder/decoder scales 0.991 0.988
+
+Epoch: 6/11
+Training   neg. log-lik: 299.51, Encoder/decoder scales 0.987 0.987
+
+Epoch: 7/11
+Training   neg. log-lik: 262.31, Encoder/decoder scales 0.983 0.987
+
+Epoch: 8/11
+Training   neg. log-lik: 247.42, Encoder/decoder scales 0.979 0.986
+
+Epoch: 9/11
+Training   neg. log-lik: 232.89, Encoder/decoder scales 0.975 0.986
+
+Epoch: 10/11
+Training   neg. log-lik: 258.68, Encoder/decoder scales 0.972 0.985
+
+Epoch: 11/11
+Validation data neg. log-lik: 223.17
+Holdout    data neg. log-lik: 39.74
+Subsampled data neg. log-lik: 164.33
+Training   neg. log-lik: 230.40, Encoder/decoder scales 0.969 0.984
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 485.67
+Holdout    data neg. log-lik: 47.42
+Subsampled data neg. log-lik: 198.95
+Training   neg. log-lik: 512.22, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 242.85, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 225.59, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 220.15, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 221.79, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 225.75, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 221.11, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 217.71, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 215.78, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 214.11, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 214.66
+Holdout    data neg. log-lik: 39.82
+Subsampled data neg. log-lik: 162.50
+Training   neg. log-lik: 222.10, Encoder/decoder scales 0.101 0.099
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 3373.57
+Holdout    data neg. log-lik: 737.15
+Subsampled data neg. log-lik: 3133.97
+Training   neg. log-lik: 2851.73, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 1073.89, Encoder/decoder scales 0.102 0.102
+
+Epoch: 3/11
+Training   neg. log-lik: 611.01, Encoder/decoder scales 0.102 0.103
+
+Epoch: 4/11
+Training   neg. log-lik: 581.50, Encoder/decoder scales 0.102 0.103
+
+Epoch: 5/11
+Training   neg. log-lik: 594.76, Encoder/decoder scales 0.102 0.103
+
+Epoch: 6/11
+Training   neg. log-lik: 579.83, Encoder/decoder scales 0.103 0.103
+
+Epoch: 7/11
+Training   neg. log-lik: 572.90, Encoder/decoder scales 0.103 0.103
+
+Epoch: 8/11
+Training   neg. log-lik: 561.56, Encoder/decoder scales 0.103 0.103
+
+Epoch: 9/11
+Training   neg. log-lik: 553.67, Encoder/decoder scales 0.103 0.103
+
+Epoch: 10/11
+Training   neg. log-lik: 551.61, Encoder/decoder scales 0.103 0.103
+
+Epoch: 11/11
+Validation data neg. log-lik: 548.99
+Holdout    data neg. log-lik: 168.91
+Subsampled data neg. log-lik: 650.83
+Training   neg. log-lik: 555.46, Encoder/decoder scales 0.104 0.103
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 485.67
+Holdout    data neg. log-lik: 47.42
+Subsampled data neg. log-lik: 198.95
+Training   neg. log-lik: 512.22, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 242.85, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 225.59, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 220.15, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 221.78, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 225.75, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 221.11, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 217.70, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 215.78, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 214.11, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 214.67
+Holdout    data neg. log-lik: 39.82
+Subsampled data neg. log-lik: 162.48
+Training   neg. log-lik: 222.10, Encoder/decoder scales 0.101 0.099
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 518, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 518, in loglik
+        grad=True)grad=True)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 595, in inverse_marginal_transformation
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 595, in inverse_marginal_transformation
+        x = self.pdf(x, marg_params) / gaussian.pdf(self.cdf(x, marg_params))x = self.pdf(x, marg_params) / gaussian.pdf(self.cdf(x, marg_params))
+
+AttributeErrorAttributeError: : 'Normal' object has no attribute 'pdf''Normal' object has no attribute 'pdf'
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 532.24
+Holdout    data neg. log-lik: 56.25
+Subsampled data neg. log-lik: 233.72
+Training   neg. log-lik: 558.27, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 291.11, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 273.56, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 271.31, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 270.23, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 269.07, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 267.97, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 268.11, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 267.71, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 267.96, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 266.89
+Holdout    data neg. log-lik: 48.65
+Subsampled data neg. log-lik: 197.25
+Training   neg. log-lik: 266.64, Encoder/decoder scales 0.101 0.099
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 440.86
+Holdout    data neg. log-lik: 41.37
+Subsampled data neg. log-lik: 172.11
+Training   neg. log-lik: 467.15, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 198.93, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 181.96, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 179.56, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 178.75, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 177.54, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 176.68, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 176.42, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 175.93, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 175.75, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 174.98
+Holdout    data neg. log-lik: 33.77
+Subsampled data neg. log-lik: 135.64
+Training   neg. log-lik: 174.68, Encoder/decoder scales 0.100 0.099
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+torch.Size([32, 100])
+torch.Size([32, 100])
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 517, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 517, in loglik
+        marg_params=marg_params)marg_params=marg_params)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 616, in jacobian_term
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 616, in jacobian_term
+        jacobian_term = jaccobian_term - gaussian.log_prob(self.cdf(x, marg_params))jacobian_term = jaccobian_term - gaussian.log_prob(self.cdf(x, marg_params))
+
+NameErrorNameError: : name 'jaccobian_term' is not definedname 'jaccobian_term' is not defined
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+torch.Size([32, 100])
+torch.Size([32, 100])
+torch.Size([32, 100])
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 517, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 517, in loglik
+        marg_params=marg_params)marg_params=marg_params)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 619, in jacobian_term
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 619, in jacobian_term
+        print(jacbian_term.shape)print(jacbian_term.shape)
+
+NameErrorNameError: : name 'jacbian_term' is not definedname 'jacbian_term' is not defined
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+torch.Size([32, 100])
+torch.Size([32, 100])
+torch.Size([32, 100])
+torch.Size([32])
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 517, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 517, in loglik
+        marg_params=marg_params)marg_params=marg_params)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 620, in jacobian_term
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 620, in jacobian_term
+        raise Exceptionraise Exception
+
+ExceptionException
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 520, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 520, in loglik
+        assert loglik.shape == jacobian_term.shapeassert loglik.shape == jacobian_term.shape
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 520, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 520, in loglik
+        assert loglik.shape == jacobian_term.shapeassert loglik.shape == jacobian_term.shape
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 520, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 520, in loglik
+        assert loglik.shape == jacobian_term.shapeassert loglik.shape == jacobian_term.shape
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 519, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 519, in loglik
+        print(loglik.shape, jacobian_terms.shape)print(loglik.shape, jacobian_terms.shape)
+
+NameErrorNameError: : name 'jacobian_terms' is not definedname 'jacobian_terms' is not defined
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+torch.Size([32]) torch.Size([32, 100])
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+        latent_model)latent_model)
+
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+  File "experiments/predator-prey/scripts/train.py", line 104, in validate
+        **loss_kwargs)**loss_kwargs)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 521, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 521, in loglik
+        assert loglik.shape == jacobian_term.shapeassert loglik.shape == jacobian_term.shape
+
+AssertionErrorAssertionError
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+torch.Size([32]) torch.Size([32])
+torch.Size([6]) torch.Size([6])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+torch.Size([16]) torch.Size([16])
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 428, in <module>
+
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 440.86
+Holdout    data neg. log-lik: 41.37
+Subsampled data neg. log-lik: 172.11
+Training   neg. log-lik: 467.15, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 198.93, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 181.96, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 179.56, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 178.75, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 177.54, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 176.67, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 176.42, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 175.92, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 175.74, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 174.97
+Holdout    data neg. log-lik: 33.76
+Subsampled data neg. log-lik: 135.59
+Training   neg. log-lik: 174.67, Encoder/decoder scales 0.100 0.099
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 496.79
+Holdout    data neg. log-lik: 28.85
+Subsampled data neg. log-lik: 119.93
+Training   neg. log-lik: 545.03, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 150.92, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 129.03, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 125.11, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 124.59, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 123.09, Encoder/decoder scales 0.099 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 122.14, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 122.40, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 122.42, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 123.62, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 121.53
+Holdout    data neg. log-lik: 28.16
+Subsampled data neg. log-lik: 109.56
+Training   neg. log-lik: 121.24, Encoder/decoder scales 0.100 0.099
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50710.0
+
+Epoch: 1/11
+Validation data neg. log-lik: nan
+Holdout    data neg. log-lik: 37.30
+Subsampled data neg. log-lik: 154.18
+Training   neg. log-lik: nan, Encoder/decoder scales 0.100 0.100
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 462, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 462, in <module>
+        train_iteration)train_iteration)
+
+  File "experiments/predator-prey/scripts/train.py", line 54, in train
+  File "experiments/predator-prey/scripts/train.py", line 54, in train
+        batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 513, in loglik
+        loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 153, in loglik
+        dist = self.distribution(tensor, noiseless=False, double=double)dist = self.distribution(tensor, noiseless=False, double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 245, in distribution
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 245, in distribution
+        dist = MultivariateNormal(loc=mean, scale_tril=scale_tril)dist = MultivariateNormal(loc=mean, scale_tril=scale_tril)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/multivariate_normal.py", line 146, in __init__
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/multivariate_normal.py", line 146, in __init__
+        super(MultivariateNormal, self).__init__(batch_shape, event_shape, validate_args=validate_args)super(MultivariateNormal, self).__init__(batch_shape, event_shape, validate_args=validate_args)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/distribution.py", line 53, in __init__
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/distribution.py", line 53, in __init__
+        raise ValueError("The parameter {} has invalid values".format(param))raise ValueError("The parameter {} has invalid values".format(param))
+
+ValueErrorValueError: : The parameter loc has invalid valuesThe parameter loc has invalid values
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50710.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 203.13
+Holdout    data neg. log-lik: 37.56
+Subsampled data neg. log-lik: 155.11
+Training   neg. log-lik: 206.14, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 158.30, Encoder/decoder scales 0.098 0.098
+
+Epoch: 3/11
+Training   neg. log-lik: 106.73, Encoder/decoder scales 0.098 0.098
+
+Epoch: 4/11
+Training   neg. log-lik: 98.80, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 97.63, Encoder/decoder scales 0.100 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 94.56, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 94.54, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 95.45, Encoder/decoder scales 0.101 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 93.90, Encoder/decoder scales 0.101 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 95.02, Encoder/decoder scales 0.101 0.100
+
+Epoch: 11/11
+Validation data neg. log-lik: 94.10
+Holdout    data neg. log-lik: 36.89
+Subsampled data neg. log-lik: 130.27
+Training   neg. log-lik: 90.98, Encoder/decoder scales 0.102 0.100
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield homo exponential 32: 50710.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 167.96
+Holdout    data neg. log-lik: 29.22
+Subsampled data neg. log-lik: 121.42
+Training   neg. log-lik: 171.30, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 120.96, Encoder/decoder scales 0.098 0.098
+
+Epoch: 3/11
+Training   neg. log-lik: 114.91, Encoder/decoder scales 0.099 0.098
+
+Epoch: 4/11
+Training   neg. log-lik: 110.77, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 109.64, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 106.92, Encoder/decoder scales 0.100 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 106.04, Encoder/decoder scales 0.100 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 107.08, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 106.11, Encoder/decoder scales 0.100 0.100
+
+Epoch: 10/11
+Training   neg. log-lik: 106.38, Encoder/decoder scales 0.100 0.100
+
+Epoch: 11/11
+Validation data neg. log-lik: 105.06
+Holdout    data neg. log-lik: 31.49
+Subsampled data neg. log-lik: 115.54
+Training   neg. log-lik: 103.23, Encoder/decoder scales 0.100 0.100

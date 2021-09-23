@@ -81,8 +81,10 @@ args = parser.parse_args()
 
 seeds = list(range(0, 1))
 
-input(f'About to generate predator-prey data, batch size {args.batch_size}, '
-      f'# train iters {args.num_train_iters}. \n'
+input(f'About to generate predator-prey data \n'
+      f'# epochs {args.epochs} \n'
+      f'# train iters {args.num_train_iters} \n'
+      f'# batch size {args.batch_size} \n'
       f'Enter to continue, Ctrl+C to cancel generation.')
 
 for seed in seeds:
@@ -102,6 +104,7 @@ for seed in seeds:
 
     root = 'experiments/predator-prey/simulated-data'
     data_name = f'sim-pred-prey-'          + \
+                f'{args.epochs}-'          + \
                 f'{args.batch_size}-'      + \
                 f'{args.max_num_context}-' + \
                 f'{args.min_num_target}-'  + \

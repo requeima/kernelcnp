@@ -14,6 +14,9 @@ except ModuleNotFoundError:
     pass
 
 import cnp
+
+def to_numpy(tensor):
+    return tensor.detach().cpu().numpy()
     
 
 def to_multiple(x, multiple):
@@ -174,147 +177,7 @@ class Logger(object):
 
 
     def flush(self):
-        pass    
-
-    
-
-# =============================================================================
-# Plotting util
-# =============================================================================
-
-
-def plot_samples_and_data(model,
-                          valid_epoch,
-                          x_plot_min,
-                          x_plot_max,
-                          root,
-                          epoch,
-                          latent_model,
-                          plot_marginals,
-                          device):
-
-    # Get single iteration from validation epoch
-    data = valid_epoch[0]
-
-    # Split context and target sets out
-    ctx_in = data['x_context'].to(device)[:3]
-    ctx_out = data['y_context'].to(device)[:3]
-
-    trg_in = data['x_target'].to(device)[:3]
-    trg_out = data['y_target'].to(device)[:3]
-
-    # Locations to query predictions at
-    plot_inputs = torch.linspace(x_plot_min, x_plot_max, 200)[None, :, None]
-    plot_inputs = plot_inputs.repeat(ctx_in.shape[0], 1, 1).to(ctx_in.device)
-    num_samples = 10
-
-    # Make predictions 
-    if latent_model:
-        tensors = model(ctx_in, ctx_out, plot_inputs, num_samples=num_samples)
-        
-        sample_means, noise_vars = tensors
-        sample_means = sample_means.detach().cpu()
-        
-        idx = torch.arange(noise_vars.shape[2])
-        noise_vars = noise_vars[:, :, idx, idx].detach().cpu()
-        
-        latent_marg_mean = torch.mean(sample_means[:, :, :, 0], dim=0)
-        latent_marg_var = torch.mean(noise_vars, dim=0) + \
-                          torch.var(sample_means[:, :, :, 0], dim=0)
-    
-    else:
-        tensors = model(ctx_in, ctx_out, plot_inputs)
-        mean, cov, cov_plus_noise = [tensor.detach().cpu() \
-                                     for tensor in tensors]
-
-    plt.figure(figsize=(16, 3))
-
-    for i in range(3):
-
-        plt.subplot(1, 3, i + 1)
-
-        # Plot samples from predictive distribution
-        # Try samlping with jitter - if error raised, plot marginals
-        if latent_model:
-
-            for j in range(num_samples):
-                
-                plt.plot(plot_inputs[i, :, 0].cpu(),
-                         sample_means[j, i, :, 0],
-                         color='blue',
-                         alpha=0.5,
-                         zorder=2)
-                
-            plt.fill_between(plot_inputs[i, :, 0].cpu(),
-                             latent_marg_mean[i, :] - 2 * latent_marg_var[i, :] ** 0.5,
-                             latent_marg_mean[i, :] + 2 * latent_marg_var[i, :] ** 0.5,
-                             color='blue',
-                             alpha=0.2,
-                             zorder=1)
-        
-        else:
-            try:
-
-                if plot_marginals:
-                    plt.fill_between(plot_inputs[i, :, 0].cpu(),
-                                     mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
-                                     mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
-                                     color='blue',
-                                     alpha=0.2,
-                                     zorder=1)
-
-                else:
-                    cov_plus_jitter = cov[i, :, :].double() + \
-                                      1e-4 * torch.eye(cov.shape[-1]).double()
-                    dist = torch.distributions.MultivariateNormal(loc=mean[i, :, 0].double(),
-                                                                  covariance_matrix=cov_plus_jitter)
-
-                    for j in range(num_samples):
-                        sample = dist.sample()
-                        plt.plot(plot_inputs[i, :, 0].cpu(),
-                                 sample,
-                                 color='blue',
-                                 alpha=0.5,
-                                 zorder=2)
-
-            except Exception as e:
-                
-                plt.fill_between(plot_inputs[i, :, 0].cpu(),
-                                 mean[i, :, 0] - 2 * torch.diag(cov[i, :, :]),
-                                 mean[i, :, 0] + 2 * torch.diag(cov[i, :, :]),
-                                 color='blue',
-                                 alpha=0.2,
-                                 zorder=1)
-
-            plt.plot(plot_inputs[i, :, 0].cpu(),
-                     mean[i, :, 0],
-                     '--',
-                     color='k')
-
-        plt.scatter(ctx_in[i, :, 0].cpu(),
-                    ctx_out[i, :, 0].cpu(),
-                    s=100,
-                    marker='+',
-                    color='black',
-                    label='Context',
-                    zorder=3)
-
-        plt.scatter(trg_in[i, :, 0].cpu(),
-                    trg_out[i, :, 0].cpu(),
-                    s=100,
-                    marker='+',
-                    color='red',
-                    label='Target',
-                    zorder=3)
-        
-        plt.xlim([x_plot_min, x_plot_max])
-
-    plt.tight_layout()
-    
-    if not os.path.exists(f'{root}/plots'): os.mkdir(f'{root}/plots')
-        
-    plt.savefig(f'{root}/plots/{str(epoch).zfill(6)}.png')
-    plt.close()
+        pass
 
 
     
@@ -351,3 +214,173 @@ def make_generator(data_kind, gen_params, kernel_params):
         gen = cnp.data.GPGenerator(kernel=kernel, **gen_params)
 
     return gen
+
+
+# =============================================================================
+# Plotting utility
+# =============================================================================
+
+
+def plot_pred_prey_fits(model,
+                        valid_data,
+                        holdout_data,
+                        subsampled_data,
+                        num_noisy_samples,
+                        num_noiseless_samples,
+                        device,
+                        save_path):
+    
+    plt.figure(figsize=(16, 8))
+    
+    # Plot fit on validation with all context points
+    plt.subplot(2, 2, 1)
+    plot_single_1d_fit(model=model,
+                       x_context=valid_data['x_context'][:1, :, None],
+                       y_context=valid_data['y_context'][:1, 0, :, None] / 100 + 1e-2,
+                       x_target=valid_data['x_target'][:1, :, None],
+                       y_target=valid_data['y_target'][:1, 0, :, None] / 100 + 1e-2,
+                       num_noisy_samples=num_noisy_samples,
+                       num_noiseless_samples=num_noiseless_samples,
+                       device=device,
+                       xmin=0.)
+    
+    # Plot fit on validation with few context points
+    plt.subplot(2, 2, 2)
+    
+    plot_single_1d_fit(model=model,
+                       x_context=valid_data['x_context'][:1, ::5, None],
+                       y_context=valid_data['y_context'][:1, 0, ::5, None] / 100 + 1e-2,
+                       x_target=valid_data['x_target'][:1, ::5, None],
+                       y_target=valid_data['y_target'][:1, 0, ::5, None] / 100 + 1e-2,
+                       num_noisy_samples=num_noisy_samples,
+                       num_noiseless_samples=num_noiseless_samples,
+                       device=device,
+                       xmin=0.)
+    
+    # Plot fit on holdout data
+    plt.subplot(2, 2, 3)
+    i = np.random.choice(np.arange(holdout_data[0]['x_context'].shape[0]))
+    plot_single_1d_fit(model=model,
+                       x_context=holdout_data[0]['x_context'][i:i+1],
+                       y_context=holdout_data[0]['y_context'][i:i+1] / 100 + 1e-2,
+                       x_target=holdout_data[0]['x_target'][i:i+1],
+                       y_target=holdout_data[0]['y_target'][i:i+1] / 100 + 1e-2,
+                       num_noisy_samples=num_noisy_samples,
+                       num_noiseless_samples=num_noiseless_samples,
+                       device=device,
+                       xmin=0.)
+    
+    # Plot fit on subsampled data
+    plt.subplot(2, 2, 4)
+    i = np.random.choice(np.arange(subsampled_data[0]['x_context'].shape[0]))
+    plot_single_1d_fit(model=model,
+                       x_context=subsampled_data[0]['x_context'][i:i+1],
+                       y_context=subsampled_data[0]['y_context'][i:i+1] / 100 + 1e-2,
+                       x_target=subsampled_data[0]['x_target'][i:i+1],
+                       y_target=subsampled_data[0]['y_target'][i:i+1] / 100 + 1e-2,
+                       num_noisy_samples=num_noisy_samples,
+                       num_noiseless_samples=num_noiseless_samples,
+                       device=device,
+                       xmin=0.)
+    
+    plt.tight_layout()
+    plt.savefig(save_path)
+    
+    
+def plot_single_1d_fit(model,
+                       x_context,
+                       y_context,
+                       x_target,
+                       y_target,
+                       num_noisy_samples,
+                       num_noiseless_samples,
+                       device,
+                       xmin=None,
+                       xmax=None):
+    
+    assert x_context.shape[0] == 1
+    
+    # Draw noisy samples
+    result = draw_1d_predictive_samples(model=model,
+                                        x_context=x_context,
+                                        y_context=y_context,
+                                        x_target=x_target,
+                                        num_samples=num_noisy_samples,
+                                        noiseless=False,
+                                        device=device)
+    x_plot_noisy, samples_noisy, xmin, xmax = result
+    
+    x_plot_noisy = x_plot_noisy[0, :, 0]
+    samples_noisy = torch.transpose(samples_noisy[:, 0, :], dim0=0, dim1=1)
+    
+    plt.plot(to_numpy(x_plot_noisy),
+             to_numpy(samples_noisy),
+             color='green',
+             alpha=min(0.02, 1./num_noiseless_samples),
+             zorder=1)
+    
+    # Draw noiseless samples
+    result = draw_1d_predictive_samples(model=model,
+                                        x_context=x_context,
+                                        y_context=y_context,
+                                        x_target=x_target,
+                                        num_samples=num_noiseless_samples,
+                                        noiseless=True,
+                                        device=device)
+    x_plot_noiseless, samples_noiseless, xmin, xmax = result
+    
+    x_plot_noiseless = x_plot_noiseless[0, :, 0]
+    samples_noiseless = torch.transpose(samples_noiseless[:, 0, :], dim0=0, dim1=1)
+    
+    plt.plot(to_numpy(x_plot_noiseless),
+             to_numpy(samples_noiseless),
+             color='black',
+             alpha=1.,
+             zorder=2)
+    
+    # Slice context and target
+    x_context = x_context[0, :, 0]
+    y_context = y_context[0, :]
+    x_target = x_target[0, :, 0]
+    y_target = y_target[0, :]
+    
+    plt.scatter(to_numpy(x_context),
+                to_numpy(y_context),
+                marker='+',
+                c='black',
+                s=50,
+                zorder=4)
+    
+    plt.scatter(to_numpy(x_target),
+                to_numpy(y_target),
+                marker='+',
+                c='red',
+                s=10,
+                zorder=3)
+                              
+def draw_1d_predictive_samples(model,
+                               x_context,
+                               y_context,
+                               x_target,
+                               num_samples,
+                               noiseless,
+                               device,
+                               xmin=None,
+                               xmax=None):
+    if xmin is None:
+        xmin = min(torch.min(x_context), torch.min(x_target))
+        
+    if xmax is None:
+        xmax = max(torch.max(x_context), torch.max(x_target))
+    
+    x_pad = (xmax - xmin) / 10.
+    x_plot = torch.linspace(xmin-x_pad, xmax+x_pad, 500)[None, :, None]
+    
+    samples = model.sample(x_context=x_context.to(device),
+                           y_context=y_context.to(device),
+                           x_target=x_plot.to(device),
+                           num_samples=num_samples,
+                           noiseless=noiseless,
+                           double=True)
+    
+    return x_plot, samples, xmin, xmax

@@ -168,11 +168,17 @@ class StandardAGNP(StandardGNP):
 
 class StandardConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, input_dim, output_layer):
+    def __init__(self,
+                 input_dim,
+                 output_layer,
+                 points_per_unit=None,
+                 init_length_scale=None):
         
         # Standard input/output dimensions and discretisation density
         output_dim = 1
-        points_per_unit = 64 if input_dim == 1 else 32
+        
+        if points_per_unit is None:
+            points_per_unit = 64 if input_dim == 1 else 32
 
         conv_channels = 8
         conv_in_channels = conv_channels
@@ -185,8 +191,11 @@ class StandardConvGNP(GaussianNeuralProcess):
 
         # Construct the convolutional encoder
         grid_multiplyer =  2 ** conv_architecture.num_halving_layers
-        init_length_scale = 2.0 / points_per_unit
         grid_margin = 0.2
+        
+        if init_length_scale is None:
+            init_length_scale = 2.0 / points_per_unit
+        
         
         encoder = ConvEncoder(input_dim=input_dim,
                               out_channels=conv_channels,
@@ -216,6 +225,64 @@ class StandardConvGNP(GaussianNeuralProcess):
         self.output_dim = output_dim
         self.conv_architecture = conv_architecture
 
+        
+# =============================================================================
+# Standard UNet Convolutional Gaussian Neural Process for Predator-Prey
+# =============================================================================
+        
+        
+class StandardPredPreyConvGNP(GaussianNeuralProcess):
+    
+    def __init__(self, input_dim, output_layer):
+        
+        # Standard input/output dimensions and discretisation density
+        output_dim = 1
+        points_per_unit = 16
+
+        conv_channels = 8
+        conv_in_channels = conv_channels
+        conv_out_channels = 8
+        
+        # Standard convolutional architecture
+        conv_architecture = UNet(input_dim=input_dim,
+                                 in_channels=conv_in_channels,
+                                 out_channels=conv_out_channels)
+
+        # Construct the convolutional encoder
+        grid_multiplyer =  2 ** conv_architecture.num_halving_layers
+        encoder_init_length_scale = 1e-1
+        decoder_init_length_scale = 1e-1
+        grid_margin = 5.
+        
+        encoder = ConvEncoder(input_dim=input_dim,
+                              out_channels=conv_channels,
+                              init_length_scale=encoder_init_length_scale,
+                              points_per_unit=points_per_unit,
+                              grid_multiplier=grid_multiplyer,
+                              grid_margin=grid_margin)
+        
+        # Construct the convolutional decoder
+        decoder_out_channels = output_layer.num_features
+        
+        decoder = ConvDecoder(input_dim=input_dim,
+                              conv_architecture=conv_architecture,
+                              conv_out_channels=conv_architecture.out_channels,
+                              out_channels=decoder_out_channels,
+                              init_length_scale=decoder_init_length_scale,
+                              points_per_unit=points_per_unit,
+                              grid_multiplier=grid_multiplyer,
+                              grid_margin=grid_margin)
+
+
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         output_layer=output_layer)
+        
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.conv_architecture = conv_architecture
+        
+        
     
 # =============================================================================
 # Standard Fully Convolutional GNP (AABI model)
@@ -350,3 +417,6 @@ class FullConvGNP(nn.Module):
     def mean_and_marginals(self, x_context, y_context, x_target):
         mean, cov, noisy_cov = self.forward(x_context, y_context, x_target)
         return mean, B.diag_extract(cov), B.diag_extract(noisy_cov)
+
+    
+    

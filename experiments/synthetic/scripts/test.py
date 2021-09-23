@@ -33,12 +33,10 @@ from cnp.lnp import (
 )
 
 from cnp.cov import (
-    InnerProdCov,
-    KvvCov,
-    MeanFieldCov,
-    AddHomoNoise,
-    AddHeteroNoise,
-    AddNoNoise
+    MeanFieldGaussianLayer,
+    InnerprodGaussianLayer,
+    KvvGaussianLayer,
+    LogLogitCopulaLayer
 )
 
 from cnp.utils import (
@@ -133,13 +131,20 @@ parser.add_argument('model',
                              'convNP'],
                     help='Choice of model. ')
 
-parser.add_argument('covtype',
-                    choices=['innerprod-homo',
-                             'innerprod-hetero', 
-                             'kvv-homo',
-                             'kvv-hetero',
-                             'meanfield'],
+parser.add_argument('cov_type',
+                    choices=['meanfield',
+                             'innerprod', 
+                             'kvv'],
                     help='Choice of covariance method.')
+
+parser.add_argument('noise_type',
+                    choices=['homo', 'hetero'],
+                    help='Choice of noise model.')
+
+parser.add_argument('--marginal_type',
+                    default='identity',
+                    choices=['loglogit'],
+                    help='Choice of marginal transformation (optional).')
 
 parser.add_argument('--np_loss_samples',
                     default=16,
@@ -208,7 +213,9 @@ experiment_name = os.path.join(f'{root}',
                                f'{args.train_data}',
                                f'models',
                                f'{args.model}',
-                               f'{args.covtype}',
+                               f'{args.cov_type}',
+                               f'{args.noise_type}',
+                               f'{args.marginal_type}',
                                f'seed-{args.seed}',
                                f'dim-{args.x_dim}')
 working_directory = WorkingDirectory(root=experiment_name)
@@ -216,14 +223,11 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.test_data}',
-                         f'data',
-                         f'seed-{args.seed}',
-                         f'dim-{args.x_dim}')
+                         f'{args.test_data}')
 data_directory = WorkingDirectory(root=data_root)
 
 log_path = f'{root}/logs'
-log_filename = f'test-{args.train_data}-{args.test_data}-{args.model}-{args.covtype}-{args.seed}'
+log_filename = f'test-{args.train_data}-{args.test_data}-{args.model}-{args.cov_type}-{args.seed}'
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
@@ -233,63 +237,41 @@ sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
 # Create model
 # =============================================================================
 
-# Create covariance method
-if args.covtype == 'innerprod-homo':
-    cov = InnerProdCov(args.num_basis_dim)
-    noise = AddHomoNoise()
-    
-elif args.covtype == 'innerprod-hetero':
-    cov = InnerProdCov(args.num_basis_dim)
-    noise = AddHeteroNoise()
-    
-elif args.covtype == 'kvv-homo':
-    cov = KvvCov(args.num_basis_dim)
-    noise = AddHomoNoise()
-    
-elif args.covtype == 'kvv-hetero':
-    cov = KvvCov(args.num_basis_dim)
-    noise = AddHomoNoise()
-    
-elif args.covtype == 'meanfield':
-    cov = MeanFieldCov(num_basis_dim=1)
-    noise = AddNoNoise()
+cov_types = {
+    'meanfield' : MeanFieldGaussianLayer,
+    'innerprod' : InnerprodGaussianLayer,
+    'kvv'       : KvvGaussianLayer
+}
+
+if args.cov_type == 'meanfield':
+    output_layer = MeanFieldGaussianLayer()
     
 else:
-    raise ValueError(f'Unknown covariance method {args.covtype}.')
+    output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
+                                            noise_type=args.noise_type)
+
+if args.marginal_type == 'loglogit':
+    output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
     
 # Create model architecture
 if args.model == 'GNP':
-    model = StandardGNP(input_dim=args.x_dim,
-                        covariance=cov,
-                        add_noise=noise)
+    model = StandardGNP(input_dim=args.x_dim, output_layer=output_layer)
     
 elif args.model == 'AGNP':
-    model = StandardAGNP(input_dim=args.x_dim,
-                         covariance=cov,
-                         add_noise=noise)
+    model = StandardAGNP(input_dim=args.x_dim, output_layer=output_layer)
     
 elif args.model == 'convGNP':
-    model = StandardConvGNP(input_dim=args.x_dim,
-                            covariance=cov,
-                            add_noise=noise,
-                            num_noise_channels=0)
+    model = StandardConvGNP(input_dim=args.x_dim, output_layer=output_layer)
 
 elif args.model == 'FullConvGNP':
     model = FullConvGNP()
-    
 
 elif args.model == 'ANP':
-    
-    noise = AddHomoNoise()
     model = StandardANP(input_dim=args.x_dim,
-                        add_noise=noise,
                         num_samples=args.np_loss_samples)
     
 elif args.model == 'convNP':
-    
-    noise = AddHomoNoise()
     model = StandardConvNP(input_dim=args.x_dim,
-                           add_noise=noise,
                            num_samples=args.np_loss_samples)
     
 else:
@@ -297,7 +279,9 @@ else:
 
 
 print(f'{args.model} '
-      f'{args.covtype} '
+      f'{args.cov_type} '
+      f'{args.noise_type} '
+      f'{args.marginal_type} '
       f'{args.num_basis_dim}: '
       f'{model.num_params}')
 

@@ -1,0 +1,566 @@
+Exponential marginals
+sim-pred-prey-100-16-50-100-100-0 convGNP meanfield hetero exponential 32: 50701.0
+
+Epoch: 1/101
+Validation data neg. log-lik: nan
+Holdout    data neg. log-lik: 26.84
+Subsampled data neg. log-lik: 111.68
+Training   neg. log-lik: 193.04, Encoder/decoder scales 0.100 0.100
+Training   neg. log-lik: 113.24, Encoder/decoder scales 0.102 0.100
+Training   neg. log-lik: 109.96, Encoder/decoder scales 0.103 0.100
+Training   neg. log-lik: 99.76, Encoder/decoder scales 0.104 0.100
+Training   neg. log-lik: 116.92, Encoder/decoder scales 0.105 0.101
+Training   neg. log-lik: 97.28, Encoder/decoder scales 0.106 0.101
+Training   neg. log-lik: 94.08, Encoder/decoder scales 0.106 0.101
+Training   neg. log-lik: 106.60, Encoder/decoder scales 0.107 0.101
+Training   neg. log-lik: 99.30, Encoder/decoder scales 0.108 0.102
+Training   neg. log-lik: 107.53, Encoder/decoder scales 0.109 0.102
+Training   neg. log-lik: 98.11, Encoder/decoder scales 0.109 0.102
+
+Epoch: 2/101
+Training   neg. log-lik: 93.81, Encoder/decoder scales 0.109 0.102
+Training   neg. log-lik: 90.89, Encoder/decoder scales 0.110 0.103
+Training   neg. log-lik: 97.12, Encoder/decoder scales 0.111 0.103
+Training   neg. log-lik: 86.26, Encoder/decoder scales 0.112 0.103
+Training   neg. log-lik: 83.95, Encoder/decoder scales 0.112 0.103
+Training   neg. log-lik: 82.77, Encoder/decoder scales 0.113 0.103
+Training   neg. log-lik: 88.82, Encoder/decoder scales 0.113 0.104
+Training   neg. log-lik: 91.23, Encoder/decoder scales 0.114 0.104
+Training   neg. log-lik: 79.16, Encoder/decoder scales 0.115 0.104
+Training   neg. log-lik: 79.33, Encoder/decoder scales 0.116 0.104
+Training   neg. log-lik: 82.66, Encoder/decoder scales 0.117 0.104
+
+Epoch: 3/101
+Training   neg. log-lik: 76.30, Encoder/decoder scales 0.117 0.104
+Training   neg. log-lik: 80.72, Encoder/decoder scales 0.118 0.104
+Training   neg. log-lik: 80.25, Encoder/decoder scales 0.118 0.105
+Training   neg. log-lik: 89.97, Encoder/decoder scales 0.119 0.105
+Training   neg. log-lik: 93.37, Encoder/decoder scales 0.119 0.105
+Training   neg. log-lik: 72.98, Encoder/decoder scales 0.119 0.105
+Training   neg. log-lik: 92.91, Encoder/decoder scales 0.120 0.105
+Training   neg. log-lik: 73.79, Encoder/decoder scales 0.120 0.105
+Training   neg. log-lik: 68.85, Encoder/decoder scales 0.120 0.105
+Training   neg. log-lik: 67.92, Encoder/decoder scales 0.122 0.106
+Training   neg. log-lik: 65.94, Encoder/decoder scales 0.122 0.106
+
+Epoch: 4/101
+Training   neg. log-lik: 68.26, Encoder/decoder scales 0.122 0.106
+Training   neg. log-lik: 105.08, Encoder/decoder scales 0.123 0.106
+Training   neg. log-lik: 65.25, Encoder/decoder scales 0.123 0.106
+Training   neg. log-lik: 59.69, Encoder/decoder scales 0.124 0.106
+Training   neg. log-lik: 71.53, Encoder/decoder scales 0.125 0.106
+Training   neg. log-lik: 66.41, Encoder/decoder scales 0.126 0.106
+Training   neg. log-lik: 60.85, Encoder/decoder scales 0.127 0.106
+Training   neg. log-lik: 57.17, Encoder/decoder scales 0.127 0.106
+Training   neg. log-lik: 52.61, Encoder/decoder scales 0.127 0.106
+Training   neg. log-lik: 56.64, Encoder/decoder scales 0.127 0.106
+Training   neg. log-lik: 55.61, Encoder/decoder scales 0.128 0.107
+
+Epoch: 5/101
+Training   neg. log-lik: 52.31, Encoder/decoder scales 0.128 0.107
+Training   neg. log-lik: 88.36, Encoder/decoder scales 0.129 0.107
+Training   neg. log-lik: 51.37, Encoder/decoder scales 0.129 0.107
+Training   neg. log-lik: 52.39, Encoder/decoder scales 0.130 0.107
+Training   neg. log-lik: 47.98, Encoder/decoder scales 0.131 0.107
+Training   neg. log-lik: 47.75, Encoder/decoder scales 0.132 0.107
+Training   neg. log-lik: 46.08, Encoder/decoder scales 0.133 0.107
+Training   neg. log-lik: 49.86, Encoder/decoder scales 0.133 0.107
+Training   neg. log-lik: 42.18, Encoder/decoder scales 0.134 0.107
+Training   neg. log-lik: 45.66, Encoder/decoder scales 0.135 0.107
+Training   neg. log-lik: 53.96, Encoder/decoder scales 0.134 0.107
+
+Epoch: 6/101
+Training   neg. log-lik: 42.99, Encoder/decoder scales 0.135 0.107
+Training   neg. log-lik: 43.85, Encoder/decoder scales 0.134 0.107
+Training   neg. log-lik: 37.98, Encoder/decoder scales 0.133 0.107
+Training   neg. log-lik: 47.38, Encoder/decoder scales 0.133 0.107
+Training   neg. log-lik: 38.60, Encoder/decoder scales 0.134 0.107
+Training   neg. log-lik: 39.41, Encoder/decoder scales 0.135 0.107
+Training   neg. log-lik: 29.43, Encoder/decoder scales 0.135 0.107
+Training   neg. log-lik: 38.62, Encoder/decoder scales 0.135 0.107
+Training   neg. log-lik: 43.88, Encoder/decoder scales 0.136 0.107
+Training   neg. log-lik: 39.07, Encoder/decoder scales 0.136 0.107
+Training   neg. log-lik: 35.80, Encoder/decoder scales 0.137 0.107
+
+Epoch: 7/101
+Training   neg. log-lik: 30.75, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 34.91, Encoder/decoder scales 0.136 0.107
+Training   neg. log-lik: 26.83, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 28.54, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 32.34, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 27.41, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 27.63, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 56.27, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 19.68, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 35.97, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 30.00, Encoder/decoder scales 0.140 0.107
+
+Epoch: 8/101
+Training   neg. log-lik: 24.04, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 18.65, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 24.26, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 14.96, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 29.80, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 13.64, Encoder/decoder scales 0.136 0.107
+Training   neg. log-lik: 64.20, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 33.02, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 11.17, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 6.00, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 63.88, Encoder/decoder scales 0.138 0.107
+
+Epoch: 9/101
+Training   neg. log-lik: 27.35, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 32.43, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 20.48, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 7.03, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 19.25, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 6.75, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 57.36, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 10.09, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 2.51, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 21.90, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 56.15, Encoder/decoder scales 0.140 0.107
+
+Epoch: 10/101
+Training   neg. log-lik: 138.31, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 3.40, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 0.40, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -0.41, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 9.70, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -3.47, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 48.24, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -5.72, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -1.48, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 89.10, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 0.91, Encoder/decoder scales 0.143 0.107
+
+Epoch: 11/101
+Validation data neg. log-lik: nan
+Holdout    data neg. log-lik: 73.89
+Subsampled data neg. log-lik: 240.92
+Training   neg. log-lik: -4.71, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 15.17, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -11.77, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -0.39, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 47.95, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: -10.56, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 13.36, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -10.94, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 22.18, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -6.74, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 5.49, Encoder/decoder scales 0.144 0.107
+
+Epoch: 12/101
+Training   neg. log-lik: -10.69, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -12.35, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -9.56, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -13.34, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 24.13, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 20.57, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -17.07, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 14.49, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 19.98, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -7.82, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 65.43, Encoder/decoder scales 0.143 0.107
+
+Epoch: 13/101
+Training   neg. log-lik: 12.94, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -10.24, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -2.70, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -19.13, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -26.91, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -16.86, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -14.02, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -28.32, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -26.86, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 8.95, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -24.85, Encoder/decoder scales 0.144 0.107
+
+Epoch: 14/101
+Training   neg. log-lik: 57.36, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -10.96, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -23.50, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -7.51, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 24.83, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -31.53, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -21.34, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: -23.03, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -16.38, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -16.22, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: -30.43, Encoder/decoder scales 0.145 0.106
+
+Epoch: 15/101
+Training   neg. log-lik: -25.22, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: -33.12, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: 81.86, Encoder/decoder scales 0.147 0.106
+Training   neg. log-lik: -20.71, Encoder/decoder scales 0.147 0.105
+Training   neg. log-lik: -24.29, Encoder/decoder scales 0.147 0.106
+Training   neg. log-lik: -29.45, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: -32.84, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: -37.23, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: -36.04, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: -23.28, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: 39.32, Encoder/decoder scales 0.144 0.106
+
+Epoch: 16/101
+Training   neg. log-lik: -31.25, Encoder/decoder scales 0.144 0.106
+Training   neg. log-lik: -20.37, Encoder/decoder scales 0.143 0.106
+Training   neg. log-lik: -24.02, Encoder/decoder scales 0.143 0.106
+Training   neg. log-lik: -38.53, Encoder/decoder scales 0.143 0.106
+Training   neg. log-lik: -29.98, Encoder/decoder scales 0.143 0.106
+Training   neg. log-lik: -40.24, Encoder/decoder scales 0.142 0.106
+Training   neg. log-lik: -37.80, Encoder/decoder scales 0.142 0.106
+Training   neg. log-lik: -42.86, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -36.93, Encoder/decoder scales 0.141 0.106
+Training   neg. log-lik: -8.83, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -45.22, Encoder/decoder scales 0.141 0.107
+
+Epoch: 17/101
+Training   neg. log-lik: -45.80, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -14.38, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: -42.25, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 10.10, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -9.07, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: -43.69, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -49.48, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: -49.19, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 0.58, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 52.85, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: -56.16, Encoder/decoder scales 0.141 0.107
+
+Epoch: 18/101
+Training   neg. log-lik: -59.50, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -56.94, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -59.97, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -47.96, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -40.89, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 56.11, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -65.40, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 12.82, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -61.65, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -59.43, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -67.84, Encoder/decoder scales 0.142 0.107
+
+Epoch: 19/101
+Training   neg. log-lik: -49.22, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -43.58, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -3.29, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -57.96, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -64.19, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: -66.99, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -68.70, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: -64.86, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -71.36, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: 8.29, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -72.20, Encoder/decoder scales 0.143 0.108
+
+Epoch: 20/101
+Training   neg. log-lik: -17.07, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -73.14, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -33.70, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -56.08, Encoder/decoder scales 0.141 0.108
+Training   neg. log-lik: -75.45, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -37.10, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -76.89, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -74.70, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -79.90, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -33.74, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -83.01, Encoder/decoder scales 0.141 0.108
+
+Epoch: 21/101
+Validation data neg. log-lik: nan
+Holdout    data neg. log-lik: 60.23
+Subsampled data neg. log-lik: 307.76
+Training   neg. log-lik: -71.32, Encoder/decoder scales 0.141 0.108
+Training   neg. log-lik: -76.34, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -83.69, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -55.18, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -62.03, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: 28.35, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -79.58, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -90.98, Encoder/decoder scales 0.142 0.108
+Training   neg. log-lik: -84.04, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -78.12, Encoder/decoder scales 0.143 0.108
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 477, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 477, in <module>
+          File "experiments/predator-prey/scripts/train.py", line 57, in train
+  File "experiments/predator-prey/scripts/train.py", line 57, in train
+        batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 51, in loss
+        loglik = self.output_layer.loglik(z, y_target[:, :, 0])loglik = self.output_layer.loglik(z, y_target[:, :, 0])
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 510, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 510, in loglik
+        marg_params=marg_params)marg_params=marg_params)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 592, in inverse_marginal_transformation
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 592, in inverse_marginal_transformation
+        x = self.cdf(x, marg_params)x = self.cdf(x, marg_params)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 713, in cdf
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 713, in cdf
+        assert torch.all(x >= 0.)assert torch.all(x >= 0.)
+
+KeyboardInterruptKeyboardInterrupt
+
+Exponential marginals
+sim-pred-prey-100-16-50-100-100-0 convGNP meanfield hetero exponential 32: 50701.0
+
+Epoch: 1/101
+Validation data neg. log-lik: 180.76
+Holdout    data neg. log-lik: 26.23
+Subsampled data neg. log-lik: 110.27
+Training   neg. log-lik: 193.04, Encoder/decoder scales 0.100 0.100
+Training   neg. log-lik: 113.24, Encoder/decoder scales 0.102 0.100
+Training   neg. log-lik: 110.03, Encoder/decoder scales 0.103 0.100
+Training   neg. log-lik: 99.51, Encoder/decoder scales 0.104 0.100
+Training   neg. log-lik: 117.10, Encoder/decoder scales 0.105 0.101
+Training   neg. log-lik: 97.33, Encoder/decoder scales 0.106 0.101
+Training   neg. log-lik: 94.41, Encoder/decoder scales 0.106 0.101
+Training   neg. log-lik: 106.45, Encoder/decoder scales 0.107 0.101
+Training   neg. log-lik: 99.50, Encoder/decoder scales 0.108 0.102
+Training   neg. log-lik: 108.24, Encoder/decoder scales 0.109 0.102
+Training   neg. log-lik: 98.13, Encoder/decoder scales 0.109 0.102
+
+Epoch: 2/101
+Training   neg. log-lik: 93.73, Encoder/decoder scales 0.110 0.102
+Training   neg. log-lik: 91.17, Encoder/decoder scales 0.110 0.103
+Training   neg. log-lik: 97.03, Encoder/decoder scales 0.111 0.103
+Training   neg. log-lik: 86.36, Encoder/decoder scales 0.112 0.103
+Training   neg. log-lik: 83.85, Encoder/decoder scales 0.112 0.103
+Training   neg. log-lik: 82.71, Encoder/decoder scales 0.113 0.103
+Training   neg. log-lik: 89.08, Encoder/decoder scales 0.114 0.104
+Training   neg. log-lik: 90.88, Encoder/decoder scales 0.114 0.104
+Training   neg. log-lik: 79.25, Encoder/decoder scales 0.115 0.104
+Training   neg. log-lik: 79.26, Encoder/decoder scales 0.116 0.104
+Training   neg. log-lik: 82.18, Encoder/decoder scales 0.116 0.104
+
+Epoch: 3/101
+Training   neg. log-lik: 76.46, Encoder/decoder scales 0.117 0.104
+Training   neg. log-lik: 81.10, Encoder/decoder scales 0.117 0.105
+Training   neg. log-lik: 80.92, Encoder/decoder scales 0.118 0.105
+Training   neg. log-lik: 90.02, Encoder/decoder scales 0.119 0.105
+Training   neg. log-lik: 93.68, Encoder/decoder scales 0.120 0.105
+Training   neg. log-lik: 72.86, Encoder/decoder scales 0.121 0.105
+Training   neg. log-lik: 91.95, Encoder/decoder scales 0.121 0.105
+Training   neg. log-lik: 73.60, Encoder/decoder scales 0.121 0.105
+Training   neg. log-lik: 68.85, Encoder/decoder scales 0.121 0.106
+Training   neg. log-lik: 67.25, Encoder/decoder scales 0.122 0.106
+Training   neg. log-lik: 65.97, Encoder/decoder scales 0.123 0.106
+
+Epoch: 4/101
+Training   neg. log-lik: 68.50, Encoder/decoder scales 0.123 0.106
+Training   neg. log-lik: 106.71, Encoder/decoder scales 0.123 0.106
+Training   neg. log-lik: 65.02, Encoder/decoder scales 0.124 0.106
+Training   neg. log-lik: 59.62, Encoder/decoder scales 0.125 0.106
+Training   neg. log-lik: 71.85, Encoder/decoder scales 0.126 0.106
+Training   neg. log-lik: 67.41, Encoder/decoder scales 0.127 0.106
+Training   neg. log-lik: 60.78, Encoder/decoder scales 0.127 0.106
+Training   neg. log-lik: 57.41, Encoder/decoder scales 0.129 0.106
+Training   neg. log-lik: 52.58, Encoder/decoder scales 0.129 0.106
+Training   neg. log-lik: 56.57, Encoder/decoder scales 0.130 0.106
+Training   neg. log-lik: 56.54, Encoder/decoder scales 0.130 0.107
+
+Epoch: 5/101
+Training   neg. log-lik: 52.13, Encoder/decoder scales 0.130 0.106
+Training   neg. log-lik: 87.96, Encoder/decoder scales 0.131 0.107
+Training   neg. log-lik: 51.48, Encoder/decoder scales 0.131 0.107
+Training   neg. log-lik: 52.03, Encoder/decoder scales 0.132 0.107
+Training   neg. log-lik: 48.01, Encoder/decoder scales 0.133 0.107
+Training   neg. log-lik: 47.81, Encoder/decoder scales 0.134 0.107
+Training   neg. log-lik: 46.12, Encoder/decoder scales 0.136 0.107
+Training   neg. log-lik: 49.85, Encoder/decoder scales 0.136 0.107
+Training   neg. log-lik: 43.09, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 45.86, Encoder/decoder scales 0.137 0.107
+Training   neg. log-lik: 54.86, Encoder/decoder scales 0.138 0.107
+
+Epoch: 6/101
+Training   neg. log-lik: 43.29, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 46.79, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 37.79, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 46.39, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 38.28, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 39.30, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 29.63, Encoder/decoder scales 0.138 0.107
+Training   neg. log-lik: 38.32, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 43.39, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 38.88, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 35.26, Encoder/decoder scales 0.140 0.107
+
+Epoch: 7/101
+Training   neg. log-lik: 30.25, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 34.68, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 26.32, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 28.86, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 30.12, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 28.08, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 27.62, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 57.18, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 19.58, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 36.29, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 30.44, Encoder/decoder scales 0.143 0.107
+
+Epoch: 8/101
+Training   neg. log-lik: 25.29, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 19.14, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 24.04, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 16.14, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 30.36, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 14.05, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 63.49, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 34.98, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 11.07, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 6.18, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 63.66, Encoder/decoder scales 0.140 0.107
+
+Epoch: 9/101
+Training   neg. log-lik: 26.73, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 27.82, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 19.35, Encoder/decoder scales 0.139 0.107
+Training   neg. log-lik: 7.17, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 17.72, Encoder/decoder scales 0.140 0.107
+Training   neg. log-lik: 5.56, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 60.06, Encoder/decoder scales 0.141 0.107
+Training   neg. log-lik: 10.93, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 3.39, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 23.14, Encoder/decoder scales 0.142 0.107
+Training   neg. log-lik: 57.87, Encoder/decoder scales 0.142 0.107
+
+Epoch: 10/101
+Training   neg. log-lik: 141.35, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 2.79, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -1.03, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -0.06, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 8.70, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -2.65, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: 43.52, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -7.05, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -0.63, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 80.50, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 0.61, Encoder/decoder scales 0.145 0.107
+
+Epoch: 11/101
+Validation data neg. log-lik: 10.80
+Holdout    data neg. log-lik: 68.46
+Subsampled data neg. log-lik: 213.92
+Training   neg. log-lik: -5.99, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 16.64, Encoder/decoder scales 0.147 0.107
+Training   neg. log-lik: -11.02, Encoder/decoder scales 0.148 0.107
+Training   neg. log-lik: -0.63, Encoder/decoder scales 0.147 0.107
+Training   neg. log-lik: 50.27, Encoder/decoder scales 0.147 0.107
+Training   neg. log-lik: -10.93, Encoder/decoder scales 0.147 0.107
+Training   neg. log-lik: 10.46, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: -12.29, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: 26.77, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: -5.51, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: 5.84, Encoder/decoder scales 0.145 0.107
+
+Epoch: 12/101
+Training   neg. log-lik: -8.70, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -13.31, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -9.60, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -13.88, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: 24.49, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: 20.07, Encoder/decoder scales 0.146 0.107
+Training   neg. log-lik: -16.67, Encoder/decoder scales 0.147 0.107
+Training   neg. log-lik: 16.31, Encoder/decoder scales 0.147 0.107
+Training   neg. log-lik: 20.46, Encoder/decoder scales 0.147 0.106
+Training   neg. log-lik: -6.28, Encoder/decoder scales 0.149 0.106
+Training   neg. log-lik: 38.70, Encoder/decoder scales 0.149 0.105
+
+Epoch: 13/101
+Training   neg. log-lik: 13.41, Encoder/decoder scales 0.149 0.105
+Training   neg. log-lik: -10.69, Encoder/decoder scales 0.150 0.105
+Training   neg. log-lik: 0.17, Encoder/decoder scales 0.149 0.105
+Training   neg. log-lik: -18.23, Encoder/decoder scales 0.149 0.106
+Training   neg. log-lik: -28.94, Encoder/decoder scales 0.149 0.106
+Training   neg. log-lik: -19.82, Encoder/decoder scales 0.149 0.106
+Training   neg. log-lik: -19.77, Encoder/decoder scales 0.149 0.106
+Training   neg. log-lik: -30.66, Encoder/decoder scales 0.148 0.106
+Training   neg. log-lik: -33.28, Encoder/decoder scales 0.147 0.106
+Training   neg. log-lik: -16.01, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: -34.17, Encoder/decoder scales 0.146 0.106
+
+Epoch: 14/101
+Training   neg. log-lik: 15.57, Encoder/decoder scales 0.146 0.106
+Training   neg. log-lik: -27.60, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: -31.76, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: -16.03, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: -11.99, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: -42.22, Encoder/decoder scales 0.145 0.106
+Training   neg. log-lik: -32.11, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -34.74, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -31.76, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -30.51, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -47.82, Encoder/decoder scales 0.145 0.107
+
+Epoch: 15/101
+Training   neg. log-lik: -39.06, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: -46.32, Encoder/decoder scales 0.145 0.107
+Training   neg. log-lik: 22.99, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -35.63, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -37.73, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -42.45, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -48.26, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -51.69, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -51.13, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -31.05, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: 33.55, Encoder/decoder scales 0.143 0.107
+
+Epoch: 16/101
+Training   neg. log-lik: -44.46, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -27.43, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -32.07, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -53.84, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -42.44, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -53.46, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -52.73, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -56.33, Encoder/decoder scales 0.144 0.107
+Training   neg. log-lik: -48.84, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -16.01, Encoder/decoder scales 0.143 0.107
+Training   neg. log-lik: -58.96, Encoder/decoder scales 0.143 0.108
+
+Epoch: 17/101
+Training   neg. log-lik: -60.61, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -22.28, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -60.21, Encoder/decoder scales 0.144 0.108
+Training   neg. log-lik: 7.05, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -18.36, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -56.56, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -63.91, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -61.35, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -3.15, Encoder/decoder scales 0.144 0.108
+Training   neg. log-lik: 42.47, Encoder/decoder scales 0.143 0.108
+Training   neg. log-lik: -68.14, Encoder/decoder scales 0.144 0.108
+
+Epoch: 18/101
+Training   neg. log-lik: -75.01, Encoder/decoder scales 0.144 0.108
+Training   neg. log-lik: -67.59, Encoder/decoder scales 0.145 0.108
+Training   neg. log-lik: -76.02, Encoder/decoder scales 0.144 0.108
+Training   neg. log-lik: -58.93, Encoder/decoder scales 0.144 0.108
+Training   neg. log-lik: -49.15, Encoder/decoder scales 0.145 0.108
+Training   neg. log-lik: 56.46, Encoder/decoder scales 0.145 0.108
+Training   neg. log-lik: -79.43, Encoder/decoder scales 0.145 0.108
+Training   neg. log-lik: 7.63, Encoder/decoder scales 0.146 0.108
+Training   neg. log-lik: -72.00, Encoder/decoder scales 0.146 0.108
+Training   neg. log-lik: -69.45, Encoder/decoder scales 0.145 0.108
+Training   neg. log-lik: -82.86, Encoder/decoder scales 0.146 0.108
+
+Epoch: 19/101
+Training   neg. log-lik: -59.43, Encoder/decoder scales 0.146 0.108
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 477, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 477, in <module>
+      File "experiments/predator-prey/scripts/train.py", line 70, in train
+  File "experiments/predator-prey/scripts/train.py", line 70, in train
+        optimiser.zero_grad()optimiser.zero_grad()  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/optim/optimizer.py", line 216, in zero_grad
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/optim/optimizer.py", line 216, in zero_grad
+        p.grad.zero_()p.grad.zero_()
+
+KeyboardInterruptKeyboardInterrupt
+

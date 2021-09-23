@@ -1,0 +1,91 @@
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield hetero exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 493.40
+Holdout    data neg. log-lik: 28.24
+Subsampled data neg. log-lik: 117.53
+Training   neg. log-lik: 545.03, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 150.92, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 129.09, Encoder/decoder scales 0.099 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 125.11, Encoder/decoder scales 0.099 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 124.39, Encoder/decoder scales 0.099 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 123.09, Encoder/decoder scales 0.099 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 122.13, Encoder/decoder scales 0.099 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 122.41, Encoder/decoder scales 0.100 0.099
+
+Epoch: 9/11
+Training   neg. log-lik: 122.35, Encoder/decoder scales 0.100 0.099
+
+Epoch: 10/11
+Training   neg. log-lik: 123.66, Encoder/decoder scales 0.100 0.099
+
+Epoch: 11/11
+Validation data neg. log-lik: 121.50
+Holdout    data neg. log-lik: 25.71
+Subsampled data neg. log-lik: 105.61
+Training   neg. log-lik: 121.37, Encoder/decoder scales 0.100 0.099
+Exponential marginals
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 352, in <module>
+  File "experiments/predator-prey/scripts/train.py", line 352, in <module>
+        model = StandardPredPreyConvGNP(input_dim=1,model = StandardPredPreyConvGNP(input_dim=1,
+
+NameErrorNameError: : name 'StandardPredPreyConvGNP' is not definedname 'StandardPredPreyConvGNP' is not defined
+
+Exponential marginals
+sim-pred-prey-32-50-100-100-0 convGNP meanfield hetero exponential 32: 50701.0
+
+Epoch: 1/11
+Validation data neg. log-lik: 252.43
+Holdout    data neg. log-lik: 26.84
+Subsampled data neg. log-lik: 111.68
+Training   neg. log-lik: 253.48, Encoder/decoder scales 0.100 0.100
+
+Epoch: 2/11
+Training   neg. log-lik: 141.21, Encoder/decoder scales 0.099 0.099
+
+Epoch: 3/11
+Training   neg. log-lik: 127.54, Encoder/decoder scales 0.100 0.099
+
+Epoch: 4/11
+Training   neg. log-lik: 124.04, Encoder/decoder scales 0.101 0.099
+
+Epoch: 5/11
+Training   neg. log-lik: 123.24, Encoder/decoder scales 0.101 0.099
+
+Epoch: 6/11
+Training   neg. log-lik: 121.39, Encoder/decoder scales 0.102 0.099
+
+Epoch: 7/11
+Training   neg. log-lik: 120.44, Encoder/decoder scales 0.102 0.099
+
+Epoch: 8/11
+Training   neg. log-lik: 120.33, Encoder/decoder scales 0.103 0.100
+
+Epoch: 9/11
+Training   neg. log-lik: 120.28, Encoder/decoder scales 0.103 0.100
+
+Epoch: 10/11
+Training   neg. log-lik: 121.42, Encoder/decoder scales 0.103 0.100
+
+Epoch: 11/11
+Validation data neg. log-lik: 119.61
+Holdout    data neg. log-lik: 25.57
+Subsampled data neg. log-lik: 104.22
+Training   neg. log-lik: 119.57, Encoder/decoder scales 0.103 0.100

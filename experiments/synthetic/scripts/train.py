@@ -190,7 +190,7 @@ def validate(data,
           f"{mean_mae:.2f}")
 
     return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll, mean_mae, std_mae
-        
+
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()

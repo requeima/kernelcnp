@@ -354,7 +354,7 @@ class InnerprodGaussianLayer(GaussianLayer):
             mean = tensor[:, :, 0]
             z = tensor[:, :, 1:-1] / C**0.5
             
-            jitter = torch.tensor(1e-6).repeat(B, T)
+            jitter = torch.tensor(1e-6).repeat(B, T).to(z.device)
             jitter = jitter.double() if double else jitter
         
             if noiseless:
@@ -513,11 +513,9 @@ class CopulaLayer(OutputLayer):
         loglik = self.gaussian_layer.loglik(tensor=tensor, y_target=v_target)
         
         # Compute change-of-variables contribution (Jacobian is diagonal)
-        grad = self.inverse_marginal_transformation(x=y_target,
-                                                    marg_params=marg_params,
-                                                    grad=True)
-        jacobian_term = torch.sum(torch.log(torch.abs(grad)), dim=-1)
-        
+        jacobian_term = self.jacobian_term(x=y_target,
+                                           marg_params=marg_params)
+
         # Ensure shapes are compatible
         assert loglik.shape == jacobian_term.shape
         
@@ -576,7 +574,7 @@ class CopulaLayer(OutputLayer):
         return x
         
         
-    def inverse_marginal_transformation(self, x, marg_params, grad=False):
+    def inverse_marginal_transformation(self, x, marg_params):
         """
         Arguments:
             x           : torch.tensor, (B, T)
@@ -591,14 +589,32 @@ class CopulaLayer(OutputLayer):
         
         gaussian = Normal(loc=zeros, scale=ones)
         
-        if grad:
-            x = self.pdf(x, marg_params) / gaussian.icdf(self.cdf(x, marg_params))
-        
-        else:
-            x = self.cdf(x, marg_params)
-            x = gaussian.icdf(x)
+        x = self.cdf(x, marg_params)
+        x = gaussian.icdf(x)
         
         return x
+        
+        
+    def jacobian_term(self, x, marg_params):
+        """
+        Arguments:
+            x           : torch.tensor, (B, T)
+            marg_params : List[torch.tensor], [(B, T), ..., (B, T)]
+            
+        Returns:
+            x : torch.tensor, (B, T)
+        """
+        
+        zeros = torch.zeros(size=x.shape).double().to(self.device)
+        ones = torch.ones(size=x.shape).double().to(self.device)
+        
+        gaussian = Normal(loc=zeros, scale=ones)
+        
+        jacobian_term = self.log_pdf(x, marg_params)
+        jacobian_term = jacobian_term - gaussian.log_prob(self.cdf(x, marg_params))
+        jacobian_term = torch.sum(jacobian_term, axis=-1)
+        
+        return jacobian_term
         
         
     @abstractmethod
@@ -607,7 +623,7 @@ class CopulaLayer(OutputLayer):
     
     
     @abstractmethod
-    def pdf(self, x, marg_params):
+    def log_pdf(self, x, marg_params):
         pass
     
     
@@ -629,12 +645,13 @@ class CopulaLayer(OutputLayer):
 class ExponentialCopulaLayer(CopulaLayer):
     
     
-    def __init__(self, gaussian_layer, device):
+    def __init__(self, gaussian_layer, scale, device):
         
-        super().__init__(gaussian_layer=gaussian_layer, device=device)
+        super().__init__(gaussian_layer=gaussian_layer,
+                         device=device)
         
-        self.num_features = self.gaussian_layer.num_features + 1
-        self.min_unconstrained_scale = torch.nn.Parameter(torch.tensor(0.))
+        self.num_features = self.gaussian_layer.num_features
+        self.scale = scale
         
         
     def unpack_parameters(self, tensor):
@@ -647,29 +664,21 @@ class ExponentialCopulaLayer(CopulaLayer):
             marg_params : List[torch.tensor], [(B, T),]
         """
         
-        epsilon = 1e-2
-        
         # Check tensor has correct number of features
         assert (len(tensor.shape) == 3) and \
                (tensor.shape[-1] == self.num_features)
         
-        # Get rate and concentration from tensor
-#         scale = torch.nn.Softplus()(tensor[:, :, 0]) + \
-#                 torch.nn.Softplus()(self.min_unconstrained_scale)
-        scale = 0. * tensor[:, :, 0] + 2.
-        
-        # Slice out scale
-        tensor = tensor[:, :, 1:]
+        # Get scale from tensor
+        scale = self.scale * torch.ones_like(tensor[:, :, 0]).float().to(self.device)
+#         scale = torch.nn.Softplus()(1e-2 * tensor[:, :, 0] + 1.)
+    
+#         tensor = tensor[:, :, 1:]
         
         return tensor, [scale]
     
     
-    def pdf(self, x, marg_params):
+    def log_pdf(self, x, marg_params):
         """
-        Probability distribution function of the log-logistic distribution.
-        
-            PDF(x) = (b/a) * (x/a)^(b-1) / (1 + (x/a)^b)^2
-        
         Arguments:
             x           : torch.tensor, (B, T)
             marg_params : List[torch.tensor], [(B, T)]
@@ -682,17 +691,13 @@ class ExponentialCopulaLayer(CopulaLayer):
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == scale.shape
-        assert torch.all(x > 0.)
+        assert torch.all(x >= 0.)
         
-        return scale**-1. * torch.exp(-(x/scale))
+        return - torch.log(scale) - (x / scale)
     
     
     def cdf(self, x, marg_params):
         """
-        Cumulative distribution function of the log-logistic distribution.
-        
-            CDF(x) = 1 / (1 + (x/a)^-b)
-        
         Arguments:
             x           : torch.tensor, (B, T)
             marg_params : List[torch.tensor], [(B, T), (B, T)]
@@ -705,7 +710,7 @@ class ExponentialCopulaLayer(CopulaLayer):
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == scale.shape
-        assert torch.all(x > 0.)
+        assert torch.all(x >= 0.)
         
         x = x.double()
         scale = scale.double()
@@ -718,11 +723,6 @@ class ExponentialCopulaLayer(CopulaLayer):
     
     def icdf(self, x, marg_params):
         """
-        Inverse cumulative distribution function of the log-logistic
-        distribution.
-        
-            CDF^-1(x) = a * (x^-1 - 1)^(-1/b)
-        
         Arguments:
             x           : torch.tensor, (B, T)
             marg_params : List[torch.tensor], [(B, T), (B, T)]
@@ -735,7 +735,7 @@ class ExponentialCopulaLayer(CopulaLayer):
         
         # Check shapes are compatible, all x values are positive
         assert x.shape == scale.shape
-        assert torch.all(x > 0.)
+        assert torch.all(x >= 0.)
         
         x = x.double()
         scale = scale.double()

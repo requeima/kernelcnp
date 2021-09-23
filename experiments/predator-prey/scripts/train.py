@@ -15,17 +15,21 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import StandardConvGNP
+from cnp.cnp import StandardPredPreyConvGNP # StandardConvGNP
 from cnp.lnp import StandardConvNP
 
 from cnp.cov import (
     MeanFieldGaussianLayer,
     InnerprodGaussianLayer,
     KvvGaussianLayer,
+    ExponentialCopulaLayer,
     LogLogitCopulaLayer
 )
 
-from cnp.utils import Logger
+from cnp.utils import (
+    Logger,
+    plot_pred_prey_fits
+)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,11 +37,9 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-
 # =============================================================================
 # Training epoch helper
 # =============================================================================
-
 
 def train(data,
           model,
@@ -49,21 +51,26 @@ def train(data,
     
     for step, batch in enumerate(data):
 
-        nll = model.loss(batch['x_context'].to(device),
-                         batch['y_context'].to(device),
-                         batch['x_target'].to(device),
-                         batch['y_target'].to(device))
+        nll = model.loss(batch['x_context'][:, :, None].to(device),
+                         batch['y_context'][:, 0, :, None].to(device) / 100 + 1e-2,
+                         batch['x_target'][:, :, None].to(device),
+                         batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)
+
+        # Log information to tensorboard
+        writer.add_scalar('Training data log-lik.', -nll, epoch)
+        
+        encoder_scale = torch.exp(model.encoder.sigma).detach().cpu().numpy().squeeze()
+        decoder_scale = torch.exp(model.decoder.sigma).detach().cpu().numpy().squeeze()
 
         if step % log_every == 0:
-            print(f"Training   neg. log-lik: {nll:.2f}")
+            print(f"Training   neg. log-lik: {nll:.2f}, "
+                  f"Encoder/decoder scales {encoder_scale:.3f} "
+                  f"{decoder_scale:.3f}")
 
         # Compute gradients and apply them
         nll.backward()
         optimiser.step()
         optimiser.zero_grad()
-
-        # Write to tensorboard
-        writer.add_scalar('Train log-lik.', - nll, iteration)
         
         iteration = iteration + 1
         
@@ -76,69 +83,79 @@ def train(data,
 
 
 def validate(data,
-             oracle_cov,
-             noise,
+             data_holdout,
+             data_subsampled,
              model,
-             args,
              device,
              writer,
-             latent_model):
+             latent_model,
+             figure_path):
     
     # Lists for logging model's training NLL and oracle NLL
     nll_list = []
+    nll_holdout_list = []
+    nll_subsampled_list = []
     oracle_nll_list = []
     
     # If training a latent model, set the number of latent samples accordingly
-    loss_kwargs = {'num_samples' : args.np_val_samples} \
+    loss_kwargs = {'num_samples' : args_np_val_samples} \
                   if latent_model else {}
     
     with torch.no_grad():
-        
         for step, batch in enumerate(data):
             
-            nll = model.loss(batch['x_context'].to(device),
-                             batch['y_context'].to(device),
-                             batch['x_target'].to(device),
-                             batch['y_target'].to(device),
+            nll = model.loss(batch['x_context'][:, :, None].to(device),
+                             batch['y_context'][:, 0, :, None].to(device) / 100 + 1e-2,
+                             batch['x_target'][:, :, None].to(device),
+                             batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2,
                              **loss_kwargs)
             
-            oracle_nll = torch.tensor(0.)
-
-            # Oracle loss exists only for GP-generated data, not sawtooth
-            if oracle_cov is not None:
-                for b in range(batch['x_context'].shape[0]):
-                    
-                    x_context = batch['x_context'][b].clone().detach().numpy()
-                    y_context = batch['y_context'][b].clone().detach().numpy()
-                    x_target = batch['x_target'][b].clone().detach().numpy()
-                    y_target = batch['y_target'][b].clone().detach().numpy()
-                    
-                    oracle_nll = oracle_nll - oracle_loglik(x_context,
-                                                            y_context,
-                                                            x_target,
-                                                            y_target,
-                                                            oracle_cov,
-                                                            noise)
-
-            # Scale by the average number of target points
             nll_list.append(nll.item())
-            oracle_nll_list.append(oracle_nll.item() / \
-                                   batch['x_context'].shape[0])
+            
+        for step, batch in enumerate(data_holdout):
+            
+            nll_holdout = model.loss(batch['x_context'].to(device),
+                                     batch['y_context'].to(device) / 100 + 1e-2,
+                                     batch['x_target'].to(device),
+                                     batch['y_target'].to(device) / 100 + 1e-2,
+                                  **loss_kwargs)
+            
+            nll_holdout_list.append(nll_holdout.item())
+            
+        for step, batch in enumerate(data_subsampled):
+            
+            nll_subsampled = model.loss(batch['x_context'].to(device),
+                                        batch['y_context'].to(device) / 100 + 1e-2,
+                                        batch['x_target'].to(device),
+                                        batch['y_target'].to(device) / 100 + 1e-2,
+                                        **loss_kwargs)
+            
+            nll_subsampled_list.append(nll_subsampled.item())
 
     mean_nll = np.mean(nll_list)
-    std_nll = np.var(nll_list)**0.5
-    
-    mean_oracle_nll = np.mean(oracle_nll_list)
-    std_oracle_nll = np.var(oracle_nll_list)**0.5
+    mean_holdout_nll = np.mean(nll_holdout_list)
+    mean_subsampled_nll = np.mean(nll_subsampled_list)
 
     # Print validation loss and oracle loss
-    print(f"Validation neg. log-lik: "
+    print(f"Validation data neg. log-lik: "
           f"{mean_nll:.2f}")
+    
+    print(f"Holdout    data neg. log-lik: "
+          f"{mean_holdout_nll:.2f}")
+    
+    print(f"Subsampled data neg. log-lik: "
+          f"{mean_subsampled_nll:.2f}")
+    
+    plot_pred_prey_fits(model=model,
+                        valid_data=data[0],
+                        holdout_data=data_holdout,
+                        subsampled_data=data_subsampled,
+                        num_noisy_samples=200,
+                        num_noiseless_samples=3,
+                        device=device,
+                        save_path=figure_path)
 
-    print(f"Oracle     neg. log-lik: "
-          f"{mean_oracle_nll:.2f}")
-
-    return mean_nll, std_nll, mean_oracle_nll, std_oracle_nll
+    return mean_nll, mean_holdout_nll, mean_subsampled_nll
         
 
 # Parse arguments given to the script.
@@ -180,23 +197,36 @@ parser.add_argument('noise_type',
 
 parser.add_argument('--marginal_type',
                     default='identity',
-                    choices=['identity', 'loglogit'],
+                    choices=['identity', 'exponential', 'loglogit'],
                     help='Choice of marginal transformation (optional).')
 
 parser.add_argument('--np_loss_samples',
-                    default=10,
+                    default=16,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
+parser.add_argument('--exponential_scale',
+                    default=4.,
+                    type=float,
+                    help='Exponential decay parameter for exponential copula.')
+
+parser.add_argument('--points_per_unit',
+                    default=32,
+                    type=int)
+
+parser.add_argument('--init_length_scale',
+                    default=1e-1,
+                    type=float)
+
 parser.add_argument('--np_val_samples',
-                    default=5,
+                    default=16,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')
 
 parser.add_argument('--num_basis_dim',
-                    default=512,
+                    default=32,
                     type=int,
                     help='Number of embedding basis dimensions.')
 
@@ -268,6 +298,10 @@ data_root = os.path.join(f'{root}',
                          f'{args.data}')
 data_directory = WorkingDirectory(root=data_root)
 
+# Data directory for loading data
+true_data_root = os.path.join(f'{root}', 'data')
+true_data_root = WorkingDirectory(root=true_data_root)
+
 log_path = f'{root}/logs'
 log_filename = f'{args.data}-'          + \
                f'{args.model}-'         + \
@@ -303,12 +337,23 @@ else:
     output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
                                             noise_type=args.noise_type)
 
-if args.marginal_type == 'loglogit':
+if args.marginal_type == 'exponential':
+    print('Exponential marginals')
+    output_layer = ExponentialCopulaLayer(gaussian_layer=output_layer,
+                                          scale=args.exponential_scale,
+                                          device=device)
+    
+elif args.marginal_type == 'loglogit':
+    print('Log-logistic marginals')
     output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
+    
+else:
+    print('Gaussian marginals')
     
 # Create model architecture
 if args.model == 'convGNP':
-    model = StandardConvGNP(input_dim=1, output_layer=output_layer)
+    model = StandardPredPreyConvGNP(input_dim=1,
+                                    output_layer=output_layer)
     
 elif args.model == 'convNP':
     model = StandardConvNP(input_dim=1,
@@ -350,6 +395,14 @@ file = open(data_directory.file('valid-data.pkl'), 'rb')
 data_val = pickle.load(file)
 file.close()
 
+file = open(true_data_root.file('subsampled_tasks.pkl'), 'rb')
+data_subsampled = pickle.load(file)
+file.close()
+
+file = open(true_data_root.file('holdout_tasks.pkl'), 'rb')
+data_holdout = pickle.load(file)
+file.close()
+
 # =============================================================================
 # Train or test model
 # =============================================================================
@@ -379,20 +432,32 @@ for epoch in range(epochs):
 
         valid_epoch = data_val[epoch // args.validate_every]
         
+        figure_path = f'{experiment_name}/figures/{epoch:04d}.pdf'
+        if not os.path.exists(f'{experiment_name}/figures'):
+            os.mkdir(f'{experiment_name}/figures')
+
         # Compute negative log-likelihood on validation data
-        val_nll, _, val_oracle, _ = validate(valid_epoch,
-                                             oracle_cov,
-                                             noise,
-                                             model,
-                                             args,
-                                             device,
-                                             writer,
-                                             latent_model)
+        result = validate(valid_epoch,
+                          data_holdout,
+                          data_subsampled,
+                          model,
+                          device,
+                          None,
+                          latent_model,
+                          figure_path)
+        
+        val_nll, val_holdout_nll, val_subsampled_nll = result
 
         # Log information to tensorboard
-        writer.add_scalar('True data log-lik.',
-                          -true_nll,
+        writer.add_scalar('Holdout data log-lik.',
+                          -val_holdout_nll,
                           epoch)
+        
+        # Log information to tensorboard
+        writer.add_scalar('Subsampled data log-lik.',
+                          -val_subsampled_nll,
+                          epoch)
+
 
         # Log information to tensorboard
         writer.add_scalar('Validation log-lik.',
@@ -402,7 +467,6 @@ for epoch in range(epochs):
         # Update the best objective value and checkpoint the model
         is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
                             (False, best_nll)
-
 
     train_epoch = data_train[epoch]
 
