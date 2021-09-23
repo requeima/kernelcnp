@@ -1,6 +1,6 @@
 from distutils.util import convert_path
-from setuptools import setup, find_packages
 
+from setuptools import find_packages, setup
 
 version_dict = {}
 
@@ -28,7 +28,8 @@ setup(
         'jupyterlab',
         'ipykernel',
         'tqdm',
-        'stheno'
+        'stheno',
+        'wbml>=0.3.9'
     ],
     zip_safe=False,
 )

@@ -3,6 +3,8 @@ import multiprocessing
 import threadpoolctl
 from netCDF4 import Dataset
 
+from wbml.data.eeg import load_full as load_eeg
+
 import numpy as np
 
 try:
@@ -759,3 +761,200 @@ class EnvironmentalDataloader:
         return batch
 
 
+class EEGGenerator:
+    def __init__(
+        self,
+        split="train",
+        batch_size=16,
+        batches_per_epoch=128,
+        device=None,
+    ):
+        self.batch_size = batch_size
+        self.batches_per_epoch = batches_per_epoch
+        self.device = device
+
+        all_subjects = [
+            337,
+            338,
+            339,
+            340,
+            341,
+            342,
+            344,
+            345,
+            346,
+            347,
+            348,
+            351,
+            352,
+            354,
+            355,
+            356,
+            357,
+            359,
+            362,
+            363,
+            364,
+            365,
+            367,
+            368,
+            369,
+            370,
+            371,
+            372,
+            373,
+            374,
+            375,
+            377,
+            378,
+            379,
+            380,
+            381,
+            382,
+            383,
+            384,
+            385,
+            386,
+            387,
+            388,
+            389,
+            390,
+            391,
+            392,
+            393,
+            394,
+            395,
+            396,
+            397,
+            398,
+            400,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            409,
+            410,
+            411,
+            412,
+            414,
+            415,
+            416,
+            417,
+            418,
+            419,
+            421,
+            422,
+            423,
+            424,
+            425,
+            426,
+            427,
+            428,
+            429,
+            430,
+            432,
+            433,
+            434,
+            435,
+            436,
+            437,
+            438,
+            439,
+            440,
+            443,
+            444,
+            445,
+            447,
+            448,
+            450,
+            451,
+            453,
+            454,
+            455,
+            456,
+            457,
+            458,
+            459,
+            460,
+            461,
+            1000367,
+        ]
+
+        if split == "train":
+            subjects = all_subjects[20:]
+        elif split == "validation":
+            subjects = all_subjects[10:20]
+        elif split == "test":
+            subjects = all_subjects[:10]
+        else:
+            raise ValueError(f'Unknown split "{split}" for EEG data.')
+
+        data = load_eeg()
+        self.trials = []
+        for subject in subjects:
+            for n in sorted(data[subject]["trials"].keys()):
+                trial = data[subject]["trials"][n]["df"]
+                trial = trial.reindex(sorted(trial.columns), axis=1)
+                self.trials.append(trial)
+
+                # Store the output names as well.
+                if not hasattr(self, "output_names"):
+                    self.output_names = sorted(trial.columns)
+        self.i = 0
+
+    def generate_batch(self):
+        batch_trials = []
+
+        for _ in range(self.batch_size):
+            if self.i >= len(self.trials):
+                # Shuffle and cycle.
+                np.random.shuffle(self.trials)
+                self.i = 0
+
+            # Get trial.
+            batch_trials.append(self.trials[self.i])
+            self.i += 1
+
+        x = np.repeat(
+            np.array(batch_trials[0].index)[None, None, :],
+            self.batch_size,
+            axis=2,
+        )
+        # Carefully order the outputs.
+        y = np.transpose(np.stack(batch_trials, axis=0), (0, 2, 1))
+
+        # Generate a context and target set by masking a random five outputs in a block
+        # of 100 consecutive timestamps.
+        x_len = 100
+        x_start = np.random.randint(y.shape[2] - x_len + 1)
+        mask = set(np.random.permutation(y.shape[1])[:10])
+
+        x_context = x.copy()
+        y_context = y.copy()
+
+        x_target = x.copy()[:, :, x_start:x_start + x_len]
+        y_target = y.copy()[:, :, x_start:x_start + x_len]
+
+        # Perform masking.
+        for yi in range(y.shape[1]):
+            if yi in mask:
+                y_context[:, yi, x_start:x_start + x_len] = np.nan
+            else:
+                y_target[:, yi, x_start:x_start + x_len] = np.nan
+
+        def _torch(x):
+            return torch.tensor(x, dtype=torch.float32, device=self.device)
+
+        return {
+            "x": _torch(x),
+            "y": _torch(y),
+            "x_context": _torch(x_context),
+            "y_context": _torch(y_context),
+            "x_target": _torch(x_target),
+            "y_target": _torch(y_target),
+        }
+
+    def __iter__(self):
+        return LambdaIterator(lambda: self.generate_batch(), self.batches_per_epoch)
