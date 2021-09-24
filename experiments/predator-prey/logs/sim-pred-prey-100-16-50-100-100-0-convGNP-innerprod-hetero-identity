@@ -1,1 +1,22 @@
 Training   neg. log-lik: -27.62, Encoder/decoder scales 0.110 0.115
+Training   neg. log-lik: -149.31, Encoder/decoder scales 0.111 0.115
+Training   neg. log-lik: -149.81, Encoder/decoder scales 0.111 0.116
+Training   neg. log-lik: -180.16, Encoder/decoder scales 0.112 0.116
+Training   neg. log-lik: -100.02, Encoder/decoder scales 0.113 0.117
+Training   neg. log-lik: -10.39, Encoder/decoder scales 0.113 0.117
+Training   neg. log-lik: -159.17, Encoder/decoder scales 0.114 0.117
+Training   neg. log-lik: -149.75, Encoder/decoder scales 0.115 0.118
+Training   neg. log-lik: -78.98, Encoder/decoder scales 0.115 0.118
+
+Epoch: 3/101
+Training   neg. log-lik: -177.47, Encoder/decoder scales 0.115 0.118
+Training   neg. log-lik: -86.08, Encoder/decoder scales 0.115 0.119
+Training   neg. log-lik: -45.96, Encoder/decoder scales 0.116 0.119
+Training   neg. log-lik: -8.03, Encoder/decoder scales 0.116 0.120
+Training   neg. log-lik: 59.65, Encoder/decoder scales 0.117 0.120
+Training   neg. log-lik: -188.28, Encoder/decoder scales 0.117 0.120
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/predator-prey/scripts/train.py", line 478, in <module>
+
+
