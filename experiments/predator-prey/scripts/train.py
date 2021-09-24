@@ -235,7 +235,10 @@ parser.add_argument('--learning_rate',
                     type=float,
                     help='Learning rate.')
 
-parser.add_argument('--jitter', default=1e-4, type=float, help='Jitter.')
+parser.add_argument('--jitter',
+                    default=1e-4,
+                    type=float,
+                    help='Jitter.')
 
 parser.add_argument('--weight_decay',
                     default=0.,
