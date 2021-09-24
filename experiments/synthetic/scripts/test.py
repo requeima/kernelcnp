@@ -40,7 +40,6 @@ from cnp.cov import (
 )
 
 from cnp.utils import (
-    plot_samples_and_data,
     make_generator,
     Logger
 )
@@ -79,8 +78,8 @@ def test(data,
                              batch['y_target'].to(device),
                              **loss_kwargs)                        
 
-            # Scale by the average number of target points
-            nll_list.append(nll.item() / 50.)
+            # Scale by the number of target points
+            nll_list.append(nll.item() / 100.)
 
             if step % 100 == 0:
                 print(f"Validation neg. log-lik, {step+1}: "
@@ -109,7 +108,7 @@ parser.add_argument('test_data',
 
 parser.add_argument('--x_dim',
                     default=1,
-                    choices=[1, 2, 3],
+                    choices=[1, 2],
                     type=int,
                     help='Input dimension of data.')
 
@@ -153,7 +152,7 @@ parser.add_argument('--np_loss_samples',
                          'used for ANP and ConvNP.')
 
 parser.add_argument('--np_test_samples',
-                    default=512,
+                    default=16,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')
