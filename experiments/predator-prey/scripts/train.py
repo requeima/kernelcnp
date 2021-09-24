@@ -235,6 +235,8 @@ parser.add_argument('--learning_rate',
                     type=float,
                     help='Learning rate.')
 
+parser.add_argument('--jitter', default=1e-4, type=float, help='Jitter.')
+
 parser.add_argument('--weight_decay',
                     default=0.,
                     type=float,
@@ -335,7 +337,8 @@ if args.cov_type == 'meanfield':
     
 else:
     output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
-                                            noise_type=args.noise_type)
+                                            noise_type=args.noise_type,
+                                            jitter=args.jitter)
 
 if args.marginal_type == 'exponential':
     print('Exponential marginals')
