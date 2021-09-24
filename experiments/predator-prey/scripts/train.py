@@ -206,11 +206,6 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
-parser.add_argument('--exponential_scale',
-                    default=4.,
-                    type=float,
-                    help='Exponential decay parameter for exponential copula.')
-
 parser.add_argument('--points_per_unit',
                     default=32,
                     type=int)
@@ -346,7 +341,6 @@ else:
 if args.marginal_type == 'exponential':
     print('Exponential marginals')
     output_layer = ExponentialCopulaLayer(gaussian_layer=output_layer,
-                                          scale=args.exponential_scale,
                                           device=device)
     
 elif args.marginal_type == 'loglogit':
