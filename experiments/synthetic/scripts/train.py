@@ -47,7 +47,6 @@ from cnp.cov import (
 from cnp.oracle import oracle_loglik
 
 from cnp.utils import (
-    plot_samples_and_data,
     make_generator,
     Logger
 )
@@ -162,7 +161,7 @@ def validate(data,
                                                             x_target,
                                                             y_target,
                                                             oracle_cov,
-                                                            noise)
+                                                            noise)[0]
 
             # Scale by the average number of target points
             nll_list.append(nll.item())

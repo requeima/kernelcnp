@@ -611,7 +611,8 @@ class CopulaLayer(OutputLayer):
         gaussian = Normal(loc=zeros, scale=ones)
         
         jacobian_term = self.log_pdf(x, marg_params)
-        jacobian_term = jacobian_term - gaussian.log_prob(self.cdf(x, marg_params))
+        jacobian_term = jacobian_term - \
+                        gaussian.log_prob(self.cdf(x, marg_params))
         jacobian_term = torch.sum(jacobian_term, axis=-1)
         
         return jacobian_term
