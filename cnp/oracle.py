@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+from matrix import Diagonal
 from stheno import *
 
 
@@ -8,7 +9,7 @@ from stheno import *
 # Custom kernels until we resolve issue with Stheno
 # =============================================================================
     
-def eq_cov(lengthscale, coefficient, noise):
+def eq_cov(lengthscale, coefficient, noise=0.):
     
     def _eq_cov(x, x_, use_noise):
     
@@ -24,7 +25,7 @@ def eq_cov(lengthscale, coefficient, noise):
     return _eq_cov
 
 
-def mat_cov(lengthscale, coefficient, noise):
+def mat_cov(lengthscale, coefficient, noise=0.):
     
     def _mat_cov(x, x_, use_noise):
     
@@ -41,7 +42,7 @@ def mat_cov(lengthscale, coefficient, noise):
     return _mat_cov
 
 
-def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
+def nm_cov(lengthscale1, lengthscale2, coefficient, noise=0.):
         
     eq_cov1 = eq_cov(lengthscale1, coefficient, noise)
     eq_cov2 = eq_cov(lengthscale2, coefficient, noise)
@@ -56,7 +57,7 @@ def nm_cov(lengthscale1, lengthscale2, coefficient, noise):
     return _nm_cov
 
 
-def wp_cov(period, lengthscale, coefficient, noise):
+def wp_cov(period, lengthscale, coefficient, noise=0.):
     
     eq1 = eq_cov(lengthscale=lengthscale,
                  coefficient=coefficient,
@@ -161,5 +162,13 @@ def oracle_loglik(xc, yc, xt, yt, covariance, noise):
     y_pred = p_post(xt, noise**2)
     
     loglik = y_pred.logpdf(yt)
+    
+    # Create GP measure and condition on data
+    p = GP(covariance)
+    p_post = p | (p(xc, noise**2), yc)
+    y_pred = p_post(xt, noise**2)
+    y_pred_diag = Normal(y_pred.mean, Diagonal(B.diag(y_pred.var)))
+    
+    loglik_diag = y_pred_diag.logpdf(yt)
 
-    return loglik
+    return loglik, loglik_diag
