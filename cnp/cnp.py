@@ -292,15 +292,13 @@ class StandardPredPreyConvGNP(GaussianNeuralProcess):
 class FullConvGNP(nn.Module):
     def __init__(
         self,
-        points_per_unit=64,
+        points_per_unit_mean=64,
+        points_per_unit_kernel=30,
         num_channels=64,
         unet=True,
         receptive_field=6,
     ):
         nn.Module.__init__(self)
-
-        points_per_unit_mean = points_per_unit
-        points_per_unit_kernel = 30
 
         num_channels_mean = num_channels
         num_channels_kernel = num_channels // 2

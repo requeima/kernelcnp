@@ -652,6 +652,10 @@ class ExponentialCopulaLayer(CopulaLayer):
         
         self.num_features = self.gaussian_layer.num_features + 1
         
+        # Set sccale -- not currently used
+        self.log_scale = torch.log(torch.tensor(scale))
+        self.log_scale = torch.nn.Parameter(self.log_scale)
+        
         
     def unpack_parameters(self, tensor):
         """

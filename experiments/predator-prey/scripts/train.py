@@ -15,8 +15,8 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import StandardPredPreyConvGNP # StandardConvGNP
-from cnp.lnp import StandardPredPreyConvNP # StandardConvNP
+from cnp.cnp import StandardPredPreyConvGNP
+from cnp.lnp import StandardPredPreyConvNP
 
 from cnp.cov import (
     MeanFieldGaussianLayer,
@@ -206,10 +206,6 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
-parser.add_argument('--points_per_unit',
-                    default=32,
-                    type=int)
-
 parser.add_argument('--init_length_scale',
                     default=1e-1,
                     type=float)
@@ -244,12 +240,6 @@ parser.add_argument('--weight_decay',
 # =============================================================================
 # Experiment arguments
 # =============================================================================
-
-
-parser.add_argument('--root',
-                    help='Experiment root, which is the directory from which '
-                         'the experiment will run. If it is not given, '
-                         'a directory will be automatically created.')
 
 parser.add_argument('--num_params',
                     action='store_true',
