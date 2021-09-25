@@ -539,8 +539,7 @@ class CopulaLayer(OutputLayer):
         # Draw samples from Gaussian and apply marginal transformation
         v_samples = self.gaussian_layer.sample(tensor=tensor,
                                                num_samples=num_samples,
-                                               noiseless=noiseless,
-                                               double=double)
+                                               noiseless=noiseless)
         
         # Repeat a and b, (num_samples, B, T)
         marg_params = [marg_param[None, :, :].repeat(num_samples, 1, 1) \
@@ -779,6 +778,9 @@ class LogLogitCopulaLayer(CopulaLayer):
         # Get rate and concentration from tensor
         a = 0. * tensor[:, :, 0] + 3. #torch.nn.Softplus()(tensor[:, :, 0]) + epsilon
         b = torch.nn.Softplus()(1e-2 * tensor[:, :, 1]) + 1e0 + epsilon
+
+        a = torch.nn.Softplus()(tensor[:, :, 0]) + 1e0 + epsilon
+        b = torch.nn.Softplus()(tensor[:, :, 1]) + 1e0 + epsilon
         
         # Slice out rate and concentration
         tensor = tensor[:, :, 2:]
