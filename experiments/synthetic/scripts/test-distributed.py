@@ -15,8 +15,11 @@ data_generators = ['weakly-periodic']
 models = ['convGNP']
 covs = ['sum-kvv-homo']
 x_dims = ['1']
-num_basis_dim = ["2", "8", "64", "128", "512", "4096"]
-num_sum_elements = ["1", "2", "8", "16", "64"]
+# num_basis_dim = ["2", "8", "64", "128", "512", "4096"]
+# num_sum_elements = ["1", "2", "8", "16", "64"]
+
+num_basis_dim = ["256",]
+num_sum_elements = ["4", "6", "12","20", "28", "34", "36", "42", "48", "52", "58", "72"]
 
 seeds = [str(i) for i in range(1)]
 
