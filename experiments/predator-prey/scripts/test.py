@@ -1,16 +1,11 @@
 import argparse
 
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 import sys
-from datetime import datetime
 import pickle
 import time
 
-# This is for an error that is now popping up when running on macos
-# os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
+from datetime import datetime
 from copy import deepcopy
 
 from cnp.experiment import (
@@ -20,32 +15,30 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import (
-    StandardPredPreyConvGNP,
-    FullConvGNP
-)
-
+from cnp.cnp import StandardPredPreyConvGNP
 from cnp.lnp import StandardPredPreyConvNP
 
 from cnp.cov import (
     MeanFieldGaussianLayer,
     InnerprodGaussianLayer,
     KvvGaussianLayer,
-    ExponentialCopulaLayer
+    ExponentialCopulaLayer,
+    LogLogitCopulaLayer
 )
 
 from cnp.utils import (
-    make_generator,
-    Logger
+    Logger,
+    plot_pred_prey_fits
 )
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 import torch
-from torch.distributions import MultivariateNormal
-from torch.utils.tensorboard import SummaryWriter
 
 
 # =============================================================================
-# Validation helper
+# Testing helper
 # =============================================================================
 
 
@@ -57,11 +50,9 @@ def test(data,
     
     # Lists for logging model's training NLL and oracle NLL
     nll_list = []
-    oracle_nll_list = []
     
     # If training a latent model, set the number of latent samples accordingly
-    loss_kwargs = {'num_samples' : args.np_test_samples} if latent_model else \
-                  {}
+    loss_kwargs = {'num_samples' : args.np_test_samples} if latent_model else {}
     
     with torch.no_grad():
         
@@ -73,19 +64,20 @@ def test(data,
                              batch['y_target'][:, 0, :, None].to(device) / 100 + 1e-2)
 
             # Scale by the number of target points
-            nll_list.append(nll.item() / 100.)
+            nll_list.append(nll / 100.)
 
             if step % 100 == 0:
                 print(f"Validation neg. log-lik, {step+1}: "
-                      f"{np.mean(nll_list):.2f} +/- "
-                      f"{np.var(nll_list)**0.5  / (step+1)**0.5:.2f}")
+                      f"{torch.mean(torch.tensor(nll_list)):.2f} +/- "
+                      f"{torch.var(torch.tensor(nll_list))**0.5  / (step+1)**0.5:.2f}")
 
             
-    mean_nll = np.mean(nll_list)
-    std_nll = np.var(nll_list)**0.5 / np.sqrt(step + 1)
+    mean_nll = torch.mean(torch.tensor(nll_list))
+    std_nll = torch.var(torch.tensor(nll_list))**0.5 / (step + 1)**0.5
     
     return mean_nll, std_nll
         
+
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
 
@@ -94,11 +86,7 @@ parser = argparse.ArgumentParser()
 # Data generation arguments
 # =============================================================================
 
-parser.add_argument('train_data',
-                    help='Data set to train the CNP on. ')
-
-parser.add_argument('test_data',
-                    help='Data set to train the CNP on. ')
+parser.add_argument('data', help='Data set to train the CNP on.')
 
 parser.add_argument('--seed',
                     default=0,
@@ -110,15 +98,11 @@ parser.add_argument('--seed',
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['convGNP',
-                             'FullConvGNP',
-                             'convNP'],
+                    choices=['convGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
-                    choices=['meanfield',
-                             'innerprod', 
-                             'kvv'],
+                    choices=['meanfield', 'innerprod',  'kvv'],
                     help='Choice of covariance method.')
 
 parser.add_argument('noise_type',
@@ -127,7 +111,7 @@ parser.add_argument('noise_type',
 
 parser.add_argument('--marginal_type',
                     default='identity',
-                    choices=['identity', 'exponential'],
+                    choices=['identity', 'exponential', 'loglogit'],
                     help='Choice of marginal transformation (optional).')
 
 parser.add_argument('--np_loss_samples',
@@ -136,8 +120,8 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
-parser.add_argument('--np_test_samples',
-                    default=512,
+parser.add_argument('--np_val_samples',
+                    default=16,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
                          'when validating, used for ANP and ConvNP.')
@@ -147,17 +131,20 @@ parser.add_argument('--num_basis_dim',
                     type=int,
                     help='Number of embedding basis dimensions.')
 
+parser.add_argument('--jitter',
+                    default=1e-4,
+                    type=float,
+                    help='Jitter.')
+
 parser.add_argument('--gpu',
                     default=0,
                     type=int,
                     help='GPU to run experiment on. Defaults to 0.')
 
-
 args = parser.parse_args()
-
     
 # =============================================================================
-# Set random seed, device and logging directories
+# Set random seed and device
 # =============================================================================
 
 # Set seed
@@ -176,7 +163,7 @@ root = 'experiments/predator-prey'
 # Working directory for saving results
 experiment_name = os.path.join(f'{root}',
                                f'results',
-                               f'{args.train_data}',
+                               f'{args.data}',
                                f'models',
                                f'{args.model}',
                                f'{args.cov_type}',
@@ -188,15 +175,27 @@ working_directory = WorkingDirectory(root=experiment_name)
 # Data directory for loading data
 data_root = os.path.join(f'{root}',
                          f'simulated-data',
-                         f'{args.test_data}')
+                         f'{args.data}')
 data_directory = WorkingDirectory(root=data_root)
 
+# Data directory for loading data
+true_data_root = os.path.join(f'{root}', 'data')
+true_data_root = WorkingDirectory(root=true_data_root)
+
 log_path = f'{root}/logs'
-log_filename = f'test-{args.train_data}-{args.test_data}-{args.model}-{args.cov_type}-{args.seed}'
+log_filename = f'{args.data}-'          + \
+               f'{args.model}-'         + \
+               f'{args.cov_type}-'      + \
+               f'{args.noise_type}-'    + \
+               f'{args.marginal_type}'
+                
 log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
-
+    
+file = open(working_directory.file('data_location.txt'), 'w')
+file.write(data_directory.root)
+file.close()
     
 # =============================================================================
 # Create model
@@ -213,27 +212,36 @@ if args.cov_type == 'meanfield':
     
 else:
     output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
-                                            noise_type=args.noise_type)
+                                            noise_type=args.noise_type,
+                                            jitter=args.jitter)
 
 if args.marginal_type == 'exponential':
+    print('Exponential marginals')
     output_layer = ExponentialCopulaLayer(gaussian_layer=output_layer,
                                           device=device)
     
+elif args.marginal_type == 'loglogit':
+    print('Log-logistic marginals')
+    output_layer = LogLogitCopulaLayer(gaussian_layer=output_layer)
+    
+else:
+    print('Gaussian marginals')
+    
 # Create model architecture
 if args.model == 'convGNP':
-    model = StandardPredPreyConvGNP(input_dim=1, output_layer=output_layer)
-
-elif args.model == 'FullConvGNP':
-    model = FullConvGNP()
+    model = StandardPredPreyConvGNP(input_dim=1,
+                                    output_layer=output_layer)
     
 elif args.model == 'convNP':
-    model = StandardPredPreyConvNP(input_dim=1, num_samples=args.np_loss_samples)
+    model = StandardPredPreyConvNP(input_dim=1,
+                                   num_samples=args.np_loss_samples)
     
 else:
     raise ValueError(f'Unknown model {args.model}.')
 
 
-print(f'{args.model} '
+print(f'{args.data} '
+      f'{args.model} '
       f'{args.cov_type} '
       f'{args.noise_type} '
       f'{args.marginal_type} '
@@ -242,7 +250,6 @@ print(f'{args.model} '
 
 with open(working_directory.file('num_params.txt'), 'w') as f:
     f.write(f'{model.num_params}')
-    
     
 # Load model to appropriate device
 model = model.to(device)
@@ -254,38 +261,27 @@ load_dict = torch.load(working_directory.file('model_best.pth.tar', exists=True)
 model.load_state_dict(load_dict['state_dict'])
 
 # =============================================================================
-# Load data and validation oracle generator
+# Load data
 # =============================================================================
-    
+
 file = open(data_directory.file('test-data.pkl'), 'rb')
 data_test = pickle.load(file)
 file.close()
 
-
 # =============================================================================
-# Train or test model
+# Test model
 # =============================================================================
-print("Starting testing...")
 
-start_time = time.time()
-test_mean_nll, test_std_nll = test(data_test,
-                                   model,
-                                   args,
-                                   device,
-                                   latent_model)
-stop_time = time.time()
-elapsed_time = stop_time - start_time
+# Compute negative log-likelihood on validation data
+mean_nll, _ = test(data_test,
+                   model,
+                   args,
+                   device,
+                   latent_model)
+mean_nll = float(mean_nll.item())
 
-print("finished testing.")
+print(mean_nll)
 
-file = open(working_directory.file('test_log_likelihood.txt'), 'w')
-file.write(str(test_mean_nll))
-file.close()
+with open(working_directory.file('test_log_likelihood.txt'), 'w') as file:
+    file.write(str(mean_nll))
 
-file = open(working_directory.file('test_log_likelihood_standard_error.txt'), 'w')
-file.write(str(test_std_nll))
-file.close()
-
-file = open(working_directory.file('test_time.txt'), 'w')
-file.write(str(elapsed_time))
-file.close()

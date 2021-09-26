@@ -237,3 +237,17 @@ Epoch: 8/101
 Training   neg. log-lik: -169.11, Encoder/decoder scales 0.126 0.130
 Training   neg. log-lik: -139.31, Encoder/decoder scales 0.125 0.131
 Training   neg. log-lik: -129.20, Encoder/decoder scales 0.125 0.131
+Gaussian marginals
+sim-pred-prey-100-16-50-100-100-0 convGNP innerprod hetero identity 32: 50988
+Validation neg. log-lik, 1: -2.08 +/- nan
+Validation neg. log-lik, 101: -1.46 +/- 0.06
+Validation neg. log-lik, 201: -1.50 +/- 0.04
+Validation neg. log-lik, 301: -1.47 +/- 0.04
+Validation neg. log-lik, 401: -1.51 +/- 0.03
+Validation neg. log-lik, 501: -1.52 +/- 0.03
+Validation neg. log-lik, 601: -1.53 +/- 0.02
+Validation neg. log-lik, 701: -1.53 +/- 0.02
+Validation neg. log-lik, 801: -1.53 +/- 0.02
+Validation neg. log-lik, 901: -1.53 +/- 0.02
+Validation neg. log-lik, 1001: -1.54 +/- 0.02
+-1.5394618511199951
