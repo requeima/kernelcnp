@@ -15,8 +15,8 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import StandardPredPreyConvGNP # StandardConvGNP
-from cnp.lnp import StandardPredPreyConvNP # StandardConvNP
+from cnp.cnp import StandardPredPreyConvGNP
+from cnp.lnp import StandardPredPreyConvNP
 
 from cnp.cov import (
     MeanFieldGaussianLayer,
@@ -206,15 +206,6 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
-parser.add_argument('--exponential_scale',
-                    default=4.,
-                    type=float,
-                    help='Exponential decay parameter for exponential copula.')
-
-parser.add_argument('--points_per_unit',
-                    default=32,
-                    type=int)
-
 parser.add_argument('--init_length_scale',
                     default=1e-1,
                     type=float)
@@ -235,6 +226,11 @@ parser.add_argument('--learning_rate',
                     type=float,
                     help='Learning rate.')
 
+parser.add_argument('--jitter',
+                    default=1e-4,
+                    type=float,
+                    help='Jitter.')
+
 parser.add_argument('--weight_decay',
                     default=0.,
                     type=float,
@@ -244,12 +240,6 @@ parser.add_argument('--weight_decay',
 # =============================================================================
 # Experiment arguments
 # =============================================================================
-
-
-parser.add_argument('--root',
-                    help='Experiment root, which is the directory from which '
-                         'the experiment will run. If it is not given, '
-                         'a directory will be automatically created.')
 
 parser.add_argument('--num_params',
                     action='store_true',
@@ -335,12 +325,12 @@ if args.cov_type == 'meanfield':
     
 else:
     output_layer = cov_types[args.cov_type](num_embedding=args.num_basis_dim,
-                                            noise_type=args.noise_type)
+                                            noise_type=args.noise_type,
+                                            jitter=args.jitter)
 
 if args.marginal_type == 'exponential':
     print('Exponential marginals')
     output_layer = ExponentialCopulaLayer(gaussian_layer=output_layer,
-                                          scale=args.exponential_scale,
                                           device=device)
     
 elif args.marginal_type == 'loglogit':

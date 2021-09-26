@@ -34,7 +34,12 @@ from cnp.oracle import (
     oracle_loglik
 )
 
-from cnp.utils import plot_samples_and_data, make_generator
+from stheno import (
+    EQ,
+    Matern52
+)
+
+from cnp.utils import make_generator
 
 from torch.distributions import MultivariateNormal
 
@@ -46,7 +51,7 @@ torch.set_default_dtype(torch.double)
 # =============================================================================
 
 
-def test_oracle(data, covariance):
+def test_oracle(data, covariance, noise):
     """ Compute the oracle test loss. """
     
     oracle_ll_list = []
@@ -56,15 +61,16 @@ def test_oracle(data, covariance):
         for step, batch in enumerate(data):
 
             for b in range(batch['x_context'].shape[0]):
-                logliks = oracle_loglik(batch['x_context'][b],
-                                        batch['y_context'][b],
-                                        batch['x_target'][b],
-                                        batch['y_target'][b],
-                                        covariance=covariance)
+                logliks = oracle_loglik(batch['x_context'][b].cpu().detach().numpy(),
+                                        batch['y_context'][b].cpu().detach().numpy(),
+                                        batch['x_target'][b].cpu().detach().numpy(),
+                                        batch['y_target'][b].cpu().detach().numpy(),
+                                        covariance=covariance,
+                                        noise=noise)
                 logprob, diag_logprob = logliks
 
-                oracle_ll_list.append(logprob / 50.)
-                diag_oracle_ll_list.append(diag_logprob / 50.)
+                oracle_ll_list.append(logprob / 100.)
+                diag_oracle_ll_list.append(diag_logprob / 100.)
 
             if step % 100 == 0 or step == len(data) - 1:
 
@@ -94,21 +100,12 @@ parser = argparse.ArgumentParser()
 # =============================================================================
 
 parser.add_argument('data',
-                    choices=['eq',
-                             'eq-lb',
-                             'matern',
-                             'matern-lb',
-                             'noisy-mixture',
-                             'noisy-mixture-lb'
-                             'noisy-mixture-slow',
-                             'weakly-periodic',
-                             'weakly-periodic-lb'
-                             'weakly-periodic-slow'],
+                    type=str,
                     help='Data set to train the CNP on. ')
 
 parser.add_argument('--x_dim',
                     default=1,
-                    choices=[1],
+                    choices=[1, 2],
                     type=int,
                     help='Input dimension of data.')
 
@@ -155,16 +152,13 @@ root = 'experiments/synthetic'
 
 data_root = os.path.join(f'{root}',
                          f'toy-data',
-                         f'{args.data}',
-                         f'data',
-                         f'seed-{args.seed}',
-                         f'dim-{args.x_dim}')
+                         f'{args.data}')
 
 experiment_name = os.path.join(f'{root}',
                                f'results',
                                f'{args.data}',
                                f'models',
-                               f'Oracle-GP',
+                               f'oracle',
                                f'seed-{args.seed}',
                                f'dim-{args.x_dim}')
 
@@ -179,43 +173,29 @@ file = open(data_directory.file('test-data.pkl'), 'rb')
 data_test = pickle.load(file)
 file.close()
 
-# Create the data generator for the oracle if gp data
-if args.data == 'sawtooth' or args.data == 'random':
-    oracle_cov = None
-    
-elif 'eq' in args.data:
-    oracle_cov = eq_cov(lengthscale=1.,
-                        coefficient=1.,
-                        noise=5e-2)
+noise = 5e-2
+
+if 'eq' in args.data:
+    oracle_cov = EQ().stretch(1.)
 
 elif 'matern' in args.data:
-    oracle_cov = mat_cov(lengthscale=1.,
-                         coefficient=1.,
-                         noise=5e-2)
-
-elif 'noisy-mixture' in args.data:
-    oracle_cov = nm_cov(lengthscale1=1.,
-                        lengthscale2=0.25,
-                        coefficient=1.,
-                        noise=5e-2)
-
-elif 'weakly-periodic' in args.data:
-    oracle_cov = wp_cov(period=0.25,
-                        lengthscale=1.,
-                        coefficient=1.,
-                        noise=5e-2)
+    oracle_cov = Matern52().stretch(1.)
 
 elif 'noisy-mixture-slow' in args.data:
-    oracle_cov = nm_cov(lengthscale1=1.,
-                        lengthscale2=0.5,
-                        coefficient=1.,
-                        noise=5e-2)
+    oracle_cov = EQ().stretch(1.) + \
+                 EQ().stretch(0.5)
 
 elif 'weakly-periodic-slow' in args.data:
-    oracle_cov = wp_cov(period=0.5,
-                        lengthscale=1.,
-                        coefficient=1.,
-                        noise=5e-2)
+    oracle_cov = EQ().stretch(1.) * \
+                 EQ().periodic(period=0.5)
+        
+elif 'noisy-mixture' in args.data:
+    oracle_cov = EQ().stretch(1.) + \
+                 EQ().stretch(0.25)
+
+elif 'weakly-periodic' in args.data:
+    oracle_cov = EQ().stretch(1.) * \
+                 EQ().periodic(period=0.25)
 
 
 # =============================================================================
@@ -223,7 +203,7 @@ elif 'weakly-periodic-slow' in args.data:
 # =============================================================================
 
 start_time = time.time()
-test_result = test_oracle(data_test, oracle_cov)
+test_result = test_oracle(data_test, oracle_cov, noise)
 end_time = time.time()
 elapsed_time = end_time - start_time
 # Record experiment time\

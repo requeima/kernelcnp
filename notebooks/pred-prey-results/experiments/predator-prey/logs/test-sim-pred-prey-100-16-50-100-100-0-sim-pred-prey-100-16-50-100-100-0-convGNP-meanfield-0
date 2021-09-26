@@ -1,0 +1,667 @@
+convGNP meanfield hetero identity 32: 50701.0
+Root: experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0
+Root: experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0
+Root: experiments/predator-prey/logs
+convGNP meanfield hetero identity 32: 50701.0convGNP meanfield hetero identity 32: 50701.0
+
+Root:Root:  ../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0
+
+Root:Root:  ../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0
+
+Root:Root:  ../../experiments/predator-prey/logs../../experiments/predator-prey/logs
+
+convGNP meanfield hetero identity 32: 50701.0convGNP meanfield hetero identity 32: 50701.0
+
+Starting testing...Starting testing...
+
+Root:Root:  ../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0
+
+Root:Root:  ../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0
+
+Root:Root:  ../../experiments/predator-prey/logs../../experiments/predator-prey/logs
+
+convGNP meanfield hetero identity 32: 50701.0convGNP meanfield hetero identity 32: 50701.0
+
+Starting testing...Starting testing...
+
+Validation neg. log-lik, 1: 589940.04 +/- 0.00Validation neg. log-lik, 1: 589940.04 +/- 0.00
+
+Validation neg. log-lik, 101: 410181.86 +/- 16969.67Validation neg. log-lik, 101: 410181.86 +/- 16969.67
+
+Validation neg. log-lik, 201: 413851.28 +/- 11523.51Validation neg. log-lik, 201: 413851.28 +/- 11523.51
+
+Validation neg. log-lik, 301: 404904.98 +/- 9653.20Validation neg. log-lik, 301: 404904.98 +/- 9653.20
+
+Validation neg. log-lik, 401: 417147.03 +/- 8288.50Validation neg. log-lik, 401: 417147.03 +/- 8288.50
+
+Validation neg. log-lik, 501: 419468.37 +/- 7242.68Validation neg. log-lik, 501: 419468.37 +/- 7242.68
+
+Validation neg. log-lik, 601: 421354.68 +/- 6623.87Validation neg. log-lik, 601: 421354.68 +/- 6623.87
+
+Validation neg. log-lik, 701: 421850.37 +/- 6092.03Validation neg. log-lik, 701: 421850.37 +/- 6092.03
+
+Validation neg. log-lik, 801: 422319.06 +/- 5679.26Validation neg. log-lik, 801: 422319.06 +/- 5679.26
+
+Validation neg. log-lik, 901: 421638.60 +/- 5420.67Validation neg. log-lik, 901: 421638.60 +/- 5420.67
+
+Validation neg. log-lik, 1001: 424523.56 +/- 5106.80Validation neg. log-lik, 1001: 424523.56 +/- 5106.80
+
+finished testing.finished testing.
+
+Root:Root:  ../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0
+
+Root:Root:  ../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0
+
+Root:Root:  ../../experiments/predator-prey/logs../../experiments/predator-prey/logs
+
+convGNP meanfield hetero identity 32: 50701.0convGNP meanfield hetero identity 32: 50701.0
+
+Starting testing...Starting testing...
+
+tensor(58994004., device='cuda:0')tensor(58994004., device='cuda:0')
+
+Validation neg. log-lik, 1: 589940.04 +/- 0.00Validation neg. log-lik, 1: 589940.04 +/- 0.00
+
+tensor(48079468., device='cuda:0')tensor(48079468., device='cuda:0')
+
+tensor(57600532., device='cuda:0')tensor(57600532., device='cuda:0')
+
+tensor(47365892., device='cuda:0')tensor(47365892., device='cuda:0')
+
+tensor(52199384., device='cuda:0')tensor(52199384., device='cuda:0')
+
+tensor(21840996., device='cuda:0')tensor(21840996., device='cuda:0')
+
+tensor(27665458., device='cuda:0')tensor(27665458., device='cuda:0')
+
+tensor(60452996., device='cuda:0')tensor(60452996., device='cuda:0')
+
+tensor(44379400., device='cuda:0')tensor(44379400., device='cuda:0')
+
+tensor(11838882., device='cuda:0')tensor(11838882., device='cuda:0')
+
+tensor(54182568., device='cuda:0')tensor(54182568., device='cuda:0')
+
+tensor(52086216., device='cuda:0')tensor(52086216., device='cuda:0')
+
+tensor(57284920., device='cuda:0')tensor(57284920., device='cuda:0')
+
+tensor(58736488., device='cuda:0')tensor(58736488., device='cuda:0')
+
+tensor(36247408., device='cuda:0')tensor(36247408., device='cuda:0')
+
+tensor(58228776., device='cuda:0')tensor(58228776., device='cuda:0')
+
+tensor(10790003., device='cuda:0')tensor(10790003., device='cuda:0')
+
+tensor(23325944., device='cuda:0')tensor(23325944., device='cuda:0')
+
+tensor(29252288., device='cuda:0')tensor(29252288., device='cuda:0')
+
+tensor(59511380., device='cuda:0')tensor(59511380., device='cuda:0')
+
+tensor(56926568., device='cuda:0')tensor(56926568., device='cuda:0')
+
+tensor(55046908., device='cuda:0')tensor(55046908., device='cuda:0')
+
+tensor(44928492., device='cuda:0')tensor(44928492., device='cuda:0')
+
+tensor(36229108., device='cuda:0')tensor(36229108., device='cuda:0')
+
+tensor(27118322., device='cuda:0')tensor(27118322., device='cuda:0')
+
+tensor(58723084., device='cuda:0')tensor(58723084., device='cuda:0')
+
+tensor(53907036., device='cuda:0')tensor(53907036., device='cuda:0')
+
+tensor(13653411., device='cuda:0')tensor(13653411., device='cuda:0')
+
+tensor(60248812., device='cuda:0')tensor(60248812., device='cuda:0')
+
+tensor(36715276., device='cuda:0')tensor(36715276., device='cuda:0')
+
+tensor(14931635., device='cuda:0')tensor(14931635., device='cuda:0')
+
+tensor(60513664., device='cuda:0')tensor(60513664., device='cuda:0')
+
+tensor(60285008., device='cuda:0')tensor(60285008., device='cuda:0')
+
+tensor(49109976., device='cuda:0')tensor(49109976., device='cuda:0')
+
+tensor(41924036., device='cuda:0')tensor(41924036., device='cuda:0')
+
+tensor(42556280., device='cuda:0')tensor(42556280., device='cuda:0')
+
+tensor(33944220., device='cuda:0')tensor(33944220., device='cuda:0')
+
+tensor(47948552., device='cuda:0')tensor(47948552., device='cuda:0')
+
+tensor(38209872., device='cuda:0')tensor(38209872., device='cuda:0')
+
+tensor(43068480., device='cuda:0')tensor(43068480., device='cuda:0')
+
+tensor(25653384., device='cuda:0')tensor(25653384., device='cuda:0')
+
+tensor(55058704., device='cuda:0')tensor(55058704., device='cuda:0')
+
+tensor(22963808., device='cuda:0')tensor(22963808., device='cuda:0')
+
+tensor(8136453., device='cuda:0')tensor(8136453., device='cuda:0')
+
+tensor(56065272., device='cuda:0')tensor(56065272., device='cuda:0')
+
+tensor(35463236., device='cuda:0')tensor(35463236., device='cuda:0')
+
+tensor(59752976., device='cuda:0')tensor(59752976., device='cuda:0')
+
+tensor(49886616., device='cuda:0')tensor(49886616., device='cuda:0')
+
+tensor(7145254.5000, device='cuda:0')tensor(7145254.5000, device='cuda:0')
+
+tensor(20501412., device='cuda:0')tensor(20501412., device='cuda:0')
+
+tensor(16209216., device='cuda:0')tensor(16209216., device='cuda:0')
+
+tensor(53790316., device='cuda:0')tensor(53790316., device='cuda:0')
+
+tensor(29495798., device='cuda:0')tensor(29495798., device='cuda:0')
+
+tensor(47109232., device='cuda:0')tensor(47109232., device='cuda:0')
+
+tensor(61413008., device='cuda:0')tensor(61413008., device='cuda:0')
+
+tensor(33215742., device='cuda:0')tensor(33215742., device='cuda:0')
+
+tensor(8532509., device='cuda:0')tensor(8532509., device='cuda:0')
+
+tensor(31506866., device='cuda:0')tensor(31506866., device='cuda:0')
+
+tensor(59477420., device='cuda:0')tensor(59477420., device='cuda:0')
+
+tensor(27759650., device='cuda:0')tensor(27759650., device='cuda:0')
+
+tensor(24022918., device='cuda:0')tensor(24022918., device='cuda:0')
+
+tensor(53134300., device='cuda:0')tensor(53134300., device='cuda:0')
+
+tensor(55797512., device='cuda:0')tensor(55797512., device='cuda:0')
+
+tensor(19835202., device='cuda:0')tensor(19835202., device='cuda:0')
+
+tensor(61368676., device='cuda:0')tensor(61368676., device='cuda:0')
+
+tensor(47204860., device='cuda:0')tensor(47204860., device='cuda:0')
+
+tensor(56765440., device='cuda:0')tensor(56765440., device='cuda:0')
+
+tensor(60653416., device='cuda:0')tensor(60653416., device='cuda:0')
+
+tensor(49882836., device='cuda:0')tensor(49882836., device='cuda:0')
+
+tensor(40363984., device='cuda:0')tensor(40363984., device='cuda:0')
+
+tensor(31549736., device='cuda:0')tensor(31549736., device='cuda:0')
+
+tensor(36646184., device='cuda:0')tensor(36646184., device='cuda:0')
+
+tensor(17686004., device='cuda:0')tensor(17686004., device='cuda:0')
+
+tensor(27733514., device='cuda:0')tensor(27733514., device='cuda:0')
+
+tensor(32096764., device='cuda:0')tensor(32096764., device='cuda:0')
+
+tensor(54819380., device='cuda:0')tensor(54819380., device='cuda:0')
+
+tensor(25607448., device='cuda:0')tensor(25607448., device='cuda:0')
+
+tensor(11813746., device='cuda:0')tensor(11813746., device='cuda:0')
+
+tensor(15838664., device='cuda:0')tensor(15838664., device='cuda:0')
+
+tensor(63004600., device='cuda:0')tensor(63004600., device='cuda:0')
+
+tensor(53052084., device='cuda:0')tensor(53052084., device='cuda:0')
+
+tensor(54524080., device='cuda:0')tensor(54524080., device='cuda:0')
+
+tensor(23623796., device='cuda:0')tensor(23623796., device='cuda:0')
+
+tensor(10184704., device='cuda:0')tensor(10184704., device='cuda:0')
+
+tensor(28085490., device='cuda:0')tensor(28085490., device='cuda:0')
+
+tensor(9927046., device='cuda:0')tensor(9927046., device='cuda:0')
+
+tensor(44123256., device='cuda:0')tensor(44123256., device='cuda:0')
+
+tensor(58613372., device='cuda:0')tensor(58613372., device='cuda:0')
+
+tensor(60438876., device='cuda:0')tensor(60438876., device='cuda:0')
+
+tensor(63454768., device='cuda:0')tensor(63454768., device='cuda:0')
+
+tensor(36821244., device='cuda:0')tensor(36821244., device='cuda:0')
+
+tensor(58731480., device='cuda:0')tensor(58731480., device='cuda:0')
+
+tensor(61880304., device='cuda:0')tensor(61880304., device='cuda:0')
+
+tensor(9640166., device='cuda:0')tensor(9640166., device='cuda:0')
+
+tensor(25566070., device='cuda:0')tensor(25566070., device='cuda:0')
+
+tensor(34036040., device='cuda:0')tensor(34036040., device='cuda:0')
+
+tensor(49530788., device='cuda:0')tensor(49530788., device='cuda:0')
+
+tensor(57632708., device='cuda:0')tensor(57632708., device='cuda:0')
+
+tensor(43754920., device='cuda:0')tensor(43754920., device='cuda:0')
+
+tensor(70179576., device='cuda:0')tensor(70179576., device='cuda:0')
+
+tensor(48022244., device='cuda:0')tensor(48022244., device='cuda:0')
+
+Validation neg. log-lik, 101: 410181.86 +/- 16969.67Validation neg. log-lik, 101: 410181.86 +/- 16969.67
+
+tensor(29036460., device='cuda:0')tensor(29036460., device='cuda:0')
+
+tensor(63604428., device='cuda:0')tensor(63604428., device='cuda:0')
+
+tensor(42904096., device='cuda:0')tensor(42904096., device='cuda:0')
+
+tensor(42480560., device='cuda:0')tensor(42480560., device='cuda:0')
+
+tensor(42942196., device='cuda:0')tensor(42942196., device='cuda:0')
+
+tensor(37829348., device='cuda:0')tensor(37829348., device='cuda:0')
+
+tensor(44449656., device='cuda:0')tensor(44449656., device='cuda:0')
+
+tensor(45762292., device='cuda:0')tensor(45762292., device='cuda:0')
+
+tensor(46968328., device='cuda:0')tensor(46968328., device='cuda:0')
+
+tensor(26431086., device='cuda:0')tensor(26431086., device='cuda:0')
+
+tensor(56990036., device='cuda:0')tensor(56990036., device='cuda:0')
+
+tensor(43015128., device='cuda:0')tensor(43015128., device='cuda:0')
+
+tensor(58407896., device='cuda:0')tensor(58407896., device='cuda:0')
+
+tensor(29461540., device='cuda:0')tensor(29461540., device='cuda:0')
+
+tensor(34547696., device='cuda:0')tensor(34547696., device='cuda:0')
+
+tensor(25988810., device='cuda:0')tensor(25988810., device='cuda:0')
+
+tensor(46911496., device='cuda:0')tensor(46911496., device='cuda:0')
+
+tensor(42150808., device='cuda:0')tensor(42150808., device='cuda:0')
+
+tensor(56644996., device='cuda:0')tensor(56644996., device='cuda:0')
+
+tensor(36876504., device='cuda:0')tensor(36876504., device='cuda:0')
+
+tensor(52935724., device='cuda:0')tensor(52935724., device='cuda:0')
+
+tensor(11929380., device='cuda:0')tensor(11929380., device='cuda:0')
+
+tensor(48838200., device='cuda:0')tensor(48838200., device='cuda:0')
+
+tensor(57086808., device='cuda:0')tensor(57086808., device='cuda:0')
+
+tensor(44538988., device='cuda:0')tensor(44538988., device='cuda:0')
+
+tensor(20025184., device='cuda:0')tensor(20025184., device='cuda:0')
+
+tensor(43820888., device='cuda:0')tensor(43820888., device='cuda:0')
+
+tensor(61926316., device='cuda:0')tensor(61926316., device='cuda:0')
+
+tensor(36374708., device='cuda:0')tensor(36374708., device='cuda:0')
+
+tensor(43804464., device='cuda:0')tensor(43804464., device='cuda:0')
+
+tensor(55805624., device='cuda:0')tensor(55805624., device='cuda:0')
+
+tensor(9874009., device='cuda:0')tensor(9874009., device='cuda:0')
+
+tensor(38224928., device='cuda:0')tensor(38224928., device='cuda:0')
+
+tensor(11293292., device='cuda:0')tensor(11293292., device='cuda:0')
+
+tensor(60273564., device='cuda:0')tensor(60273564., device='cuda:0')
+
+tensor(52064540., device='cuda:0')tensor(52064540., device='cuda:0')
+
+tensor(51205660., device='cuda:0')tensor(51205660., device='cuda:0')
+
+tensor(40670900., device='cuda:0')tensor(40670900., device='cuda:0')
+
+tensor(15580483., device='cuda:0')tensor(15580483., device='cuda:0')
+
+tensor(27271366., device='cuda:0')tensor(27271366., device='cuda:0')
+
+tensor(51232028., device='cuda:0')tensor(51232028., device='cuda:0')
+
+tensor(62519808., device='cuda:0')tensor(62519808., device='cuda:0')
+
+tensor(59746180., device='cuda:0')tensor(59746180., device='cuda:0')
+
+tensor(11924502., device='cuda:0')tensor(11924502., device='cuda:0')
+
+tensor(58007888., device='cuda:0')tensor(58007888., device='cuda:0')
+
+tensor(38702268., device='cuda:0')tensor(38702268., device='cuda:0')
+
+tensor(60030716., device='cuda:0')tensor(60030716., device='cuda:0')
+
+tensor(55686108., device='cuda:0')tensor(55686108., device='cuda:0')
+
+tensor(50600816., device='cuda:0')tensor(50600816., device='cuda:0')
+
+tensor(21910204., device='cuda:0')tensor(21910204., device='cuda:0')
+
+tensor(42534600., device='cuda:0')tensor(42534600., device='cuda:0')
+
+tensor(27998920., device='cuda:0')tensor(27998920., device='cuda:0')
+
+tensor(34250000., device='cuda:0')tensor(34250000., device='cuda:0')
+
+tensor(40691252., device='cuda:0')tensor(40691252., device='cuda:0')
+
+tensor(49937224., device='cuda:0')tensor(49937224., device='cuda:0')
+
+tensor(39471600., device='cuda:0')tensor(39471600., device='cuda:0')
+
+tensor(49300196., device='cuda:0')tensor(49300196., device='cuda:0')
+
+tensor(48224984., device='cuda:0')tensor(48224984., device='cuda:0')
+
+tensor(51145040., device='cuda:0')tensor(51145040., device='cuda:0')
+
+tensor(47495572., device='cuda:0')tensor(47495572., device='cuda:0')
+
+tensor(71530168., device='cuda:0')tensor(71530168., device='cuda:0')
+
+tensor(52983216., device='cuda:0')tensor(52983216., device='cuda:0')
+
+tensor(64553040., device='cuda:0')tensor(64553040., device='cuda:0')
+
+tensor(38239240., device='cuda:0')tensor(38239240., device='cuda:0')
+
+tensor(60907168., device='cuda:0')tensor(60907168., device='cuda:0')
+
+tensor(9499046., device='cuda:0')tensor(9499046., device='cuda:0')
+
+tensor(30071694., device='cuda:0')tensor(30071694., device='cuda:0')
+
+tensor(41027644., device='cuda:0')tensor(41027644., device='cuda:0')
+
+tensor(10617883., device='cuda:0')tensor(10617883., device='cuda:0')
+
+tensor(49207848., device='cuda:0')tensor(49207848., device='cuda:0')
+
+tensor(14657154., device='cuda:0')tensor(14657154., device='cuda:0')
+
+tensor(58974320., device='cuda:0')tensor(58974320., device='cuda:0')
+
+tensor(59285176., device='cuda:0')tensor(59285176., device='cuda:0')
+
+tensor(15551857., device='cuda:0')tensor(15551857., device='cuda:0')
+
+tensor(34745036., device='cuda:0')tensor(34745036., device='cuda:0')
+
+tensor(44476704., device='cuda:0')tensor(44476704., device='cuda:0')
+
+tensor(50042680., device='cuda:0')tensor(50042680., device='cuda:0')
+
+tensor(68706504., device='cuda:0')tensor(68706504., device='cuda:0')
+
+tensor(65257584., device='cuda:0')tensor(65257584., device='cuda:0')
+
+tensor(16490647., device='cuda:0')tensor(16490647., device='cuda:0')
+
+tensor(42954636., device='cuda:0')tensor(42954636., device='cuda:0')
+
+tensor(56327300., device='cuda:0')tensor(56327300., device='cuda:0')
+
+tensor(10394893., device='cuda:0')tensor(10394893., device='cuda:0')
+
+tensor(20804048., device='cuda:0')tensor(20804048., device='cuda:0')
+
+tensor(15952598., device='cuda:0')tensor(15952598., device='cuda:0')
+
+tensor(22762016., device='cuda:0')tensor(22762016., device='cuda:0')
+
+tensor(36449196., device='cuda:0')tensor(36449196., device='cuda:0')
+
+tensor(42314104., device='cuda:0')tensor(42314104., device='cuda:0')
+
+tensor(50046068., device='cuda:0')tensor(50046068., device='cuda:0')
+
+tensor(39679016., device='cuda:0')tensor(39679016., device='cuda:0')
+
+tensor(55253528., device='cuda:0')tensor(55253528., device='cuda:0')
+
+tensor(27273648., device='cuda:0')tensor(27273648., device='cuda:0')
+
+tensor(39177708., device='cuda:0')tensor(39177708., device='cuda:0')
+
+tensor(55561376., device='cuda:0')tensor(55561376., device='cuda:0')
+
+tensor(49762812., device='cuda:0')tensor(49762812., device='cuda:0')
+
+tensor(54191112., device='cuda:0')tensor(54191112., device='cuda:0')
+
+tensor(60780856., device='cuda:0')tensor(60780856., device='cuda:0')
+
+tensor(48212412., device='cuda:0')tensor(48212412., device='cuda:0')
+
+tensor(20348306., device='cuda:0')tensor(20348306., device='cuda:0')
+
+tensor(32145368., device='cuda:0')tensor(32145368., device='cuda:0')
+
+Validation neg. log-lik, 201: 413851.28 +/- 11523.51Validation neg. log-lik, 201: 413851.28 +/- 11523.51
+
+tensor(48272012., device='cuda:0')tensor(48272012., device='cuda:0')
+
+tensor(51372220., device='cuda:0')tensor(51372220., device='cuda:0')
+
+tensor(48503168., device='cuda:0')tensor(48503168., device='cuda:0')
+
+tensor(54141852., device='cuda:0')tensor(54141852., device='cuda:0')
+
+tensor(42711904., device='cuda:0')tensor(42711904., device='cuda:0')
+
+tensor(8278194.5000, device='cuda:0')tensor(8278194.5000, device='cuda:0')
+
+tensor(6014160.5000, device='cuda:0')tensor(6014160.5000, device='cuda:0')
+
+tensor(29696204., device='cuda:0')tensor(29696204., device='cuda:0')
+
+tensor(26603512., device='cuda:0')tensor(26603512., device='cuda:0')
+
+tensor(54440412., device='cuda:0')tensor(54440412., device='cuda:0')
+
+tensor(50788180., device='cuda:0')tensor(50788180., device='cuda:0')
+
+tensor(12902266., device='cuda:0')tensor(12902266., device='cuda:0')
+
+tensor(10416243., device='cuda:0')tensor(10416243., device='cuda:0')
+
+tensor(62996456., device='cuda:0')tensor(62996456., device='cuda:0')
+
+tensor(11090810., device='cuda:0')tensor(11090810., device='cuda:0')
+
+tensor(24371734., device='cuda:0')tensor(24371734., device='cuda:0')
+
+tensor(32431120., device='cuda:0')tensor(32431120., device='cuda:0')
+
+tensor(13104407., device='cuda:0')tensor(13104407., device='cuda:0')
+
+tensor(20894150., device='cuda:0')tensor(20894150., device='cuda:0')
+
+tensor(43772576., device='cuda:0')tensor(43772576., device='cuda:0')
+
+tensor(56368652., device='cuda:0')tensor(56368652., device='cuda:0')
+
+tensor(15234598., device='cuda:0')tensor(15234598., device='cuda:0')
+
+tensor(44503412., device='cuda:0')tensor(44503412., device='cuda:0')
+
+tensor(57803672., device='cuda:0')tensor(57803672., device='cuda:0')
+
+tensor(39088624., device='cuda:0')tensor(39088624., device='cuda:0')
+
+tensor(52323804., device='cuda:0')tensor(52323804., device='cuda:0')
+
+tensor(7717865.5000, device='cuda:0')tensor(7717865.5000, device='cuda:0')
+
+tensor(60682236., device='cuda:0')tensor(60682236., device='cuda:0')
+
+tensor(32282180., device='cuda:0')tensor(32282180., device='cuda:0')
+
+tensor(40664108., device='cuda:0')tensor(40664108., device='cuda:0')
+
+tensor(48232992., device='cuda:0')tensor(48232992., device='cuda:0')
+
+tensor(50625204., device='cuda:0')tensor(50625204., device='cuda:0')
+
+tensor(27438840., device='cuda:0')tensor(27438840., device='cuda:0')
+
+tensor(62223664., device='cuda:0')tensor(62223664., device='cuda:0')
+
+tensor(39729840., device='cuda:0')tensor(39729840., device='cuda:0')
+
+tensor(7566177., device='cuda:0')tensor(7566177., device='cuda:0')
+
+tensor(58474476., device='cuda:0')tensor(58474476., device='cuda:0')
+
+tensor(32326654., device='cuda:0')tensor(32326654., device='cuda:0')
+
+tensor(45005244., device='cuda:0')tensor(45005244., device='cuda:0')
+
+tensor(6112227., device='cuda:0')tensor(6112227., device='cuda:0')
+
+tensor(54488840., device='cuda:0')tensor(54488840., device='cuda:0')
+
+Root:Root:  ../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0../../experiments/predator-prey/results/sim-pred-prey-100-16-50-100-100-0/models/convGNP/meanfield/hetero/identity/seed-0
+
+Root:Root:  ../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0../../experiments/predator-prey/simulated-data/sim-pred-prey-100-16-50-100-100-0
+
+Root:Root:  ../../experiments/predator-prey/logs../../experiments/predator-prey/logs
+
+convGNP meanfield hetero identity 32: 50701.0convGNP meanfield hetero identity 32: 50701.0
+
+Starting testing...Starting testing...
+
+In testIn test
+
+tensor(58994004., device='cuda:0')tensor(58994004., device='cuda:0')
+
+Validation neg. log-lik, 1: 589940.04 +/- 0.00Validation neg. log-lik, 1: 589940.04 +/- 0.00
+
+tensor(48079468., device='cuda:0')tensor(48079468., device='cuda:0')
+
+tensor(57600532., device='cuda:0')tensor(57600532., device='cuda:0')
+
+tensor(47365892., device='cuda:0')tensor(47365892., device='cuda:0')
+
+tensor(52199388., device='cuda:0')tensor(52199388., device='cuda:0')
+
+tensor(21840996., device='cuda:0')tensor(21840996., device='cuda:0')
+
+tensor(27665458., device='cuda:0')tensor(27665458., device='cuda:0')
+
+tensor(60452996., device='cuda:0')tensor(60452996., device='cuda:0')
+
+tensor(44379400., device='cuda:0')tensor(44379400., device='cuda:0')
+
+tensor(11838882., device='cuda:0')tensor(11838882., device='cuda:0')
+
+tensor(54182568., device='cuda:0')tensor(54182568., device='cuda:0')
+
+tensor(52086216., device='cuda:0')tensor(52086216., device='cuda:0')
+
+tensor(57284920., device='cuda:0')tensor(57284920., device='cuda:0')
+
+tensor(58736488., device='cuda:0')tensor(58736488., device='cuda:0')
+
+tensor(36247408., device='cuda:0')tensor(36247408., device='cuda:0')
+
+tensor(58228776., device='cuda:0')tensor(58228776., device='cuda:0')
+
+tensor(10790003., device='cuda:0')tensor(10790003., device='cuda:0')
+
+tensor(23325944., device='cuda:0')tensor(23325944., device='cuda:0')
+
+tensor(29252288., device='cuda:0')tensor(29252288., device='cuda:0')
+
+tensor(59511380., device='cuda:0')tensor(59511380., device='cuda:0')
+
+tensor(56926568., device='cuda:0')tensor(56926568., device='cuda:0')
+
+tensor(55046908., device='cuda:0')tensor(55046908., device='cuda:0')
+
+tensor(44928492., device='cuda:0')tensor(44928492., device='cuda:0')
+
+tensor(36229108., device='cuda:0')tensor(36229108., device='cuda:0')
+
+tensor(27118322., device='cuda:0')tensor(27118322., device='cuda:0')
+
+tensor(58723084., device='cuda:0')tensor(58723084., device='cuda:0')
+
+tensor(53907036., device='cuda:0')tensor(53907036., device='cuda:0')
+
+tensor(13653411., device='cuda:0')tensor(13653411., device='cuda:0')
+
+tensor(60248812., device='cuda:0')tensor(60248812., device='cuda:0')
+
+tensor(36715276., device='cuda:0')tensor(36715276., device='cuda:0')
+
+tensor(14931635., device='cuda:0')tensor(14931635., device='cuda:0')
+
+tensor(60513664., device='cuda:0')tensor(60513664., device='cuda:0')
+
+tensor(60285008., device='cuda:0')tensor(60285008., device='cuda:0')
+
+tensor(49109976., device='cuda:0')tensor(49109976., device='cuda:0')
+
+tensor(41924036., device='cuda:0')tensor(41924036., device='cuda:0')
+
+tensor(42556280., device='cuda:0')tensor(42556280., device='cuda:0')
+
+tensor(33944220., device='cuda:0')tensor(33944220., device='cuda:0')
+
+tensor(47948552., device='cuda:0')tensor(47948552., device='cuda:0')
+
+tensor(38209872., device='cuda:0')tensor(38209872., device='cuda:0')
+
+tensor(43068480., device='cuda:0')tensor(43068480., device='cuda:0')
+
+tensor(25653384., device='cuda:0')tensor(25653384., device='cuda:0')
+
+tensor(55058704., device='cuda:0')tensor(55058704., device='cuda:0')
+
+tensor(22963808., device='cuda:0')tensor(22963808., device='cuda:0')
+
+tensor(8136453., device='cuda:0')tensor(8136453., device='cuda:0')
+
+tensor(56065272., device='cuda:0')tensor(56065272., device='cuda:0')
+
+tensor(35463236., device='cuda:0')tensor(35463236., device='cuda:0')
+
+tensor(59752976., device='cuda:0')tensor(59752976., device='cuda:0')
+
+tensor(49886616., device='cuda:0')tensor(49886616., device='cuda:0')
+
+tensor(7145254.5000, device='cuda:0')tensor(7145254.5000, device='cuda:0')
+
+tensor(20501412., device='cuda:0')tensor(20501412., device='cuda:0')
+
+tensor(16209216., device='cuda:0')tensor(16209216., device='cuda:0')
+
+tensor(53790316., device='cuda:0')tensor(53790316., device='cuda:0')

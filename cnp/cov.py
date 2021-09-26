@@ -239,7 +239,7 @@ class MeanFieldGaussianLayer(GaussianLayer):
         sqrt_diag = lambda x : torch.diag_embed(torch.diagonal(x,
                                                                dim1=-2,
                                                                dim2=-1)**0.5)
-        scale_tril = sqrt_diag(f_cov) if noiseless else sqrt_diag(y_cov)**0.5
+        scale_tril = sqrt_diag(f_cov) if noiseless else sqrt_diag(y_cov)
         
         # Create distribution and return
         dist = MultivariateNormal(loc=mean, scale_tril=scale_tril)
@@ -539,8 +539,7 @@ class CopulaLayer(OutputLayer):
         # Draw samples from Gaussian and apply marginal transformation
         v_samples = self.gaussian_layer.sample(tensor=tensor,
                                                num_samples=num_samples,
-                                               noiseless=noiseless,
-                                               double=double)
+                                               noiseless=noiseless)
         
         # Repeat a and b, (num_samples, B, T)
         marg_params = [marg_param[None, :, :].repeat(num_samples, 1, 1) \
@@ -611,7 +610,8 @@ class CopulaLayer(OutputLayer):
         gaussian = Normal(loc=zeros, scale=ones)
         
         jacobian_term = self.log_pdf(x, marg_params)
-        jacobian_term = jacobian_term - gaussian.log_prob(self.cdf(x, marg_params))
+        jacobian_term = jacobian_term - \
+                        gaussian.log_prob(self.cdf(x, marg_params))
         jacobian_term = torch.sum(jacobian_term, axis=-1)
         
         return jacobian_term
@@ -645,13 +645,16 @@ class CopulaLayer(OutputLayer):
 class ExponentialCopulaLayer(CopulaLayer):
     
     
-    def __init__(self, gaussian_layer, scale, device):
+    def __init__(self, gaussian_layer, device):
         
         super().__init__(gaussian_layer=gaussian_layer,
                          device=device)
         
-        self.num_features = self.gaussian_layer.num_features
-        self.scale = scale
+        self.num_features = self.gaussian_layer.num_features + 1
+        
+        # Set sccale -- not currently used
+        self.log_scale = torch.log(torch.tensor(1.))
+        self.log_scale = torch.nn.Parameter(self.log_scale)
         
         
     def unpack_parameters(self, tensor):
@@ -669,10 +672,9 @@ class ExponentialCopulaLayer(CopulaLayer):
                (tensor.shape[-1] == self.num_features)
         
         # Get scale from tensor
-        scale = self.scale * torch.ones_like(tensor[:, :, 0]).float().to(self.device)
-#         scale = torch.nn.Softplus()(1e-2 * tensor[:, :, 0] + 1.)
+        scale = torch.nn.Softplus()(tensor[:, :, 0]) + 1e0
     
-#         tensor = tensor[:, :, 1:]
+        tensor = tensor[:, :, 1:]
         
         return tensor, [scale]
     
@@ -780,6 +782,9 @@ class LogLogitCopulaLayer(CopulaLayer):
         # Get rate and concentration from tensor
         a = 0. * tensor[:, :, 0] + 3. #torch.nn.Softplus()(tensor[:, :, 0]) + epsilon
         b = torch.nn.Softplus()(1e-2 * tensor[:, :, 1]) + 1e0 + epsilon
+
+        a = torch.nn.Softplus()(tensor[:, :, 0]) + 1e0 + epsilon
+        b = torch.nn.Softplus()(tensor[:, :, 1]) + 1e0 + epsilon
         
         # Slice out rate and concentration
         tensor = tensor[:, :, 2:]
@@ -836,6 +841,7 @@ class LogLogitCopulaLayer(CopulaLayer):
         
         cdf = 1 / (1+(x/a)**-b)
         cdf = cdf.float()
+        cdf = cdf.clamp(1e-6, 1 - 1e-6)
         
         return cdf
     
