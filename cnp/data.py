@@ -920,7 +920,7 @@ class EEGGenerator:
         x = np.repeat(
             np.array(batch_trials[0].index)[None, None, :],
             self.batch_size,
-            axis=2,
+            axis=0,
         )
         # Carefully order the outputs.
         y = np.transpose(np.stack(batch_trials, axis=0), (0, 2, 1))
