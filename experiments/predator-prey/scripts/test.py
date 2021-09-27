@@ -15,7 +15,7 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import StandardPredPreyConvGNP
+from cnp.cnp import StandardPredPreyConvGNP, FullConvGNP
 from cnp.lnp import StandardPredPreyConvNP
 
 from cnp.cov import (
@@ -98,7 +98,7 @@ parser.add_argument('--seed',
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['convGNP', 'convNP'],
+                    choices=['convGNP', 'FullConvGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
@@ -120,11 +120,11 @@ parser.add_argument('--np_loss_samples',
                     help='Number of latent samples for evaluating the loss, '
                          'used for ANP and ConvNP.')
 
-parser.add_argument('--np_val_samples',
-                    default=16,
+parser.add_argument('--np_test_samples',
+                    default=512,
                     type=int,
                     help='Number of latent samples for evaluating the loss, '
-                         'when validating, used for ANP and ConvNP.')
+                         'when testing, used for ANP and ConvNP.')
 
 parser.add_argument('--num_basis_dim',
                     default=32,
@@ -231,6 +231,10 @@ else:
 if args.model == 'convGNP':
     model = StandardPredPreyConvGNP(input_dim=1,
                                     output_layer=output_layer)
+    
+elif args.model == 'FullConvGNP':
+    model = FullConvGNP(points_per_unit_mean=16,
+                        points_per_unit_kernel=8)
     
 elif args.model == 'convNP':
     model = StandardPredPreyConvNP(input_dim=1,

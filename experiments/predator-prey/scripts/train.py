@@ -15,7 +15,7 @@ from cnp.experiment import (
     log_args
 )
 
-from cnp.cnp import StandardPredPreyConvGNP
+from cnp.cnp import FullConvGNP, StandardPredPreyConvGNP
 from cnp.lnp import StandardPredPreyConvNP
 
 from cnp.cov import (
@@ -58,14 +58,9 @@ def train(data,
 
         # Log information to tensorboard
         writer.add_scalar('Train log-lik.', -nll, iteration)
-        
-        encoder_scale = torch.exp(model.encoder.sigma).detach().cpu().numpy().squeeze()
-        decoder_scale = torch.exp(model.decoder.sigma).detach().cpu().numpy().squeeze()
 
         if step % log_every == 0:
-            print(f"Training   neg. log-lik: {nll:.2f}, "
-                  f"Encoder/decoder scales {encoder_scale:.3f} "
-                  f"{decoder_scale:.3f}")
+            print(f"Training   neg. log-lik: {nll:.2f}")
 
         # Compute gradients and apply them
         nll.backward()
@@ -146,14 +141,15 @@ def validate(data,
     print(f"Subsampled data neg. log-lik: "
           f"{mean_subsampled_nll:.2f}")
     
-    plot_pred_prey_fits(model=model,
-                        valid_data=data[0],
-                        holdout_data=data_holdout,
-                        subsampled_data=data_subsampled,
-                        num_noisy_samples=200,
-                        num_noiseless_samples=3,
-                        device=device,
-                        save_path=figure_path)
+    if not type(model) == FullConvGNP:
+        plot_pred_prey_fits(model=model,
+                            valid_data=data[0],
+                            holdout_data=data_holdout,
+                            subsampled_data=data_subsampled,
+                            num_noisy_samples=200,
+                            num_noiseless_samples=3,
+                            device=device,
+                            save_path=figure_path)
 
     return mean_nll, mean_holdout_nll, mean_subsampled_nll
         
@@ -184,7 +180,7 @@ parser.add_argument('--validate_every',
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['convGNP', 'convNP'],
+                    choices=['convGNP', 'FullConvGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
@@ -345,6 +341,10 @@ if args.model == 'convGNP':
     model = StandardPredPreyConvGNP(input_dim=1,
                                     output_layer=output_layer)
     
+elif args.model == 'FullConvGNP':
+    model = FullConvGNP(points_per_unit_mean=16,
+                        points_per_unit_kernel=8)
+    
 elif args.model == 'convNP':
     model = StandardPredPreyConvNP(input_dim=1,
                                    num_samples=args.np_loss_samples)
@@ -405,8 +405,8 @@ log_args(working_directory, args)
 
 # Create optimiser
 optimiser = torch.optim.Adam(model.parameters(),
-                         args.learning_rate,
-                         weight_decay=args.weight_decay)
+                             args.learning_rate,
+                             weight_decay=args.weight_decay)
 
 # Run the training loop, maintaining the best objective value
 best_nll = np.inf

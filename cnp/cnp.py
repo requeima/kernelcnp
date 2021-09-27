@@ -67,8 +67,8 @@ class GaussianNeuralProcess(nn.Module):
         z = self.decoder(r, x_context, y_context, x_target, **kwargs)
         
         samples = self.output_layer.sample(z,
-                                           num_samples,
-                                           noiseless,
+                                           num_samples=num_samples,
+                                           noiseless=noiseless,
                                            double=double)
         
         return samples
@@ -403,18 +403,25 @@ class FullConvGNP(nn.Module):
     def num_params(self):
         return sum([int(np.prod(p.shape)) for p in self.parameters()])
 
+    
     def loss(self, x_context, y_context, x_target, y_target):
-        return GaussianNeuralProcess.loss(
-            self,
-            x_context,
-            y_context,
-            x_target,
-            y_target
-        )
 
+        y_mean, _, y_cov = self.forward(x_context, y_context, x_target)
+
+        y_mean = y_mean.double()
+        y_cov = y_cov.double()
+        y_target = y_target.double()
+
+        jitter = 1e-6 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
+        y_cov = y_cov + jitter[None, :, :]
+
+        dist = MultivariateNormal(loc=y_mean[:, :, 0],
+                                  covariance_matrix=y_cov)
+        nll = - torch.mean(dist.log_prob(y_target[:, :, 0]))
+
+        return nll.float()
+
+    
     def mean_and_marginals(self, x_context, y_context, x_target):
         mean, cov, noisy_cov = self.forward(x_context, y_context, x_target)
         return mean, B.diag_extract(cov), B.diag_extract(noisy_cov)
-
-    
-    

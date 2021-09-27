@@ -539,7 +539,8 @@ class CopulaLayer(OutputLayer):
         # Draw samples from Gaussian and apply marginal transformation
         v_samples = self.gaussian_layer.sample(tensor=tensor,
                                                num_samples=num_samples,
-                                               noiseless=noiseless)
+                                               noiseless=noiseless,
+                                               double=double)
         
         # Repeat a and b, (num_samples, B, T)
         marg_params = [marg_param[None, :, :].repeat(num_samples, 1, 1) \
