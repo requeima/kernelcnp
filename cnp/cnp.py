@@ -412,7 +412,7 @@ class FullConvGNP(nn.Module):
         y_cov = y_cov.double()
         y_target = y_target.double()
 
-        jitter = 1e-6 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
+        jitter = 1e-4 * torch.eye(y_cov.shape[-1], device=y_cov.device).double()
         y_cov = y_cov + jitter[None, :, :]
 
         dist = MultivariateNormal(loc=y_mean[:, :, 0],
@@ -420,6 +420,32 @@ class FullConvGNP(nn.Module):
         nll = - torch.mean(dist.log_prob(y_target[:, :, 0]))
 
         return nll.float()
+    
+    
+    def sample(self,
+               x_context,
+               y_context,
+               x_target,
+               num_samples,
+               noiseless,
+               double):
+        
+        mean, cov, cov_noisy = self.forward(x_context, y_context, x_target)
+        
+        cov = cov if noiseless else cov_noisy
+        
+        mean = mean.double()
+        cov = cov.double()
+
+        jitter = 1e-4 * torch.eye(cov.shape[-1], device=cov.device).double()
+        cov = cov + jitter[None, :, :]
+
+        dist = MultivariateNormal(loc=mean[:, :, 0],
+                                  covariance_matrix=cov)
+        
+        samples = dist.sample(sample_shape=[num_samples])
+
+        return samples
 
     
     def mean_and_marginals(self, x_context, y_context, x_target):

@@ -3,7 +3,7 @@ import multiprocessing
 import threadpoolctl
 from netCDF4 import Dataset
 
-from wbml.data.eeg import load_full as load_eeg
+# from wbml.data.eeg import load_full as load_eeg
 
 import numpy as np
 
@@ -21,8 +21,6 @@ import time
 import random
 from datetime import datetime
 from scipy.interpolate import interp1d
-
-__all__ = ['GPGenerator', 'SawtoothGenerator']
 
 
 def x_sample_uniform(ranges, num_points, num_dim):

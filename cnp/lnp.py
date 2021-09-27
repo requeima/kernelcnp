@@ -137,7 +137,7 @@ class LatentNeuralProcess(nn.Module):
         
         else:
             
-            zeros = torch.ones_like(means)
+            zeros = torch.zeros_like(means)
             dist = torch.distributions.Normal(zeros, 1e-3 + noise_vars**0.5)
             noise = dist.sample()
             
