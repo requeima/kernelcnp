@@ -154,6 +154,50 @@ def move_channel_idx(x, to_last, num_dims):
     return x.permute(perm_idx)
 
 
+class PositiveChannelwiseConv1D(nn.Module):
+    
+    def __init__(self,
+                 num_channels,
+                 kernel_size,
+                 stride):
+        
+        super().__init__()
+        
+        assert in_channes % groups == 0
+        assert kernel_size % 2 == 1
+        
+        # Set number of channels - this represents the number of input
+        # channels, the number of output channels, and the number of
+        # groups used in the convolution
+        self.num_channels = num_channels
+        
+        # Initialise the log-weights at random
+        self._weights = torch.randn(num_channels, 1, kernel_size)
+        
+        # Normalise weights, to sum to 1 for sensible initialisation
+        normalising_term = torch.sum(torch.exp(self._weights), dim=-1)
+        self._weights = self.weights - torch.log(normalising_term)[..., None]
+        self._weights = nn.Parameter(self._weights)
+        
+        self.padding = kernel_size // 2
+        self.stride = stride
+    
+    def weights(self):
+        return torch.exp(self._weights)
+    
+    def forward(self, tensor):
+        
+        tensor = torch.nn.functional.conv1d(tensor,
+                                            self.weights(),
+                                            bias=None,
+                                            stride=self.stride,
+                                            padding=self.padding,
+                                            dilation=1,
+                                            groups=self.num_channels)
+        
+        return tensor
+
+
 
 # =============================================================================
 # Logger util class

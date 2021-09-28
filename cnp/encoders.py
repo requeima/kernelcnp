@@ -19,7 +19,8 @@ from cnp.utils import (
     compute_dists, 
     to_multiple,
     build_grid,
-    move_channel_idx
+    move_channel_idx,
+    PositiveChannelwiseConv1D
 )
 
 
@@ -311,6 +312,73 @@ class ConvEncoder(nn.Module):
         r = move_channel_idx(r, to_last=False, num_dims=c)
 
         return r
+    
+    
+
+
+# =============================================================================
+# Standard Convolutional Encoder for on-the-grid EEG data
+# =============================================================================
+    
+
+class ConvEEGEncoder(nn.Module):
+
+    def __init__(self,
+                 num_channels_context,
+                 conv_architecture):
+        
+        super().__init__()
+        
+        # Input dimension is 1 for EEG time series
+        self.input_dim = 1
+        
+        # Dimension of channels to condition on
+        self.num_channels_context = num_channels_context
+        
+        # Initialise positive convolution layer
+        conv = PositiveChannelwiseConv1D(num_channels=2*num_channels_context,
+                                         kernel_size=kernel_size,
+                                         stride=stride)
+        self.conv = conv
+        
+        # Initialise convolutional architecture
+        self.cnn = conv_architecture
+        
+
+    def build_weight_model(self):
+        
+        model = nn.Sequential(
+            nn.Linear(self.num_channels_context+1, self.out_channels),
+        )
+        init_sequential_weights(model)
+        
+        return model
+
+
+    def forward(self, y_context, m_context):
+        """
+        Arguments:
+            y_context : torch.tensor, (B, F, C)
+            m_context : torch.tensor, (B, F, C)
+        """
+        
+        assert y_context.shape == m_context.shape
+        
+        # Concatenate context and mask
+        ym_context = torch.cat([m_context, y_context], axis=1)
+        
+        # Pass through positive-constrained convolution
+        h = self.conv(ym_context)
+        
+        # Normalise using density channel
+        h0 = h[:, :, :self.num_channels_context]
+        h1 = h[:, :, self.num_channels_context:]
+        h = h1 / (h0 + 1e-9)
+        
+        # Pass through CNN
+        tensor = self.cnn(h)
+        
+        return tensor
 
 
 class ConvPDEncoder(nn.Module):

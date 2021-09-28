@@ -18,7 +18,7 @@ from cnp.encoders import (
 from cnp.decoders import (
     StandardDecoder,
     ConvDecoder,
-    ConvPDDecoder,
+    ConvPDDecoder
 )
 
 from cnp.cov import GaussianLayer
@@ -282,6 +282,32 @@ class StandardPredPreyConvGNP(GaussianNeuralProcess):
         self.output_dim = output_dim
         self.conv_architecture = conv_architecture
         
+        
+# =============================================================================
+# Standard UNet Convolutional Gaussian Neural Process for on-the-grid EEG data
+# =============================================================================
+        
+    
+class StandardEEGConvGNP(GaussianNeuralProcess):
+    
+    def __init__(self, num_context_channels, output_layer):
+        
+        self.conv_out_channels = 32
+        self.decoder_out_channels = output_layer.num_features
+        
+        # Define convolutional architecture
+        conv_architecture = UNet(input_dim=1,
+                                 in_channels=num_context_channels,
+                                 out_channels=self.conv_out_channels)
+        
+        # Define encoder
+        encoder = ConvEEGEncoder(num_channels_context=num_channels_context,
+                                 conv_architecture=conv_architecture)
+        
+        # Define decoder
+        decoder = ConvEEGDecoder(in_channels=self.conv_out_channels,
+                                 out_channels=self.decoder_out_channels,
+                                 init_length_scale=init_length_scale)
         
     
 # =============================================================================

@@ -765,6 +765,7 @@ class EEGGenerator:
         split="train",
         batch_size=16,
         batches_per_epoch=128,
+        num_target_channels=10,
         device=None,
     ):
         self.batch_size = batch_size
@@ -879,17 +880,35 @@ class EEGGenerator:
             461,
             1000367,
         ]
+        
+        # Save random state and set the seed
+        state = np.random.get_state()
+        np.random.seed(0)
+        
+        # Shuffle subjects
+        idx = np.random.permutation(len(all_subjects))
+        all_subjects = np.array(all_subjects)[idx]
+        all_subjects = list(all_subjects)
+        
+        # Reset random state to its original setting
+        np.random.set_state(state)
 
+        # Split into training validation and test data
         if split == "train":
             subjects = all_subjects[20:]
+            
         elif split == "validation":
             subjects = all_subjects[10:20]
+            
         elif split == "test":
             subjects = all_subjects[:10]
+            
         else:
             raise ValueError(f'Unknown split "{split}" for EEG data.')
 
+        # Load EEG data
         data = load_eeg()
+        
         self.trials = []
         for subject in subjects:
             for n in sorted(data[subject]["trials"].keys()):
@@ -901,6 +920,9 @@ class EEGGenerator:
                 if not hasattr(self, "output_names"):
                     self.output_names = sorted(trial.columns)
         self.i = 0
+        
+        assert 1 <= num_target_channels <= 64
+        self.num_target_channels = num_target_channels
 
     def generate_batch(self):
         batch_trials = []
@@ -916,7 +938,7 @@ class EEGGenerator:
             self.i += 1
 
         x = np.repeat(
-            np.array(batch_trials[0].index)[None, None, :],
+            np.array(batch_trials[0].index)[None, :, None],
             self.batch_size,
             axis=0,
         )
@@ -927,20 +949,25 @@ class EEGGenerator:
         # of 100 consecutive timestamps.
         x_len = 100
         x_start = np.random.randint(y.shape[2] - x_len + 1)
-        mask = set(np.random.permutation(y.shape[1])[:10])
+        target_channels = set(np.random.permutation(y.shape[1])[:self.num_target_channels])
 
         x_context = x.copy()
         y_context = y.copy()
 
-        x_target = x.copy()[:, :, x_start:x_start + x_len]
+        x_target = x.copy()[:, x_start:x_start + x_len, :]
         y_target = y.copy()[:, :, x_start:x_start + x_len]
+        
+        m_context = np.ones_like(y_context)
+        m_target = np.ones_like(y_target)
 
         # Perform masking.
         for yi in range(y.shape[1]):
-            if yi in mask:
-                y_context[:, yi, x_start:x_start + x_len] = np.nan
+            if yi in target_channels:
+                y_context[:, yi, x_start:x_start + x_len] = 0.
+                m_context[:, yi, x_start:x_start + x_len] = 0.
             else:
-                y_target[:, yi, x_start:x_start + x_len] = np.nan
+                y_target[:, yi, :] = 0.
+                m_target[:, yi, :] = 0.
 
         def _torch(x):
             return torch.tensor(x, dtype=torch.float32, device=self.device)
@@ -950,9 +977,12 @@ class EEGGenerator:
             "y": _torch(y),
             "x_context": _torch(x_context),
             "y_context": _torch(y_context),
+            "m_context": _torch(m_context),
             "x_target": _torch(x_target),
             "y_target": _torch(y_target),
+            "m_target": _torch(m_target)
         }
+
 
     def __iter__(self):
         return LambdaIterator(lambda: self.generate_batch(), self.batches_per_epoch)
