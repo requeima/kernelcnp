@@ -3,7 +3,7 @@ import multiprocessing
 import threadpoolctl
 from netCDF4 import Dataset
 
-# from wbml.data.eeg import load_full as load_eeg
+from wbml.data.eeg import load_full as load_eeg
 
 import numpy as np
 
