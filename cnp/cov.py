@@ -717,13 +717,13 @@ class MultiOutputGaussianLayer(GaussianLayer):
     def distribution(self, tensor, target_mask, noiseless, double):
         """
         Arguments:
-            tensor      : torch.tensor, (B, D, T F)
+            tensor      : torch.tensor, (B, D, T, F)
             target_mask : torch.tensor, (B, D, T)
             noiseless   : bool
             double      : bool
             
         Returns:
-            dist        : torch.distribution, (B, T*M)
+            dist        : torch.distribution, (B, M*T)
         """
         pass
     
@@ -742,13 +742,13 @@ class MultiOutputGaussianLayer(GaussianLayer):
         
         assert y_target.shape == target_mask.shape
         
-        # Create distribution - shape (B, T*M, T*M)
+        # Create distribution - covariance shape (B, M*T, M*T)
         dist = self.distribution(tensor=tensor,
                                  target_mask=target_mask,
                                  noiseless=False,
                                  double=double)
         
-        # Slice out masked channels - changes tensor shape to (B, T, M, F)
+        # Slice out masked channels
         mask_idx = torch.any(target_mask[0] == 1, dim=1)
         
         y_target = y_target[:, mask_idx, :]
@@ -829,7 +829,7 @@ class MultiOutputMeanFieldGaussianLayer(MultiOutputGaussianLayer):
         assert (len(target_mask.shape) == 3) and \
                (tensor.shape[:-1] == target_mask.shape)
         
-        # Slice out masked channels - changes tensor shape to (B, T, M, 2)
+        # Slice out masked channels - changes tensor shape to (B, M, T, 2)
         mask_idx = target_mask[0, :, 0] == 1
         tensor = tensor[:, mask_idx, :, :]
         
@@ -1079,7 +1079,7 @@ class MultiOutputKvvGaussianLayer(MultiOutputGaussianLayer):
         B, M, T, F = tensor.shape
         
         # Reshape the tensor to shape (B, M*T, F)
-        tensor = torch.reshape(tensor, (tensor.shape[0], -1, tensor.shape[3]))
+        tensor = torch.reshape(tensor, (B, -1, F))
         
         mean = tensor[:, :, 0]
         
@@ -1102,7 +1102,7 @@ class MultiOutputKvvGaussianLayer(MultiOutputGaussianLayer):
             
         # Apply RBF function to embedding
         z = z / z.shape[-1]**0.5
-        quad = -0.5 * (z[:, :, None, :] - z[:, None, :, :]) ** 2
+        quad = -0.5 * (z[:, :, None, :] - z[:, None, :, :])**2
         exp = torch.exp(torch.sum(quad, axis=-1))
         
         # Covariance is the product of the RBF and the v terms

@@ -292,25 +292,23 @@ class StandardPredPreyConvGNP(GaussianNeuralProcess):
     
 class StandardEEGConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, num_channels_context, output_layer):
+    def __init__(self, num_channels, output_layer):
         
-        self.conv_out_channels = 32
         self.decoder_out_channels = output_layer.num_features * \
-                                    num_channels_context
-        self.init_length_scale = 1e-1
+                                    num_channels
+        self.init_length_scale = 1e-2
+        
+        # Define encoder
+        encoder = ConvEEGEncoder(num_channels=num_channels)
         
         # Define convolutional architecture
         conv_architecture = UNet(input_dim=1,
-                                 in_channels=num_channels_context,
-                                 out_channels=self.conv_out_channels)
-        
-        # Define encoder
-        encoder = ConvEEGEncoder(num_channels_context=num_channels_context)
+                                 in_channels=num_channels,
+                                 out_channels=self.decoder_out_channels)
         
         # Define decoder
-        decoder = ConvEEGDecoder(in_features=self.conv_out_channels,
-                                 out_features=self.decoder_out_channels,
-                                 num_channels=num_channels_context,
+        decoder = ConvEEGDecoder(out_features=output_layer.num_features,
+                                 num_channels=num_channels,
                                  init_length_scale=self.init_length_scale,
                                  conv_architecture=conv_architecture)
         

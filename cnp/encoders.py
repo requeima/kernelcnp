@@ -323,7 +323,7 @@ class ConvEncoder(nn.Module):
 
 class ConvEEGEncoder(nn.Module):
 
-    def __init__(self, num_channels_context):
+    def __init__(self, num_channels):
         
         super().__init__()
         
@@ -331,14 +331,14 @@ class ConvEEGEncoder(nn.Module):
         self.input_dim = 1
         
         # Set kernel size and stride for first convolution
-        kernel_size = 7
+        kernel_size = 11
         stride = 1
         
         # Dimension of channels to condition on
-        self.num_channels_context = num_channels_context
+        self.num_channels = num_channels
         
         # Initialise positive convolution layer
-        conv = PositiveChannelwiseConv1D(num_channels=2*num_channels_context,
+        conv = PositiveChannelwiseConv1D(num_channels=2*num_channels,
                                          kernel_size=kernel_size,
                                          stride=stride)
         self.conv = conv
@@ -347,7 +347,7 @@ class ConvEEGEncoder(nn.Module):
     def build_weight_model(self):
         
         model = nn.Sequential(
-            nn.Linear(self.num_channels_context+1, self.out_channels),
+            nn.Linear(self.num_channels+1, self.out_channels),
         )
         init_sequential_weights(model)
         
@@ -357,8 +357,11 @@ class ConvEEGEncoder(nn.Module):
     def forward(self, y_context, m_context):
         """
         Arguments:
-            y_context : torch.tensor, (B, F, C)
-            m_context : torch.tensor, (B, F, C)
+            y_context : torch.tensor, (B, D, C)
+            m_context : torch.tensor, (B, D, C)
+            
+        Returns:
+            h         : torch.tensor, (B, D, C)
         """
         
         assert y_context.shape == m_context.shape
@@ -370,8 +373,8 @@ class ConvEEGEncoder(nn.Module):
         h = self.conv(ym_context)
         
         # Normalise using density channel
-        h0 = h[:, :self.num_channels_context, :]
-        h1 = h[:, self.num_channels_context:, :]
+        h0 = h[:, :self.num_channels, :]
+        h1 = h[:, self.num_channels:, :]
         h = h1 / (h0 + 1e-9)
         
         return h
