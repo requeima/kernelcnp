@@ -323,14 +323,16 @@ class ConvEncoder(nn.Module):
 
 class ConvEEGEncoder(nn.Module):
 
-    def __init__(self,
-                 num_channels_context,
-                 conv_architecture):
+    def __init__(self, num_channels_context):
         
         super().__init__()
         
         # Input dimension is 1 for EEG time series
         self.input_dim = 1
+        
+        # Set kernel size and stride for first convolution
+        kernel_size = 7
+        stride = 1
         
         # Dimension of channels to condition on
         self.num_channels_context = num_channels_context
@@ -340,9 +342,6 @@ class ConvEEGEncoder(nn.Module):
                                          kernel_size=kernel_size,
                                          stride=stride)
         self.conv = conv
-        
-        # Initialise convolutional architecture
-        self.cnn = conv_architecture
         
 
     def build_weight_model(self):
@@ -371,14 +370,11 @@ class ConvEEGEncoder(nn.Module):
         h = self.conv(ym_context)
         
         # Normalise using density channel
-        h0 = h[:, :, :self.num_channels_context]
-        h1 = h[:, :, self.num_channels_context:]
+        h0 = h[:, :self.num_channels_context, :]
+        h1 = h[:, self.num_channels_context:, :]
         h = h1 / (h0 + 1e-9)
         
-        # Pass through CNN
-        tensor = self.cnn(h)
-        
-        return tensor
+        return h
 
 
 class ConvPDEncoder(nn.Module):

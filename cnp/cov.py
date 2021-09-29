@@ -63,7 +63,7 @@ class OutputLayer(nn.Module):
     
     
 # =============================================================================
-# Meanfield output layer
+# Gaussian output layer
 # =============================================================================
 
 class GaussianLayer(OutputLayer):
@@ -83,41 +83,13 @@ class GaussianLayer(OutputLayer):
         
     @abstractmethod
     def _mean_and_cov(self, tensor):
-        """
-        Computes mean and covariance of mean-field Gaussian layer, as
-        specified by the parameters in *tensor*. This method may give
-        covariances which are close to singular, so the method mean_and_cov
-        should be used instead.
-        
-        Arguments:
-            tensor : torch.tensor, (B, T, 2)
-            
-        Returns:
-            mean  : torch.tensor, (B, T)
-            f_cov : torch.tensor, (B, T, T)
-            y_cov : torch.tensor, (B, T, T)
-        """
         pass
         
         
-    def mean_and_cov(self, tensor, double):
-        """
-        Computes mean and covariance of mean-field Gaussian layer, as
-        specified by the parameters in *tensor*. This method internally
-        calls _mean_and_cov, and adds jitter to the covariances which this
-        method produces.
-        
-        Arguments:
-            tensor : torch.tensor, (B, T, 2)
-            
-        Returns:
-            mean  : torch.tensor, (B, T)
-            f_cov : torch.tensor, (B, T, T)
-            y_cov : torch.tensor, (B, T, T)
-        """
+    def mean_and_cov(self, tensor, double, **kwargs):
         
         # Compute mean and covariance
-        mean, f_cov, y_cov = self._mean_and_cov(tensor)
+        mean, f_cov, y_cov = self._mean_and_cov(tensor, **kwargs)
         
         # Jitter to covariance for numerical stability
         jitter = self.jitter * torch.eye(f_cov.shape[-1], device=y_cov.device)
@@ -137,17 +109,6 @@ class GaussianLayer(OutputLayer):
     
     
     def loglik(self, tensor, y_target, double=True):
-        """
-        Computes the log-likelihood of *y_target* under mean-field Gaussian
-        layer, specified by the parameters in *tensor*.
-        
-        Arguments:
-            tensor   : torch.tensor, (B, T, 2)
-            y_target : torch.tensor, (B, T)
-            
-        Returns:
-            loglik   : torch.tensor, ()
-        """
         
         # Initialise distribution and compute log probability
         dist = self.distribution(tensor, noiseless=False, double=double)
@@ -157,17 +118,6 @@ class GaussianLayer(OutputLayer):
     
     
     def sample(self, tensor, num_samples, noiseless, double):
-        """
-        Draws samples from the mean-field Gaussian
-        layer, specified by the parameters in *tensor*.
-        
-        Arguments:
-            tensor   : torch.tensor, (B, T, 2)
-            y_target : torch.tensor, (B, T)
-            
-        Returns:
-            loglik   : torch.tensor, ()
-        """
         
         # Initialise distribution to compute log probability
         dist = self.distribution(tensor=tensor,
@@ -750,129 +700,429 @@ class ExponentialCopulaLayer(CopulaLayer):
     
     
 # =============================================================================
-# Log-logit copula output layer
+# Multioutput Gaussian layer
+# =============================================================================
+
+class MultiOutputGaussianLayer(GaussianLayer):
+    
+    
+    def __init__(self, num_outputs, jitter=1e-6):
+        
+        super().__init__(jitter=jitter)
+        
+        self.num_outputs = num_outputs
+    
+    
+    @abstractmethod
+    def distribution(self, tensor, target_mask, noiseless, double):
+        """
+        Arguments:
+            tensor      : torch.tensor, (B, D, T F)
+            target_mask : torch.tensor, (B, D, T)
+            noiseless   : bool
+            double      : bool
+            
+        Returns:
+            dist        : torch.distribution, (B, T*M)
+        """
+        pass
+    
+    
+    def loglik(self, tensor, y_target, target_mask, double=True):
+        """
+        Arguments:
+            tensor      : torch.tensor, (B, D, T, F)
+            y_target    : torch.tensor, (B, D, T)
+            target_mask : torch.tensor, (B, D, T)
+            double      : bool
+            
+        Returns:
+            loglik      : torch.tensor, shape (B,)
+        """
+        
+        assert y_target.shape == target_mask.shape
+        
+        # Create distribution - shape (B, T*M, T*M)
+        dist = self.distribution(tensor=tensor,
+                                 target_mask=target_mask,
+                                 noiseless=False,
+                                 double=double)
+        
+        # Slice out masked channels - changes tensor shape to (B, T, M, F)
+        mask_idx = torch.any(target_mask[0] == 1, dim=1)
+        
+        y_target = y_target[:, mask_idx, :]
+        y_target = torch.reshape(y_target, (y_target.shape[0], -1))
+        
+        loglik = dist.log_prob(y_target)
+        
+        return loglik
+    
+    
+    def sample(self, tensor, target_mask, num_samples, noiseless, double):
+        """
+        Arguments:
+            tensor      : torch.tensor, (B, D, T, F)
+            target_mask : torch.tensor, (B, D, T)
+            num_samples : int
+            noiseless   : bool
+            double      : bool
+            
+        Returns:
+            sample      : torch.tensor, (B, M, T)
+        """
+        
+        mask_idx = torch.any(target_mask[0] == 1, dim=1)
+        target_ones = torch.ones_like(target_mask).long().to(tensor.device)
+        
+        # Initialise distribution to compute log probability
+        dist = self.distribution(tensor=tensor,
+                                 target_mask=target_ones,
+                                 noiseless=noiseless,
+                                 double=double)
+        
+        # Draw samples and return
+        samples = dist.sample(sample_shape=[num_samples])
+        
+        sample_shape = (samples.shape[0],
+                        samples.shape[1],
+                        self.num_outputs,
+                        -1)
+        
+        samples = torch.reshape(samples, sample_shape)
+        samples_masked = samples[:, :, mask_idx, :]
+        
+        return samples, samples_masked
+    
+    
+
+# =============================================================================
+# MultiOutput meanfield output layer
 # =============================================================================
 
 
-class LogLogitCopulaLayer(CopulaLayer):
+class MultiOutputMeanFieldGaussianLayer(MultiOutputGaussianLayer):
     
     
-    def __init__(self, gaussian_layer, device):
+    def __init__(self, num_outputs, jitter=1e-6):
         
-        super().__init__(gaussian_layer=gaussian_layer, device=device)
+        super().__init__(num_outputs=num_outputs, jitter=jitter)
         
-        self.num_features = self.gaussian_layer.num_features + 2
+        self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        self.num_features = 2
         
         
-    def unpack_parameters(self, tensor):
+    def _mean_and_cov(self, tensor, target_mask):
         """
         Arguments:
-            tensor : torch.tensor, (B, T, C)
+            tensor      : torch.tensor, (B, D, T, 2)
+            target_mask : torch.tensor, (B, D, T)
             
         Returns:
-            tensor      : torch.tensor, (B, T, C-2)
-            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            mean  : torch.tensor, (B, M*T)
+            f_cov : torch.tensor, (B, M*T, M*T)
+            y_cov : torch.tensor, (B, M*T, M*T)
         """
         
-        epsilon = 1e-2
+        # Check tensor shapes are correct
+        assert (len(tensor.shape) == 4) and (tensor.shape[3] == 2)
+        assert (len(target_mask.shape) == 3) and \
+               (tensor.shape[:-1] == target_mask.shape)
         
-        # Check tensor has correct number of features
-        assert (len(tensor.shape) == 3) and \
-               (tensor.shape[-1] == self.num_features)
+        # Slice out masked channels - changes tensor shape to (B, T, M, 2)
+        mask_idx = target_mask[0, :, 0] == 1
+        tensor = tensor[:, mask_idx, :, :]
         
-        # Get rate and concentration from tensor
-        a = 0. * tensor[:, :, 0] + 3. #torch.nn.Softplus()(tensor[:, :, 0]) + epsilon
-        b = torch.nn.Softplus()(1e-2 * tensor[:, :, 1]) + 1e0 + epsilon
+        # Compute mean vector
+        mean = tensor[:, :, :, 0]
+        mean = torch.reshape(mean, (mean.shape[0], -1))
+        
+        # Compute diagonal covariance matrix
+        f_var = torch.nn.Softplus()(tensor[:, :, :, 1])
+        f_var = torch.reshape(f_var, (f_var.shape[0], -1))
+        y_var = f_var + torch.nn.Softplus()(self.noise_unconstrained)
+        
+        f_cov = torch.diag_embed(f_var)
+        y_cov = torch.diag_embed(y_var)
+        
+        return mean, f_cov, y_cov
+    
+    
+    def distribution(self, tensor, target_mask, noiseless, double):
+        
+        # Get mean and covariances of distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor=tensor,
+                                               double=double,
+                                               target_mask=target_mask)
+        
+        # Set lower triangular scale equal to either noiseless or noisy scale
+        sqrt_diag = lambda x : torch.diag_embed(torch.diagonal(x,
+                                                               dim1=-2,
+                                                               dim2=-1)**0.5)
+        scale_tril = sqrt_diag(f_cov) if noiseless else sqrt_diag(y_cov)
+        
+        # Create distribution and return
+        dist = MultivariateNormal(loc=mean, scale_tril=scale_tril)
+        
+        return dist
 
-        a = torch.nn.Softplus()(tensor[:, :, 0]) + 1e0 + epsilon
-        b = torch.nn.Softplus()(tensor[:, :, 1]) + 1e0 + epsilon
-        
-        # Slice out rate and concentration
-        tensor = tensor[:, :, 2:]
-        
-        return tensor, [a, b]
+    
+# =============================================================================
+# MultiOutput innerprod Gaussian layer
+# =============================================================================
+
+class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
     
     
-    def pdf(self, x, marg_params):
+    def __init__(self, num_outputs, num_embedding, noise_type, jitter=1e-6):
+        
+        super().__init__(num_outputs=num_outputs, jitter=jitter)
+        
+        # Noise type can be homoscedastic or heteroscedastic
+        assert noise_type in ["homo", "hetero"]
+        
+        # Set noise type, initialise noise variable if necessary
+        self.noise_type = noise_type
+        
+        if self.noise_type == "homo":
+            self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        
+        # Compute total number of features expected by layer
+        self.mean_dim = 1
+        self.extra_noise_dim = int(self.noise_type == "hetero")
+        self.num_embedding = num_embedding
+        
+        self.num_features = self.mean_dim        + \
+                            self.num_embedding   + \
+                            self.extra_noise_dim
+        self.num_outputs = num_outputs
+        
+        
+    def _mean_and_cov(self, tensor, target_mask):
         """
-        Probability distribution function of the log-logistic distribution.
-        
-            PDF(x) = (b/a) * (x/a)^(b-1) / (1 + (x/a)^b)^2
-        
         Arguments:
-            x           : torch.tensor, (B, T)
-            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            tensor      : torch.tensor, (B, D, T, F)
+            target_mask : torch.tensor, (B, D, T)
             
         Returns:
-            tensor : torch.tensor, (B, T)
+            mean  : torch.tensor, (B, M*T)
+            f_cov : torch.tensor, (B, M*T, M*T)
+            y_cov : torch.tensor, (B, M*T, M*T)
         """
         
-        a, b = marg_params
+        # Check tensors have correct shapes
+        assert tensor.shape[:-1] == target_mask.shape
         
-        # Check shapes are compatible, all x values are positive
-        assert x.shape == a.shape == b.shape
-        assert torch.all(x > 0.)
+        # Slice out masked entries
+        mask_idx = target_mask[0, :, 0] == 1
+        tensor = tensor[:, mask_idx, :, :]
         
-        return (b/a) * (x/a)**(b-1) / (1+(x/a)**b)**2
+        # Unpack tensor dimensions
+        B, M, T, F = tensor.shape
+        
+        # Reshape tensor to shape (B, M*T, F)
+        tensor = torch.reshape(tensor, (B, M*T, F))
+        
+        # Compute mean vector
+        mean = tensor[:, :, 0]
+        
+        # Slice out components of covariance - z and noise
+        if self.noise_type == "homo":
+            z = tensor[:, :, 1:] / F**0.5
+            
+            noise = torch.nn.Softplus()(self.noise_unconstrained)
+            noise = noise[None, None].repeat(B, M*T)
+            noise = torch.diag_embed(noise)
+            
+        else:
+            z = tensor[:, :, 1:-1] / F**0.5
+
+            noise = torch.nn.Softplus()(tensor[:, :, -1])
+            noise = torch.diag_embed(noise)
+
+        # Covariance is the product of the RBF and the v terms
+        f_cov = torch.einsum("bnc, bmc -> bnm", z, z)
+        y_cov = f_cov + noise
+        
+        return mean, f_cov, y_cov
     
     
-    def cdf(self, x, marg_params):
+    def distribution(self, tensor, target_mask, noiseless, double):
         """
-        Cumulative distribution function of the log-logistic distribution.
-        
-            CDF(x) = 1 / (1 + (x/a)^-b)
-        
         Arguments:
-            x           : torch.tensor, (B, T)
-            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            tensor      : torch.tensor, (B, D, T, F)
+            target_mask : torch.tensor, (B, D, T)
             
         Returns:
-            tensor : torch.tensor, (B, T)
+            mean  : torch.tensor, (B, M*T)
+            f_cov : torch.tensor, (B, M*T, M*T)
+            y_cov : torch.tensor, (B, M*T, M*T)
         """
         
-        a, b = marg_params
+        # Check tensors have correct shapes
+        assert tensor.shape[:-1] == target_mask.shape
+        assert tensor.shape[-1] == self.num_features
         
-        # Check shapes are compatible, all x values are positive
-        assert x.shape == a.shape == b.shape
-        assert torch.all(x > 0.)
+        # Slice out masked entries
+        mask_idx = target_mask[0, :, 0] == 1
+        M = torch.sum(mask_idx)
         
-        x = x.double()
-        a = a.double()
-        b = b.double()
+        # Unpack tensor dimension sizes
+        B, D, T, F = tensor.shape
         
-        cdf = 1 / (1+(x/a)**-b)
-        cdf = cdf.float()
-        cdf = cdf.clamp(1e-6, 1 - 1e-6)
+        # If num datapoints smaller than num embedding, return full-rank
+        if M * T <= self.num_embedding:
+            
+            mean, f_cov, y_cov = self.mean_and_cov(tensor,
+                                                   target_mask=target_mask,
+                                                   double=double)
+            cov = f_cov if noiseless else y_cov
+            
+            dist = MultivariateNormal(loc=mean, covariance_matrix=cov)
+            
+            return dist
         
-        return cdf
+        
+        # Otherwise, return low-rank 
+        else:
+        
+            # Slice out masked entries
+            tensor = tensor[:, mask_idx, :, :]
+
+            # Reshape tensor to shape (B, M*T, F)
+            tensor = torch.reshape(tensor, (B, M*T, F))
+            
+            # Convert tensor to double if required
+            tensor = tensor.double() if double else tensor
+            
+            # Split tensor into mean and embedding
+            mean = tensor[:, :, 0]
+            z = tensor[:, :, 1:-1] / F**0.5
+            
+            jitter = torch.tensor(1e-6).repeat(B, M*T).to(z.device)
+            jitter = jitter.double() if double else jitter
+        
+            if noiseless:
+                noise = jitter
+                
+            elif self.noise_type == "homo":
+                noise = torch.nn.Softplus()(self.noise_unconstrained)
+                noise = noise[None, None].repeat(B, M*T)
+
+            else:
+                noise = torch.nn.Softplus()(tensor[:, :, -1])
+                
+            noise = noise.double() if double else noise
+            noise = noise + jitter
+            
+            dist = LowRankMultivariateNormal(loc=mean,
+                                             cov_factor=z,
+                                             cov_diag=noise)
+            return dist
+        
+        
+
+# =============================================================================
+# MultiOutput kvv Gaussian layer
+# =============================================================================
+
+
+class MultiOutputKvvGaussianLayer(MultiOutputGaussianLayer):
     
     
-    def icdf(self, x, marg_params):
+    def __init__(self, num_outputs, num_embedding, noise_type, jitter=1e-6):
+        
+        super().__init__(num_outputs=num_outputs, jitter=jitter)
+        
+        # Noise type can be homoscedastic or heteroscedastic
+        assert noise_type in ["homo", "hetero"]
+        
+        # Set noise type, initialise noise variable if necessary
+        self.noise_type = noise_type
+        
+        if self.noise_type == "homo":
+            self.noise_unconstrained = nn.Parameter(torch.tensor(0.))
+        
+        # Compute total number of features expected by layer
+        self.mean_dim = 1
+        self.v_dim = 1
+        self.extra_noise_dim = int(self.noise_type == "hetero")
+        self.num_embedding = num_embedding
+        
+        self.num_features = self.mean_dim        + \
+                            self.num_embedding   + \
+                            self.v_dim           + \
+                            self.extra_noise_dim 
+        self.num_outputs = num_outputs
+        
+        
+    def _mean_and_cov(self, tensor, target_mask):
         """
-        Inverse cumulative distribution function of the log-logistic
-        distribution.
-        
-            CDF^-1(x) = a * (x^-1 - 1)^(-1/b)
-        
         Arguments:
-            x           : torch.tensor, (B, T)
-            marg_params : List[torch.tensor], [(B, T), (B, T)]
+            tensor      : torch.tensor, (B, D, T, F)
+            target_mask : torch.tensor, (B, D, T)
             
         Returns:
-            tensor : torch.tensor, (B, T)
+            mean  : torch.tensor, (B, M*T)
+            f_cov : torch.tensor, (B, M*T, M*T)
+            y_cov : torch.tensor, (B, M*T, M*T)
         """
         
-        a, b = marg_params
+        # Check tensor has three dimensions, and last dimension has size 2
+        assert tensor.shape[:-1] == target_mask.shape
         
-        # Check shapes are compatible, all x values are positive
-        assert x.shape == a.shape == b.shape
-        assert torch.all(x > 0.)
+        # Slice out masked entries
+        mask_idx = target_mask[0, :, 0] == 1
+        tensor = tensor[:, mask_idx, :, :]
         
-        x = x.double()
-        a = a.double()
-        b = b.double()
+        # Unpack tensor dimensions
+        B, M, T, F = tensor.shape
         
-        icdf = a * (x**-1 - 1) ** (-1/b)
-        icdf = icdf.float()
+        # Reshape the tensor to shape (B, M*T, F)
+        tensor = torch.reshape(tensor, (tensor.shape[0], -1, tensor.shape[3]))
         
-        return icdf
+        mean = tensor[:, :, 0]
+        
+        if self.noise_type == "homo":
+            
+            z = tensor[:, :, 1:-1]
+            v = tensor[:, :, -1]
+        
+            noise = torch.nn.Softplus()(self.noise_unconstrained)
+            noise = noise[None, None].repeat(B, M*T)
+            noise = torch.diag_embed(noise)
+            
+        else:
+            
+            z = tensor[:, :, 1:-2]
+            v = tensor[:, :, -2]
+            
+            noise = torch.nn.Softplus()(tensor[:, :, -1])
+            noise = torch.diag_embed(noise)
+            
+        # Apply RBF function to embedding
+        z = z / z.shape[-1]**0.5
+        quad = -0.5 * (z[:, :, None, :] - z[:, None, :, :]) ** 2
+        exp = torch.exp(torch.sum(quad, axis=-1))
+        
+        # Covariance is the product of the RBF and the v terms
+        f_cov = exp * v[:, :, None] * v[:, None, :]
+        y_cov = f_cov + noise
+        
+        return mean, f_cov, y_cov
+    
+    
+    def distribution(self, tensor, target_mask, noiseless, double):
+        
+        # Get mean and covariances of distribution
+        mean, f_cov, y_cov = self.mean_and_cov(tensor=tensor,
+                                               double=double,
+                                               target_mask=target_mask)
+        
+        cov = f_cov if noiseless else y_cov
+        
+        # Create distribution and return
+        dist = MultivariateNormal(loc=mean, covariance_matrix=cov)
+        
+        return dist
+    

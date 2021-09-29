@@ -163,7 +163,6 @@ class PositiveChannelwiseConv1D(nn.Module):
         
         super().__init__()
         
-        assert in_channes % groups == 0
         assert kernel_size % 2 == 1
         
         # Set number of channels - this represents the number of input
@@ -176,7 +175,7 @@ class PositiveChannelwiseConv1D(nn.Module):
         
         # Normalise weights, to sum to 1 for sensible initialisation
         normalising_term = torch.sum(torch.exp(self._weights), dim=-1)
-        self._weights = self.weights - torch.log(normalising_term)[..., None]
+        self._weights = self._weights - torch.log(normalising_term)[..., None]
         self._weights = nn.Parameter(self._weights)
         
         self.padding = kernel_size // 2

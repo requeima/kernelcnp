@@ -12,12 +12,14 @@ from torch.distributions import MultivariateNormal
 from cnp.encoders import (
     StandardEncoder,
     ConvEncoder,
+    ConvEEGEncoder,
     ConvPDEncoder,
 )
 
 from cnp.decoders import (
     StandardDecoder,
     ConvDecoder,
+    ConvEEGDecoder,
     ConvPDDecoder
 )
 
@@ -290,24 +292,106 @@ class StandardPredPreyConvGNP(GaussianNeuralProcess):
     
 class StandardEEGConvGNP(GaussianNeuralProcess):
     
-    def __init__(self, num_context_channels, output_layer):
+    def __init__(self, num_channels_context, output_layer):
         
         self.conv_out_channels = 32
-        self.decoder_out_channels = output_layer.num_features
+        self.decoder_out_channels = output_layer.num_features * \
+                                    num_channels_context
+        self.init_length_scale = 1e-1
         
         # Define convolutional architecture
         conv_architecture = UNet(input_dim=1,
-                                 in_channels=num_context_channels,
+                                 in_channels=num_channels_context,
                                  out_channels=self.conv_out_channels)
         
         # Define encoder
-        encoder = ConvEEGEncoder(num_channels_context=num_channels_context,
-                                 conv_architecture=conv_architecture)
+        encoder = ConvEEGEncoder(num_channels_context=num_channels_context)
         
         # Define decoder
-        decoder = ConvEEGDecoder(in_channels=self.conv_out_channels,
-                                 out_channels=self.decoder_out_channels,
-                                 init_length_scale=init_length_scale)
+        decoder = ConvEEGDecoder(in_features=self.conv_out_channels,
+                                 out_features=self.decoder_out_channels,
+                                 num_channels=num_channels_context,
+                                 init_length_scale=self.init_length_scale,
+                                 conv_architecture=conv_architecture)
+        
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         output_layer=output_layer)
+        
+    
+    def loss(self,
+             x_context,
+             y_context,
+             m_context,
+             x_target,
+             y_target,
+             m_target):
+        
+        r = self.encoder(y_context, m_context)
+        z = self.decoder(r, x_context, x_target)
+        
+        loglik = self.output_layer.loglik(tensor=z,
+                                          y_target=y_target,
+                                          target_mask=m_target,
+                                          double=True)
+        nll = - torch.mean(loglik).float()
+
+        return nll
+    
+    
+    def sample(self,
+               x_context,
+               y_context,
+               m_context,
+               x_target,
+               m_target,
+               num_samples,
+               noiseless,
+               double):
+        
+        r = self.encoder(y_context, m_context)
+        z = self.decoder(r, x_context, x_target)
+        
+        samples = self.output_layer.sample(tensor=z,
+                                           target_mask=m_target,
+                                           num_samples=num_samples,
+                                           noiseless=noiseless,
+                                           double=double)
+        
+        return samples
+
+
+    def mean_and_marginals(self,
+                           x_context,
+                           y_context,
+                           m_context,
+                           x_target,
+                           m_target):
+        
+        r = self.encoder(y_context, m_context)
+        z = self.decoder(r, x_context, x_target)
+        
+        result = self.output_layer.mean_and_cov(tensor=z,
+                                                double=True,
+                                                target_mask=m_target)
+        mean, cov, cov_plus_noise = result
+
+        var = torch.diagonal(cov, dim1=-2, dim2=-1)
+        var_plus_noise = torch.diagonal(cov_plus_noise, dim1=-2, dim2=-1)
+        
+        return mean, var, var_plus_noise
+    
+    
+    def forward(self,
+                x_context,
+                y_context,
+                m_context,
+                x_target):
+        
+        r = self.encoder(y_context, m_context)
+        z = self.decoder(r, x_context, x_target)
+        
+        return z, self.output_layer
         
     
 # =============================================================================

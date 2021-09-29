@@ -180,6 +180,88 @@ class ConvDecoder(nn.Module):
         z = self.linear_model(z)
 
         return z
+    
+    
+
+
+# =============================================================================
+# Standard convolutional decoder for EEG data (off-the-grid predictions)
+# =============================================================================
+
+
+class ConvEEGDecoder(nn.Module):
+
+    def __init__(self,
+                 in_features,
+                 out_features,
+                 num_channels,
+                 conv_architecture,
+                 init_length_scale):
+
+        super().__init__()
+        
+        # Set number of input and output channels
+        self.in_features = in_features
+        self.out_features = out_features
+        self.num_channels = num_channels
+        
+        self.log_scale = np.log(init_length_scale)
+        self.log_scale = nn.Parameter(torch.tensor(self.log_scale),
+                                      requires_grad=True)
+        
+        self.linear_layer = self.build_linear_layer()
+        
+        self.cnn = conv_architecture
+        self.output_coefficient = 1e-1
+
+        
+    def build_linear_layer(self):
+        
+        layer = nn.Sequential(
+            nn.Linear(self.in_features, self.out_features*self.num_channels),
+        )
+        
+        init_sequential_weights(layer)
+        
+        return layer
+    
+
+    def forward(self, r, x_context, x_target):
+        """
+        Arguments:
+            r         : torch.tensor, (B, D, C)
+            x_context : torch.tensor, (B, C, 1)
+            x_target  : torch.tensor, (B, T, 1)
+            
+        Returns:
+            z : torch.tensor, (B, D, T, F)
+        """
+        
+        # Pass through CNN
+        z = self.cnn(r)
+        
+        # Compute scale
+        scales = torch.exp(self.log_scale)
+
+        # Compute RBF weights
+        diff = x_context[:, :, None, :] - x_target[:, None, :, :]
+        diff = diff / scales
+        rbf = torch.exp(-0.5 * (diff ** 2).sum(dim=-1))
+
+        # Apply RBF smoothing
+        z = torch.einsum('bfc, bct -> bft', z, rbf)
+
+        # Apply the point-wise function
+        z = z.permute(0, 2, 1)
+        z = self.linear_layer(z)
+        z = z.permute(0, 2, 1)
+        
+        B, _, T = z.shape
+        z = torch.reshape(z, (B, self.num_channels, self.out_features, T))
+        z = self.output_coefficient * z.permute(0, 1, 3, 2)
+        
+        return z
+        
         
 
 class ConvPDDecoder(nn.Module):

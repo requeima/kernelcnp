@@ -762,12 +762,20 @@ class EnvironmentalDataloader:
 class EEGGenerator:
     def __init__(
         self,
-        split="train",
-        batch_size=16,
-        batches_per_epoch=128,
-        num_target_channels=10,
+        split,
+        batch_size,
+        batches_per_epoch,
+        num_total_channels,
+        num_target_channels,
+        target_length,
         device=None,
     ):
+        
+        assert 1 <= num_target_channels <= num_total_channels
+        self.num_total_channels = num_total_channels
+        self.num_target_channels = num_target_channels
+        self.target_length = target_length
+        
         self.batch_size = batch_size
         self.batches_per_epoch = batches_per_epoch
         self.device = device
@@ -897,7 +905,7 @@ class EEGGenerator:
         if split == "train":
             subjects = all_subjects[20:]
             
-        elif split == "validation":
+        elif split == "valid":
             subjects = all_subjects[10:20]
             
         elif split == "test":
@@ -914,15 +922,15 @@ class EEGGenerator:
             for n in sorted(data[subject]["trials"].keys()):
                 trial = data[subject]["trials"][n]["df"]
                 trial = trial.reindex(sorted(trial.columns), axis=1)
+                
+                # Keep only the first channels
+                trial = trial.iloc[:, :self.num_total_channels]
                 self.trials.append(trial)
 
                 # Store the output names as well.
                 if not hasattr(self, "output_names"):
                     self.output_names = sorted(trial.columns)
         self.i = 0
-        
-        assert 1 <= num_target_channels <= 64
-        self.num_target_channels = num_target_channels
 
     def generate_batch(self):
         batch_trials = []
@@ -946,8 +954,7 @@ class EEGGenerator:
         y = np.transpose(np.stack(batch_trials, axis=0), (0, 2, 1))
 
         # Generate a context and target set by masking a random five outputs in a block
-        # of 100 consecutive timestamps.
-        x_len = 100
+        x_len = self.target_length
         x_start = np.random.randint(y.shape[2] - x_len + 1)
         target_channels = set(np.random.permutation(y.shape[1])[:self.num_target_channels])
 
