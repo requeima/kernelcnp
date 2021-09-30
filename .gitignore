@@ -14,6 +14,7 @@ experiments/predator-prey/results
 experiments/synthetic/results-2d-backup
 experiments/predator-prey/logs
 experiments/eeg/results
+experiments/eeg/logs
 experiments/eeg/results-backup
 
 # Byte-compiled / optimized / DLL files
