@@ -23,6 +23,8 @@ from cnp.cov import (
     MultiOutputKvvGaussianLayer
 )
 
+from cnp.data import EEGGenerator
+
 from cnp.utils import Logger
 
 import numpy as np
@@ -41,7 +43,8 @@ def train(data_train,
           log_every,
           device,
           writer,
-          iteration):
+          iteration,
+          args):
     
     for batch in data_train:
         
@@ -51,8 +54,10 @@ def train(data_train,
                          batch['x_target'].to(device),
                          batch['y_target'].to(device),
                          batch['m_target'].to(device))
+            
+        nll = nll / (args.num_channels_target * args.target_length)
 
-        if step % log_every == 0:
+        if iteration % log_every == 0:
             print(f"Training   neg. log-lik: {nll:.2f}")
         
         nll.backward()
@@ -76,7 +81,8 @@ def validate(data_valid,
              data_test,
              model,
              device,
-             writer):
+             writer,
+             args):
     
     nlls = []
     
@@ -89,6 +95,8 @@ def validate(data_valid,
                              batch['x_target'].to(device),
                              batch['y_target'].to(device),
                              batch['m_target'].to(device))
+            
+            nll = nll / (args.num_channels_target * args.target_length)
             
             nlls.append(nll.item())
             
@@ -114,7 +122,7 @@ parser.add_argument('--epochs',
                     help='Number of epochs to train for.')
 
 parser.add_argument('--batch_size',
-                    default=8,
+                    default=16,
                     type=int,
                     help='Batch size.')
 
@@ -162,25 +170,25 @@ parser.add_argument('cov_type',
                     help='Choice of covariance method.')
 
 parser.add_argument('noise_type',
-                    choices=['homo', 'hetero'],
+                    choices=['hetero'],
                     help='Choice of noise model.')
 
 parser.add_argument('--init_length_scale',
-                    default=1e-2,
+                    default=1e-3,
                     type=float)
 
 parser.add_argument('--num_basis_dim',
-                    default=32,
+                    default=64,
                     type=int,
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=5e-4,
+                    default=1e-6,
                     type=float,
                     help='Learning rate.')
 
 parser.add_argument('--jitter',
-                    default=1e-4,
+                    default=1e-6,
                     type=float,
                     help='Jitter.')
 
@@ -253,7 +261,7 @@ cov_types = {
 }
 
 if args.cov_type == 'meanfield':
-    output_layer = MeanFieldGaussianLayer(num_outputs=args.num_channels_total)
+    output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
     
 else:
     output_layer = cov_types[args.cov_type](num_outputs=args.num_channels_total,
@@ -261,8 +269,8 @@ else:
                                             noise_type=args.noise_type,
                                             jitter=args.jitter)
     
-model = StandardPredPreyConvGNP(num_channels=args.num_channels_total,
-                                output_layer=output_layer)
+model = StandardEEGConvGNP(num_channels=args.num_channels_total,
+                           output_layer=output_layer)
 
 print(f'{data_params} '
       f'{args.model} '
@@ -324,12 +332,10 @@ optimiser = torch.optim.Adam(model.parameters(),
 # Run the training loop, maintaining the best objective value
 best_nll = np.inf
 
-epochs = len(data_train)
-
 start_time = time.time()
-for epoch in range(epochs):
+for epoch in range(args.epochs):
 
-    print('\nEpoch: {}/{}'.format(epoch + 1, epochs))
+    print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
 
     if epoch % args.validate_every == 0:
 
@@ -338,8 +344,8 @@ for epoch in range(epochs):
                            data_test,
                            model,
                            device,
-                           writer)
-
+                           writer,
+                           args)
 
         # Log information to tensorboard
         writer.add_scalar('Valid log-lik.', -val_nll, epoch)
@@ -363,7 +369,8 @@ for epoch in range(epochs):
                             log_every,
                             device,
                             writer,
-                            train_iteration)
+                            train_iteration,
+                            args)
 
 end_time = time.time()
 elapsed_time = end_time - start_time

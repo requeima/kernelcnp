@@ -952,6 +952,9 @@ class EEGGenerator:
         )
         # Carefully order the outputs.
         y = np.transpose(np.stack(batch_trials, axis=0), (0, 2, 1))
+        
+        # Rescale outputs to a more sensible range
+        y = y * 1e-1
 
         # Generate a context and target set by masking a random five outputs in a block
         x_len = self.target_length

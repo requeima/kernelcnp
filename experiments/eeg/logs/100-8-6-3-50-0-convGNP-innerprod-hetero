@@ -1,0 +1,69 @@
+100-8-6-3-50-0 convGNP innerprod hetero 32: 53063.0
+
+Epoch: 1/100
+Validation neg. log-lik: 2067.18
+Training   neg. log-lik: 120.02
+Training   neg. log-lik: 33.87
+Training   neg. log-lik: 45543.82
+Training   neg. log-lik: 102.17
+Training   neg. log-lik: 55.43
+Training   neg. log-lik: 15.59
+
+Epoch: 2/100
+Training   neg. log-lik: 73.51
+Training   neg. log-lik: 96.05
+Training   neg. log-lik: 15.65
+Training   neg. log-lik: 16.93
+Training   neg. log-lik: 5.57
+
+Epoch: 3/100
+Training   neg. log-lik: 40847.57
+Training   neg. log-lik: 22.17
+Training   neg. log-lik: 54.82
+Training   neg. log-lik: 7.22
+Training   neg. log-lik: 25.84
+
+Epoch: 4/100
+Training   neg. log-lik: 12.49
+Training   neg. log-lik: 10.40
+Training   neg. log-lik: 8.27
+Training   neg. log-lik: 10.81
+Training   neg. log-lik: 23.51
+
+Epoch: 5/100
+Training   neg. log-lik: 12.49
+Training   neg. log-lik: 8.44
+Training   neg. log-lik: 11.57
+Training   neg. log-lik: 13.20
+Training   neg. log-lik: 90.97
+
+Epoch: 6/100
+Validation neg. log-lik: 181.55
+Training   neg. log-lik: 7.84
+Training   neg. log-lik: 15.49
+Training   neg. log-lik: 13.42
+Training   neg. log-lik: 14.14
+Training   neg. log-lik: 24.27
+
+Epoch: 7/100
+Training   neg. log-lik: 34.85
+Training   neg. log-lik: 83.97
+Training   neg. log-lik: 12.17
+Training   neg. log-lik: 35.33
+Training   neg. log-lik: 35.72
+
+Epoch: 8/100
+Training   neg. log-lik: 4.02
+Training   neg. log-lik: 5.93
+Training   neg. log-lik: 19.47
+Training   neg. log-lik: 9.49
+Training   neg. log-lik: 404.23
+
+Epoch: 9/100
+Training   neg. log-lik: 10.52
+Training   neg. log-lik: 8.66
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/eeg/scripts/train.py", line 373, in <module>
+
+
