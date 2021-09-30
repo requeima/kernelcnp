@@ -544,3 +544,197 @@ Traceback (most recent call last):
   File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/utils/tensorboard/writer.py", line 349, in add_scalar
 
 
+100-8-6-3-50-0 convGNP kvv hetero 64: 55637.0
+
+Epoch: 1/100
+Validation neg. log-lik: 1.31
+Training   neg. log-lik: 1.00
+Training   neg. log-lik: 0.89
+Training   neg. log-lik: 1.44
+Training   neg. log-lik: 1.00
+Training   neg. log-lik: 1.17
+Training   neg. log-lik: 1.25
+
+Epoch: 2/100
+Training   neg. log-lik: 1.27
+Training   neg. log-lik: 1.65
+Training   neg. log-lik: 1.17
+Training   neg. log-lik: 1.23
+Training   neg. log-lik: 0.86
+
+Epoch: 3/100
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 1.03
+Training   neg. log-lik: 1.13
+Training   neg. log-lik: 1.07
+Training   neg. log-lik: 1.06
+
+Epoch: 4/100
+Training   neg. log-lik: 1.11
+Training   neg. log-lik: 1.52
+Training   neg. log-lik: 0.89
+Training   neg. log-lik: 1.03
+Training   neg. log-lik: 1.20
+
+Epoch: 5/100
+Training   neg. log-lik: 1.20
+Training   neg. log-lik: 1.07
+Training   neg. log-lik: 1.07
+Training   neg. log-lik: 1.10
+Training   neg. log-lik: 0.92
+
+Epoch: 6/100
+Validation neg. log-lik: 1.03
+Training   neg. log-lik: 0.98
+Training   neg. log-lik: 1.09
+Training   neg. log-lik: 0.97
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 0.96
+
+Epoch: 7/100
+Training   neg. log-lik: 1.00
+Training   neg. log-lik: 0.85
+Training   neg. log-lik: 1.00
+Training   neg. log-lik: 1.16
+Training   neg. log-lik: 1.33
+
+Epoch: 8/100
+Training   neg. log-lik: 0.79
+Training   neg. log-lik: 0.87
+Training   neg. log-lik: 1.10
+Training   neg. log-lik: 0.96
+Training   neg. log-lik: 0.92
+
+Epoch: 9/100
+Training   neg. log-lik: 0.94
+Training   neg. log-lik: 0.97
+Training   neg. log-lik: 1.28
+Training   neg. log-lik: 0.99
+Training   neg. log-lik: 0.85
+Training   neg. log-lik: 0.82
+
+Epoch: 10/100
+Training   neg. log-lik: 1.02
+Training   neg. log-lik: 1.00
+Training   neg. log-lik: 1.23
+Training   neg. log-lik: 1.33
+Training   neg. log-lik: 1.27
+
+Epoch: 11/100
+Validation neg. log-lik: 0.94
+Training   neg. log-lik: 0.92
+Training   neg. log-lik: 0.86
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.02
+Training   neg. log-lik: 0.90
+
+Epoch: 12/100
+Training   neg. log-lik: 0.78
+Training   neg. log-lik: 1.17
+Training   neg. log-lik: 0.87
+Training   neg. log-lik: 0.86
+Training   neg. log-lik: 0.90
+
+Epoch: 13/100
+Training   neg. log-lik: 0.90
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.20
+Training   neg. log-lik: 0.95
+Training   neg. log-lik: 1.03
+
+Epoch: 14/100
+Training   neg. log-lik: 1.59
+Training   neg. log-lik: 1.15
+Training   neg. log-lik: 1.28
+Training   neg. log-lik: 0.88
+Training   neg. log-lik: 1.04
+
+Epoch: 15/100
+Training   neg. log-lik: 0.87
+Training   neg. log-lik: 0.92
+Training   neg. log-lik: 0.77
+Training   neg. log-lik: 0.75
+Training   neg. log-lik: 0.72
+
+Epoch: 16/100
+Validation neg. log-lik: 0.85
+Training   neg. log-lik: 0.72
+Training   neg. log-lik: 0.86
+Training   neg. log-lik: 1.08
+Training   neg. log-lik: 0.86
+Training   neg. log-lik: 0.59
+
+Epoch: 17/100
+Training   neg. log-lik: 0.87
+Training   neg. log-lik: 0.65
+Training   neg. log-lik: 1.12
+Training   neg. log-lik: 1.27
+Training   neg. log-lik: 1.08
+Training   neg. log-lik: 0.72
+
+Epoch: 18/100
+Training   neg. log-lik: 0.98
+Training   neg. log-lik: 0.79
+Training   neg. log-lik: 0.70
+Training   neg. log-lik: 0.62
+Training   neg. log-lik: 0.94
+
+Epoch: 19/100
+Training   neg. log-lik: 0.85
+Training   neg. log-lik: 0.62
+Training   neg. log-lik: 0.84
+Training   neg. log-lik: 0.72
+Training   neg. log-lik: 0.92
+
+Epoch: 20/100
+Training   neg. log-lik: 0.70
+Training   neg. log-lik: 0.83
+Training   neg. log-lik: 0.42
+Training   neg. log-lik: 0.78
+Training   neg. log-lik: 0.95
+
+Epoch: 21/100
+Validation neg. log-lik: 0.75
+Training   neg. log-lik: 0.51
+Training   neg. log-lik: 0.79
+Training   neg. log-lik: 0.60
+Training   neg. log-lik: 0.83
+Training   neg. log-lik: 0.64
+
+Epoch: 22/100
+Training   neg. log-lik: 1.03
+Training   neg. log-lik: 0.53
+Training   neg. log-lik: 0.96
+Training   neg. log-lik: 0.77
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "experiments/eeg/scripts/train.py", line 373, in <module>
+  File "experiments/eeg/scripts/train.py", line 373, in <module>
+        args)args)
+
+  File "experiments/eeg/scripts/train.py", line 56, in train
+  File "experiments/eeg/scripts/train.py", line 56, in train
+        batch['m_target'].to(device))batch['m_target'].to(device))
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 334, in loss
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cnp.py", line 334, in loss
+        double=True)double=True)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 749, in loglik
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 749, in loglik
+        double=double)double=double)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 1125, in distribution
+  File "/scratches/cblgpu07/em626/kernelcnp/kernelcnp/cnp/cov.py", line 1125, in distribution
+        dist = MultivariateNormal(loc=mean, covariance_matrix=cov)dist = MultivariateNormal(loc=mean, covariance_matrix=cov)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/multivariate_normal.py", line 146, in __init__
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/multivariate_normal.py", line 146, in __init__
+        super(MultivariateNormal, self).__init__(batch_shape, event_shape, validate_args=validate_args)super(MultivariateNormal, self).__init__(batch_shape, event_shape, validate_args=validate_args)
+
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/distribution.py", line 53, in __init__
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/torch/distributions/distribution.py", line 53, in __init__
+        raise ValueError("The parameter {} has invalid values".format(param))raise ValueError("The parameter {} has invalid values".format(param))
+
+ValueErrorValueError: : The parameter covariance_matrix has invalid valuesThe parameter covariance_matrix has invalid values
+

@@ -1525,3 +1525,260 @@ Traceback (most recent call last):
   File "/usr/lib/python3.6/threading.py", line 295, in wait
         waiter.acquire()KeyboardInterruptKeyboardInterrupt
 
+100-8-6-3-50-0 convGNP meanfield hetero 64: 50568.0
+
+Epoch: 1/100
+Validation neg. log-lik: 1.53
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 1.20
+Training   neg. log-lik: 2.55
+Training   neg. log-lik: 1.29
+Training   neg. log-lik: 1.32
+Training   neg. log-lik: 1.30
+
+Epoch: 2/100
+Training   neg. log-lik: 1.44
+Training   neg. log-lik: 1.59
+Training   neg. log-lik: 1.39
+Training   neg. log-lik: 1.55
+Training   neg. log-lik: 1.15
+
+Epoch: 3/100
+Training   neg. log-lik: 1.78
+Training   neg. log-lik: 1.30
+Training   neg. log-lik: 1.48
+Training   neg. log-lik: 1.22
+Training   neg. log-lik: 1.30
+
+Epoch: 4/100
+Training   neg. log-lik: 1.35
+Training   neg. log-lik: 1.63
+Training   neg. log-lik: 1.18
+Training   neg. log-lik: 1.38
+Training   neg. log-lik: 1.58
+
+Epoch: 5/100
+Training   neg. log-lik: 1.61
+Training   neg. log-lik: 1.37
+Training   neg. log-lik: 1.27
+Training   neg. log-lik: 2.43
+Training   neg. log-lik: 1.49
+
+Epoch: 6/100
+Validation neg. log-lik: 1.39
+Training   neg. log-lik: 1.30
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 1.32
+Training   neg. log-lik: 1.28
+Training   neg. log-lik: 1.25
+
+Epoch: 7/100
+Training   neg. log-lik: 1.39
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 1.31
+Training   neg. log-lik: 1.38
+Training   neg. log-lik: 1.65
+
+Epoch: 8/100
+Training   neg. log-lik: 1.12
+Training   neg. log-lik: 1.23
+Training   neg. log-lik: 1.37
+Training   neg. log-lik: 1.24
+Training   neg. log-lik: 1.33
+
+Epoch: 9/100
+Training   neg. log-lik: 1.30
+Training   neg. log-lik: 1.26
+Training   neg. log-lik: 1.53
+Training   neg. log-lik: 1.18
+Training   neg. log-lik: 1.17
+Training   neg. log-lik: 1.13
+
+Epoch: 10/100
+Training   neg. log-lik: 1.35
+Training   neg. log-lik: 1.33
+Training   neg. log-lik: 1.61
+Training   neg. log-lik: 1.45
+Training   neg. log-lik: 1.45
+
+Epoch: 11/100
+Validation neg. log-lik: 1.25
+Training   neg. log-lik: 1.36
+Training   neg. log-lik: 1.18
+Training   neg. log-lik: 1.35
+Training   neg. log-lik: 1.24
+Training   neg. log-lik: 1.21
+
+Epoch: 12/100
+Training   neg. log-lik: 1.10
+Training   neg. log-lik: 1.46
+Training   neg. log-lik: 1.18
+Training   neg. log-lik: 1.17
+Training   neg. log-lik: 1.22
+
+Epoch: 13/100
+Training   neg. log-lik: 1.23
+Training   neg. log-lik: 1.30
+Training   neg. log-lik: 1.33
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 1.32
+
+Epoch: 14/100
+Training   neg. log-lik: 2.00
+Training   neg. log-lik: 1.40
+Training   neg. log-lik: 1.96
+Training   neg. log-lik: 1.27
+Training   neg. log-lik: 1.29
+
+Epoch: 15/100
+Training   neg. log-lik: 1.28
+Training   neg. log-lik: 1.23
+Training   neg. log-lik: 1.15
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.17
+
+Epoch: 16/100
+Validation neg. log-lik: 1.19
+Training   neg. log-lik: 1.05
+Training   neg. log-lik: 1.35
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 1.15
+Training   neg. log-lik: 0.99
+
+Epoch: 17/100
+Training   neg. log-lik: 1.30
+Training   neg. log-lik: 0.95
+Training   neg. log-lik: 1.36
+Training   neg. log-lik: 1.56
+Training   neg. log-lik: 1.28
+Training   neg. log-lik: 1.09
+
+Epoch: 18/100
+Training   neg. log-lik: 1.27
+Training   neg. log-lik: 1.02
+Training   neg. log-lik: 1.12
+Training   neg. log-lik: 0.94
+Training   neg. log-lik: 0.88
+
+Epoch: 19/100
+Training   neg. log-lik: 1.21
+Training   neg. log-lik: 1.02
+Training   neg. log-lik: 1.10
+Training   neg. log-lik: 1.04
+Training   neg. log-lik: 1.05
+
+Epoch: 20/100
+Training   neg. log-lik: 0.97
+Training   neg. log-lik: 1.07
+Training   neg. log-lik: 0.96
+Training   neg. log-lik: 1.02
+Training   neg. log-lik: 1.35
+
+Epoch: 21/100
+Validation neg. log-lik: 1.13
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.20
+Training   neg. log-lik: 1.07
+Training   neg. log-lik: 1.25
+Training   neg. log-lik: 0.95
+
+Epoch: 22/100
+Training   neg. log-lik: 1.41
+Training   neg. log-lik: 0.92
+Training   neg. log-lik: 1.45
+Training   neg. log-lik: 1.22
+Training   neg. log-lik: 1.31
+
+Epoch: 23/100
+Training   neg. log-lik: 1.05
+Training   neg. log-lik: 1.18
+Training   neg. log-lik: 1.35
+Training   neg. log-lik: 1.09
+Training   neg. log-lik: 0.98
+
+Epoch: 24/100
+Training   neg. log-lik: 0.90
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.29
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.05
+
+Epoch: 25/100
+Training   neg. log-lik: 0.90
+Training   neg. log-lik: 1.05
+Training   neg. log-lik: 0.99
+Training   neg. log-lik: 1.26
+Training   neg. log-lik: 0.97
+
+Epoch: 26/100
+Validation neg. log-lik: 1.06
+Training   neg. log-lik: 1.22
+Training   neg. log-lik: 0.77
+Training   neg. log-lik: 1.10
+Training   neg. log-lik: 25.84
+Training   neg. log-lik: 1.34
+Training   neg. log-lik: 1.12
+
+Epoch: 27/100
+Training   neg. log-lik: 1.22
+Training   neg. log-lik: 1.01
+Training   neg. log-lik: 2.00
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.04
+
+Epoch: 28/100
+Training   neg. log-lik: 1.26
+Training   neg. log-lik: 1.19
+Training   neg. log-lik: 0.89
+Training   neg. log-lik: 1.21
+Training   neg. log-lik: 1.21
+
+Epoch: 29/100
+Training   neg. log-lik: 0.93
+Training   neg. log-lik: 1.07
+Training   neg. log-lik: 1.09
+Training   neg. log-lik: 1.16
+Training   neg. log-lik: 1.05
+
+Epoch: 30/100
+Training   neg. log-lik: 0.83
+Training   neg. log-lik: 0.95
+Training   neg. log-lik: 1.01
+Training   neg. log-lik: 0.94
+Training   neg. log-lik: 0.86
+
+Epoch: 31/100
+Validation neg. log-lik: 1.06
+Training   neg. log-lik: 1.41
+Training   neg. log-lik: 1.06
+Training   neg. log-lik: 1.14
+Training   neg. log-lik: 1.03
+Training   neg. log-lik: 1.02
+
+Epoch: 32/100
+Training   neg. log-lik: 1.23
+Training   neg. log-lik: 1.31
+Training   neg. log-lik: 1.00
+Training   neg. log-lik: 1.10
+Training   neg. log-lik: 1.02
+
+Epoch: 33/100
+Training   neg. log-lik: 1.12
+Training   neg. log-lik: 1.26
+Training   neg. log-lik: 1.17
+Training   neg. log-lik: 1.34
+Training   neg. log-lik: 1.06
+
+Epoch: 34/100
+Training   neg. log-lik: 1.07
+Traceback (most recent call last):
+Traceback (most recent call last):
+
+
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/matplotlib/_pylab_helpers.py", line 89, in destroy_all
+  File "/scratches/cblgpu07/em626/kernelcnp/venv-kernelcnp/lib/python3.6/site-packages/matplotlib/_pylab_helpers.py", line 89, in destroy_all
+
+

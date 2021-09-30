@@ -183,12 +183,12 @@ parser.add_argument('--num_basis_dim',
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=1e-4,
+                    default=2e-4,
                     type=float,
                     help='Learning rate.')
 
 parser.add_argument('--jitter',
-                    default=1e-6,
+                    default=1e-4,
                     type=float,
                     help='Jitter.')
 
