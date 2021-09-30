@@ -78,7 +78,6 @@ def train(data_train,
 
 
 def validate(data_valid,
-             data_test,
              model,
              device,
              writer,
@@ -333,7 +332,6 @@ for epoch in range(args.epochs):
 
         # Compute negative log-likelihood on validation data
         val_nll = validate(data_valid,
-                           data_test,
                            model,
                            device,
                            writer,

@@ -42,7 +42,7 @@ def test(data_test, model, device, args):
     nlls = []
     
     with torch.no_grad():
-        for batch in data_valid:
+        for batch in data_test:
         
             nll = model.loss(batch['x_context'].to(device),
                              batch['y_context'].to(device),
@@ -58,7 +58,7 @@ def test(data_test, model, device, args):
     mean_nll = np.mean(nlls)
 
     # Print validation loss and oracle loss
-    print(f"Validation neg. log-lik: {mean_nll:.2f}")
+    print(f"Test neg. log-lik: {mean_nll:.2f}")
     
     return mean_nll
         
