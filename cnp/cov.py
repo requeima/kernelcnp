@@ -754,7 +754,7 @@ class MultiOutputGaussianLayer(GaussianLayer):
         y_target = y_target[:, mask_idx, :]
         y_target = torch.reshape(y_target, (y_target.shape[0], -1))
         
-        loglik = dist.log_prob(y_target)
+        loglik = dist.log_prob(y_target.double())
         
         return loglik
     
@@ -829,6 +829,9 @@ class MultiOutputMeanFieldGaussianLayer(MultiOutputGaussianLayer):
         assert (len(target_mask.shape) == 3) and \
                (tensor.shape[:-1] == target_mask.shape)
         
+        # Convert to double
+        tensor = tensor.double()
+        
         # Slice out masked channels - changes tensor shape to (B, M, T, 2)
         mask_idx = target_mask[0, :, 0] == 1
         tensor = tensor[:, mask_idx, :, :]
@@ -840,7 +843,7 @@ class MultiOutputMeanFieldGaussianLayer(MultiOutputGaussianLayer):
         # Compute diagonal covariance matrix
         f_var = torch.nn.Softplus()(tensor[:, :, :, 1])
         f_var = torch.reshape(f_var, (f_var.shape[0], -1))
-        y_var = f_var + torch.nn.Softplus()(self.noise_unconstrained)
+        y_var = f_var + torch.nn.Softplus()(self.noise_unconstrained).double()
         
         f_cov = torch.diag_embed(f_var)
         y_cov = torch.diag_embed(y_var)
@@ -913,6 +916,9 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
         # Check tensors have correct shapes
         assert tensor.shape[:-1] == target_mask.shape
         
+        # Convert to double
+        tensor = tensor.double()
+        
         # Slice out masked entries
         mask_idx = target_mask[0, :, 0] == 1
         tensor = tensor[:, mask_idx, :, :]
@@ -942,7 +948,7 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
 
         # Covariance is the product of the RBF and the v terms
         f_cov = torch.einsum("bnc, bmc -> bnm", z, z)
-        y_cov = f_cov + noise
+        y_cov = f_cov + noise.double()
         
         return mean, f_cov, y_cov
     
@@ -962,6 +968,9 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
         # Check tensors have correct shapes
         assert tensor.shape[:-1] == target_mask.shape
         assert tensor.shape[-1] == self.num_features
+        
+        # Convert to double
+        tensor = tensor.double()
         
         # Slice out masked entries
         mask_idx = target_mask[0, :, 0] == 1
@@ -1000,7 +1009,7 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
             z = tensor[:, :, 1:-1] / F**0.5
             
             jitter = torch.tensor(1e-6).repeat(B, M*T).to(z.device)
-            jitter = jitter.double() if double else jitter
+            jitter = jitter.double()
         
             if noiseless:
                 noise = jitter
@@ -1012,8 +1021,7 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
             else:
                 noise = torch.nn.Softplus()(tensor[:, :, -1])
                 
-            noise = noise.double() if double else noise
-            noise = noise + jitter
+            noise = noise + jitter.double()
             
             dist = LowRankMultivariateNormal(loc=mean,
                                              cov_factor=z,
@@ -1099,7 +1107,7 @@ class MultiOutputKvvGaussianLayer(MultiOutputGaussianLayer):
             
             noise = torch.nn.Softplus()(tensor[:, :, -1])
             noise = torch.diag_embed(noise)
-            
+        
         # Apply RBF function to embedding
         z = z / z.shape[-1]**0.5
         quad = -0.5 * (z[:, :, None, :] - z[:, None, :, :])**2
@@ -1120,6 +1128,9 @@ class MultiOutputKvvGaussianLayer(MultiOutputGaussianLayer):
                                                target_mask=target_mask)
         
         cov = f_cov if noiseless else y_cov
+        
+        assert not torch.any(torch.isnan(mean))
+        assert not torch.any(torch.isnan(cov))
         
         # Create distribution and return
         dist = MultivariateNormal(loc=mean, covariance_matrix=cov)

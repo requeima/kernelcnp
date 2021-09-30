@@ -117,7 +117,7 @@ parser = argparse.ArgumentParser()
 # =============================================================================
 
 parser.add_argument('--epochs',
-                    default=100,
+                    default=200,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -188,9 +188,9 @@ parser.add_argument('--learning_rate',
                     help='Learning rate.')
 
 parser.add_argument('--jitter',
-                    default=1e-4,
+                    default=1e-3,
                     type=float,
-                    help='Jitter.')
+                    help='The jitter level.')
 
 parser.add_argument('--weight_decay',
                     default=0.,
