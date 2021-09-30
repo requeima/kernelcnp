@@ -31,58 +31,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 # =============================================================================
-# Training epoch helper
-# =============================================================================
-
-def train(data_train,
-          model,
-          optimiser,
-          log_every,
-          device,
-          writer,
-          iteration,
-          args):
-    
-    for batch in data_train:
-        
-        nll = model.loss(batch['x_context'].to(device),
-                         batch['y_context'].to(device),
-                         batch['m_context'].to(device),
-                         batch['x_target'].to(device),
-                         batch['y_target'].to(device),
-                         batch['m_target'].to(device))
-            
-        nll = nll / (args.num_channels_target * args.target_length)
-
-        if iteration % log_every == 0:
-            print(f"Training   neg. log-lik: {nll:.2f}")
-        
-        nll.backward()
-        optimiser.step()
-        optimiser.zero_grad()
-
-        # Write to tensorboard
-        writer.add_scalar('Train log-lik.', -nll, iteration)
-        
-        iteration = iteration + 1
-        
-    return iteration
-
-
-# =============================================================================
-# Validation helper
+# Test helper
 # =============================================================================
 
 
-def validate(data_valid,
-             data_test,
-             model,
-             device,
-             writer,
-             args):
+def test(data_test, model, device, args):
     
     nlls = []
     
@@ -151,11 +106,6 @@ parser.add_argument('--seed',
                     type=int,
                     help='Random seed to use.')
 
-parser.add_argument('--validate_every',
-                    default=5,
-                    type=int,
-                    help='Number of epochs between validations.')
-
 
 # =============================================================================
 # Model arguments
@@ -192,11 +142,6 @@ parser.add_argument('--jitter',
                     type=float,
                     help='The jitter level.')
 
-parser.add_argument('--weight_decay',
-                    default=0.,
-                    type=float,
-                    help='Weight decay.')
-
 parser.add_argument('--gpu',
                     default=0,
                     type=int,
@@ -205,7 +150,7 @@ parser.add_argument('--gpu',
 args = parser.parse_args()
     
 # =============================================================================
-# Set random seed, device and tensorboard writer
+# Set random seed and device
 # =============================================================================
 
 # Set seed
@@ -247,8 +192,6 @@ log_directory = WorkingDirectory(root=log_path)
 sys.stdout = Logger(log_directory=log_directory, log_filename=log_filename)
 sys.stderr = Logger(log_directory=log_directory, log_filename=log_filename)
 
-# Tensorboard writer
-writer = SummaryWriter(f'{experiment_name}/log')
     
 # =============================================================================
 # Create model
@@ -290,21 +233,13 @@ model = model.to(device)
 # Load data and validation oracle generator
 # =============================================================================
     
-data_train = EEGGenerator(split='train',
-                          batch_size=args.batch_size,
-                          batches_per_epoch=args.batches_per_epoch,
-                          num_total_channels=args.num_channels_total,
-                          num_target_channels=args.num_channels_target,
-                          target_length=args.target_length,
-                          device=device)
-    
-data_valid = EEGGenerator(split='valid',
-                          batch_size=args.batch_size,
-                          batches_per_epoch=args.batches_per_epoch,
-                          num_total_channels=args.num_channels_total,
-                          num_target_channels=args.num_channels_target,
-                          target_length=args.target_length,
-                          device=device)
+data_test = EEGGenerator(split='test',
+                         batch_size=args.batch_size,
+                         batches_per_epoch=args.batches_per_epoch,
+                         num_total_channels=args.num_channels_total,
+                         num_target_channels=args.num_channels_target,
+                         target_length=args.target_length,
+                         device=device)
 
 # =============================================================================
 # Train or test model
@@ -316,57 +251,9 @@ log_every = 50
     
 log_args(working_directory, args)
 
-# Create optimiser
-optimiser = torch.optim.Adam(model.parameters(),
-                             args.learning_rate,
-                             weight_decay=args.weight_decay)
+# Compute training negative log-likelihood
+test_mean_nll = test(data_test, model, device, args)
 
-# Run the training loop, maintaining the best objective value
-best_nll = np.inf
-
-start_time = time.time()
-for epoch in range(args.epochs):
-
-    print('\nEpoch: {}/{}'.format(epoch + 1, args.epochs))
-
-    if epoch % args.validate_every == 0:
-
-        # Compute negative log-likelihood on validation data
-        val_nll = validate(data_valid,
-                           data_test,
-                           model,
-                           device,
-                           writer,
-                           args)
-
-        # Log information to tensorboard
-        writer.add_scalar('Valid log-lik.', -val_nll, epoch)
-
-        # Update the best objective value and checkpoint the model
-        is_best, best_obj = (True, val_nll) if val_nll < best_nll else \
-                            (False, best_nll)
-
-        save_checkpoint(working_directory,
-                        {'epoch'         : epoch + 1,
-                         'state_dict'    : model.state_dict(),
-                         'best_acc_top1' : best_obj,
-                         'optimizer'     : optimiser.state_dict()},
-                        is_best=is_best,
-                        epoch=epoch)
-
-    # Compute training negative log-likelihood
-    train_iteration = train(data_train,
-                            model,
-                            optimiser,
-                            log_every,
-                            device,
-                            writer,
-                            train_iteration,
-                            args)
-
-end_time = time.time()
-elapsed_time = end_time - start_time
-
-# Record experiment time\
-with open(working_directory.file('train_time.txt'), 'w') as f:
-    f.write(str(elapsed_time))
+file = open(working_directory.file('test_log_likelihood.txt'), 'w')
+file.write(str(test_mean_nll))
+file.close()
