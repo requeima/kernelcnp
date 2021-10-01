@@ -504,7 +504,9 @@ class PredatorPreyGenerator(DataGenerator):
 
     def generate_task(self, to_torch=True):
 
-        batch = {'x'         : [],
+        batch = {'x_all'     : [],
+                 'y_all'     : [],
+                 'x'         : [],
                  'y'         : [],
                  'x_context' : [],
                  'y_context' : [],
@@ -524,6 +526,9 @@ class PredatorPreyGenerator(DataGenerator):
         for i in range(self.batch_size):
             
             x, y = self.generate_function(num_points)
+            
+            batch['x_all'].append(x)
+            batch['y_all'].append(y)
 
             # Determine indices for train and test set.
             inds = np.random.permutation(x.shape[0])
@@ -531,7 +536,7 @@ class PredatorPreyGenerator(DataGenerator):
             inds_target = sorted(inds[num_context_points:num_points])
             all_inds = sorted(inds[:num_points])
 
-            # Record.
+            # Record
             batch['x'].append(x[all_inds])
             batch['y'].append(y[:, all_inds])
             
@@ -561,7 +566,8 @@ class PredatorPreyGenerator(DataGenerator):
 
         # Randomly select points from domain
         start_time, end_time = time[0], time[-1]
-        time = start_time + sorted(np.random.uniform(start_time, end_time, num_points))
+        # time = start_time + sorted(np.random.uniform(start_time, end_time, num_points))
+        time = start_time + np.linspace(start_time, end_time, 500)
         pred = f_pred(time)
         prey = f_prey(time)
 
@@ -583,7 +589,10 @@ class EEGGenerator:
         device=None,
     ):
         
-        assert 1 <= num_target_channels <= num_total_channels
+#         assert 1 <= num_target_channels <= num_total_channels
+        assert num_target_channels == 3
+        assert num_total_channels == 7
+        
         self.num_total_channels = num_total_channels
         self.num_target_channels = num_target_channels
         self.target_length = target_length
@@ -734,6 +743,7 @@ class EEGGenerator:
             for n in sorted(data[subject]["trials"].keys()):
                 trial = data[subject]["trials"][n]["df"]
                 trial = trial.reindex(sorted(trial.columns), axis=1)
+                trial = trial.loc[:, ['F3', 'F4', 'F5', 'F6', 'FZ', 'F1', 'F2']]
                 
                 # Keep only the first channels
                 trial = trial.iloc[:, :self.num_total_channels]
@@ -771,7 +781,8 @@ class EEGGenerator:
         # Generate a context and target set by masking a random five outputs in a block
         x_len = self.target_length
         x_start = np.random.randint(y.shape[2] - x_len + 1)
-        target_channels = set(np.random.permutation(y.shape[1])[:self.num_target_channels])
+#         target_channels = set(np.random.permutation(y.shape[1])[:self.num_target_channels])
+        target_channels = set([4, 5, 6])
 
         x_context = x.copy()
         y_context = y.copy()
