@@ -90,7 +90,7 @@ parser.add_argument('--validate_every',
                     help='.')
 
 parser.add_argument('--epochs',
-                    default=400,
+                    default=100,
                     type=int,
                     help='Number of epochs to train for.')
 
@@ -155,13 +155,11 @@ parser.add_argument('--test',
 
 args = parser.parse_args()
 
-# data_kinds = ['eq',
-#               'matern',
-#               'noisy-mixture',
-#               'weakly-periodic',
-#               'sawtooth']
-
-data_kinds = ['weakly-periodic']
+data_kinds = ['eq',
+              'matern',
+              'noisy-mixture',
+              'weakly-periodic',
+              ]
 
 seeds = list(range(0, 1))
 

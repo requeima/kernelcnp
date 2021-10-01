@@ -187,7 +187,7 @@ parser.add_argument('--validate_every',
                     help='Number of epochs between validations.')
 
 parser.add_argument('--epochs',
-                    default=400,
+                    default=100,
                     type=int,
                     help='Number of epochs to train for.')
 

@@ -11,15 +11,16 @@ GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 50.
 
 # Model and data generator configurations
-data_generators = ['weakly-periodic']
+data_generators = ['eq',
+                   'matern',
+                   'noisy-mixture',
+                   'weakly-periodic']
+
 models = ['convGNP']
 covs = ['sum-kvv-homo']
 x_dims = ['1']
-num_basis_dim = ["256",]
-num_sum_elements = ["4", "6", "12","20", "28", "34", "36", "42", "48", "52", "58", "72"]
-
-# num_basis_dim = ["4096"]
-# num_sum_elements = ["2", "8", "16", "64"]
+num_basis_dim = ["2", "16", "64", "128", "512"]
+num_sum_elements = ["1", "2", "8", "16", "32"]
 
 seeds = [str(i) for i in range(1)]
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
                 print(f'Starting experiment, memory: {percent_memory_used:.1f}% '
                       f'(max. allowed {GPU_MEMORY_PERCENTAGE}%)\n{command}')
                 
-                process = subprocess.call(command)
+                process = subprocess.Popen(command)
 
                 configs = configs[1:]
 

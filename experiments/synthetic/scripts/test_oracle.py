@@ -118,7 +118,7 @@ parser.add_argument('--seed',
                     help='Random seed to use.')
 
 parser.add_argument('--epochs',
-                    default=400,
+                    default=100,
                     type=int,
                     help='Number of epochs model was trained on.')
 
