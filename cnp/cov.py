@@ -933,7 +933,6 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
             mean = torch.reshape(mean, (B, -1))
             
             z = tensor[:, :, :, 1:] / F**0.5
-            z = z # - torch.mean(z, axis=2)[:, :, None, :]
             z = torch.reshape(z, (B, -1, F-1))
             
             noise = torch.nn.Softplus()(self.noise_unconstrained)
@@ -946,7 +945,6 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
             mean = torch.reshape(mean, (B, -1))
             
             z = tensor[:, :, :, 1:-1] / F**0.5
-            z = z # - torch.mean(z, axis=2)[:, :, None, :]
             z = torch.reshape(z, (B, -1, F-2))
 
             noise = tensor[:, :, :, -1]
