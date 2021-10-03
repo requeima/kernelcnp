@@ -200,7 +200,6 @@ class DataGenerator(metaclass=abc.ABCMeta):
 
         # Distribute the batches over the CPUs
         num_cpus = multiprocessing.cpu_count()
-        print(num_cpus)
         num_batches_per_cpu = [num_batches // num_cpus] * (num_cpus - 1)
         num_batches_per_cpu.append(num_batches - sum(num_batches_per_cpu))
 
@@ -775,11 +774,11 @@ class EEGGenerator:
         # Carefully order the outputs.
         y = np.transpose(np.stack(batch_trials, axis=0), (0, 2, 1))
         
-        # Rescale outputs to a more sensible range
-        y = y * 1e-1
+#         # Rescale outputs to a more sensible range
+#         y = y * 1e-1
 
         # Generate a context and target set by masking a random five outputs in a block
-        x_len = self.target_length
+        x_len = np.random.choice(np.arange(self.target_length)+1)
         x_start = np.random.randint(y.shape[2] - x_len + 1)
 #         target_channels = set(np.random.permutation(y.shape[1])[:self.num_target_channels])
         target_channels = set([4, 5, 6])

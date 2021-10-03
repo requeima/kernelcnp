@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.distributions import MultivariateNormal
 
 from cnp.encoders import (
+    StandardEEGConvNPEncoder,
     StandardEncoder,
     StandardANPEncoder,
     StandardConvNPEncoder
@@ -12,11 +13,13 @@ from cnp.encoders import (
 
 from cnp.decoders import (
     StandardDecoder,
-    ConvDecoder
+    ConvDecoder,
+    ConvEEGDecoder
 )
 
 from cnp.architectures import (
     UNet,
+    EEGUNet,
     HalfUNet,
     StandardDepthwiseSeparableCNN
 )
@@ -326,3 +329,159 @@ class StandardPredPreyConvNP(LatentNeuralProcess):
         
         self.input_dim = input_dim
         self.output_dim = output_dim
+        
+        
+
+# =============================================================================
+# Convolutional Latent Neural Process for EEG experiments
+# =============================================================================
+        
+        
+class StandardEEGConvNP(LatentNeuralProcess):
+    
+    def __init__(self, num_channels, num_samples, output_layer):
+        
+        encoder_conv_architecture = None
+        decoder_conv_architecture = None
+        init_length_scale = 1e-2
+        
+        encoder_conv_out_channels = 16
+        decoder_conv_out_channels = 2*num_channels
+        decoder_out_features = 2
+        
+        encoder_conv_architecture = EEGUNet(in_channels=2*num_channels,
+                                            out_channels=2*encoder_conv_out_channels)
+        encoder = StandardEEGConvNPEncoder(num_channels=num_channels,
+                                           conv_architecture=encoder_conv_architecture)
+        
+        
+        decoder_conv_architecture = EEGUNet(in_channels=encoder_conv_out_channels,
+                                            out_channels=decoder_conv_out_channels)
+        decoder = ConvEEGDecoder(out_features=decoder_out_features,
+                                 num_channels=num_channels,
+                                 conv_architecture=decoder_conv_architecture,
+                                 init_length_scale=init_length_scale)
+        
+        super().__init__(encoder=encoder,
+                         decoder=decoder,
+                         num_samples=num_samples)
+        
+        self.output_layer = output_layer
+    
+
+    def forward(self,
+                x_context,
+                y_context,
+                m_context,
+                x_target,
+                m_target,
+                num_samples=None):
+        
+        num_samples = self.num_samples if num_samples is None else num_samples
+        
+        # Pass context set and target inputs through the encoder to obtain
+        # the encoder output, as expected by encoder.sample
+        encoder_forward_output = self.encoder(y_context, m_context)
+        
+        means = []
+        noise_vars = []
+        tensors = []
+        
+        for i in range(num_samples):
+            
+            r = self.encoder.sample(encoder_forward_output)
+            _tensor = self.decoder(r, x_context, x_target)
+            
+            tensor_shape = (_tensor.shape[0], -1, _tensor.shape[-1])
+            tensor = torch.reshape(_tensor, tensor_shape)
+            
+            assert (len(tensor.shape) == 3) and (tensor.shape[-1] == 2)
+            
+            mean = tensor[:, :, :1]
+            noise_var = 1e-6 + torch.nn.Softplus()(tensor[:, :, 1])
+            noise_var = torch.diag_embed(noise_var)
+            
+            tensors.append(_tensor)
+            means.append(mean)
+            noise_vars.append(noise_var)
+            
+        means = torch.stack(means, dim=0)
+        noise_vars = torch.stack(noise_vars, dim=0)
+        tensors = torch.stack(tensors, dim=0)
+        
+        return tensors, means, noise_vars
+    
+    
+    def loss(self,
+             x_context,
+             y_context,
+             m_context,
+             x_target,
+             y_target,
+             m_target,
+             num_samples=None):
+        
+        B, D, C = y_target.shape
+        
+        num_samples = self.num_samples if num_samples is None else num_samples
+        
+        tensors, _, _ = self.forward(x_context,
+                                     y_context,
+                                     m_context,
+                                     x_target,
+                                     m_target,
+                                     num_samples=num_samples)
+        
+        logprobs = []
+        
+        for tensor in tensors:
+            
+            logprob = self.output_layer.loglik(tensor,
+                                               y_target=y_target,
+                                               target_mask=m_target)
+            logprobs.append(logprob)
+            
+        logprobs = torch.stack(logprobs, axis=1)
+        logprob = 0
+        
+        for i, batch_logprobs in enumerate(logprobs):
+            
+            max_batch_logprob = torch.max(batch_logprobs)
+        
+            batch_logprobs = batch_logprobs - max_batch_logprob
+            
+            batch_mix_logprob = torch.log(torch.mean(torch.exp(batch_logprobs)))
+            batch_mix_logprob = batch_mix_logprob + max_batch_logprob
+            
+            logprob = logprob + batch_mix_logprob
+        
+        return - logprob / B
+    
+    
+    def sample(self,
+               x_context,
+               y_context,
+               m_context,
+               x_target,
+               m_target,
+               num_samples,
+               noiseless,
+               double):
+        
+        tensors, _, _ = self.forward(x_context,
+                                     y_context,
+                                     m_context,
+                                     x_target,
+                                     m_target,
+                                     num_samples=num_samples)
+        
+        samples, masked_samples = zip(*[self.output_layer.sample(tensor=tensor,
+                                                target_mask=m_target,
+                                                num_samples=1,
+                                                noiseless=noiseless,
+                                                double=double)
+                                      for tensor in tensors])
+        samples = torch.cat(samples, dim=0)
+        masked_samples = torch.cat(masked_samples, dim=0)
+        
+        return samples, masked_samples

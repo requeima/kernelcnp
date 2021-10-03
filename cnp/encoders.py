@@ -375,7 +375,8 @@ class ConvEEGEncoder(nn.Module):
         # Normalise using density channel
         h0 = h[:, :self.num_channels, :]
         h1 = h[:, self.num_channels:, :]
-        h = h1 / (h0 + 1e-9)
+        h1 = h1 / (h0 + 1e-9)
+        h = torch.cat([h0, h1], dim=1)
         
         return h
 
@@ -494,6 +495,39 @@ class StandardConvNPEncoder(ConvEncoder):
         mean = r[:, ::2]
         scale = torch.nn.Sigmoid()(r[:, 1::2])
         scale = scale + 1e-3
+        
+        dist = torch.distributions.Normal(loc=mean, scale=scale)
+        
+        return dist
+    
+    
+    def sample(self, forward_output):
+        return forward_output.rsample()
+
+
+
+# =============================================================================
+# Standard Latent Convolutional Encoder for ConvNPs 
+# =============================================================================
+        
+        
+class StandardEEGConvNPEncoder(ConvEEGEncoder):
+
+    def __init__(self, num_channels, conv_architecture):
+        
+        super().__init__(num_channels=num_channels)
+        
+        self.conv_architecture = conv_architecture
+        
+        
+    def forward(self, y_context, m_context):
+        
+        r = super().forward(y_context, m_context)
+        r = self.conv_architecture(r)
+        
+        mean = r[:, ::2, :]
+        scale = torch.nn.Sigmoid()(r[:, 1::2])
+        scale = scale + 1e-4
         
         dist = torch.distributions.Normal(loc=mean, scale=scale)
         

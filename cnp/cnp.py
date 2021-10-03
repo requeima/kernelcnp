@@ -25,7 +25,12 @@ from cnp.decoders import (
 
 from cnp.cov import GaussianLayer
 
-from cnp.architectures import StandardDepthwiseSeparableCNN, UNet, build_dws_net
+from cnp.architectures import (
+    StandardDepthwiseSeparableCNN,
+    UNet,
+    EEGUNet,
+    build_dws_net
+)
 
 
 
@@ -296,15 +301,14 @@ class StandardEEGConvGNP(GaussianNeuralProcess):
         
         self.decoder_out_channels = output_layer.num_features * \
                                     num_channels
-        self.init_length_scale = 1e-2
+        self.init_length_scale = 2e-3
         
         # Define encoder
         encoder = ConvEEGEncoder(num_channels=num_channels)
         
         # Define convolutional architecture
-        conv_architecture = UNet(input_dim=1,
-                                 in_channels=num_channels,
-                                 out_channels=self.decoder_out_channels)
+        conv_architecture = EEGUNet(in_channels=2*num_channels,
+                                    out_channels=self.decoder_out_channels)
         
         # Define decoder
         decoder = ConvEEGDecoder(out_features=output_layer.num_features,

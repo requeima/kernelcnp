@@ -926,28 +926,36 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
         # Unpack tensor dimensions
         B, M, T, F = tensor.shape
         
-        # Reshape tensor to shape (B, M*T, F)
-        tensor = torch.reshape(tensor, (B, M*T, F))
-        
-        # Compute mean vector
-        mean = tensor[:, :, 0]
-        
         # Slice out components of covariance - z and noise
         if self.noise_type == "homo":
-            z = tensor[:, :, 1:] / F**0.5
+
+            mean = tensor[:, :, :, 0]
+            mean = torch.reshape(mean, (B, -1))
+            
+            z = tensor[:, :, :, 1:] / F**0.5
+            z = z # - torch.mean(z, axis=2)[:, :, None, :]
+            z = torch.reshape(z, (B, -1, F-1))
             
             noise = torch.nn.Softplus()(self.noise_unconstrained)
             noise = noise[None, None].repeat(B, M*T)
             noise = torch.diag_embed(noise)
             
         else:
-            z = tensor[:, :, 1:-1] / F**0.5
 
-            noise = torch.nn.Softplus()(tensor[:, :, -1])
+            mean = tensor[:, :, :, 0]
+            mean = torch.reshape(mean, (B, -1))
+            
+            z = tensor[:, :, :, 1:-1] / F**0.5
+            z = z # - torch.mean(z, axis=2)[:, :, None, :]
+            z = torch.reshape(z, (B, -1, F-2))
+
+            noise = tensor[:, :, :, -1]
+            noise = torch.nn.Softplus()(noise)
+            noise = torch.reshape(noise, (B, -1))
             noise = torch.diag_embed(noise)
-
+        
         # Covariance is the product of the RBF and the v terms
-        f_cov = torch.einsum("bnc, bmc -> bnm", z, z)
+        f_cov = torch.einsum("bnf, bmf -> bnm", z, z)
         y_cov = f_cov + noise.double()
         
         return mean, f_cov, y_cov
@@ -980,7 +988,7 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
         B, D, T, F = tensor.shape
         
         # If num datapoints smaller than num embedding, return full-rank
-        if M * T <= self.num_embedding:
+        if True: # M * T <= self.num_embedding:
             
             mean, f_cov, y_cov = self.mean_and_cov(tensor,
                                                    target_mask=target_mask,
@@ -992,41 +1000,41 @@ class MultiOutputInnerprodGaussianLayer(MultiOutputGaussianLayer):
             return dist
         
         
-        # Otherwise, return low-rank 
-        else:
+#         # Otherwise, return low-rank 
+#         else:
         
-            # Slice out masked entries
-            tensor = tensor[:, mask_idx, :, :]
+#             # Slice out masked entries
+#             tensor = tensor[:, mask_idx, :, :]
 
-            # Reshape tensor to shape (B, M*T, F)
-            tensor = torch.reshape(tensor, (B, M*T, F))
+#             # Reshape tensor to shape (B, M*T, F)
+#             tensor = torch.reshape(tensor, (B, M*T, F))
             
-            # Convert tensor to double if required
-            tensor = tensor.double() if double else tensor
+#             # Convert tensor to double if required
+#             tensor = tensor.double() if double else tensor
             
-            # Split tensor into mean and embedding
-            mean = tensor[:, :, 0]
-            z = tensor[:, :, 1:-1] / F**0.5
+#             # Split tensor into mean and embedding
+#             mean = tensor[:, :, 0]
+#             z = tensor[:, :, 1:-1] / F**0.5
             
-            jitter = torch.tensor(1e-6).repeat(B, M*T).to(z.device)
-            jitter = jitter.double()
+#             jitter = torch.tensor(1e-6).repeat(B, M*T).to(z.device)
+#             jitter = jitter.double()
         
-            if noiseless:
-                noise = jitter
+#             if noiseless:
+#                 noise = jitter
                 
-            elif self.noise_type == "homo":
-                noise = torch.nn.Softplus()(self.noise_unconstrained)
-                noise = noise[None, None].repeat(B, M*T)
+#             elif self.noise_type == "homo":
+#                 noise = torch.nn.Softplus()(self.noise_unconstrained)
+#                 noise = noise[None, None].repeat(B, M*T)
 
-            else:
-                noise = torch.nn.Softplus()(tensor[:, :, -1])
+#             else:
+#                 noise = torch.nn.Softplus()(tensor[:, :, -1])
                 
-            noise = noise + jitter.double()
+#             noise = noise + jitter.double()
             
-            dist = LowRankMultivariateNormal(loc=mean,
-                                             cov_factor=z,
-                                             cov_diag=noise)
-            return dist
+#             dist = LowRankMultivariateNormal(loc=mean,
+#                                              cov_factor=z,
+#                                              cov_diag=noise)
+#             return dist
         
         
 
