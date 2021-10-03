@@ -16,6 +16,7 @@ from cnp.experiment import (
 )
 
 from cnp.cnp import StandardEEGConvGNP
+from cnp.lnp import StandardEEGConvNP
 
 from cnp.cov import (
     MultiOutputMeanFieldGaussianLayer,
@@ -150,8 +151,13 @@ parser.add_argument('--seed',
                     type=int,
                     help='Random seed to use.')
 
+parser.add_argument('--np_samples',
+                    default=32,
+                    type=int,
+                    help='Number of samples used for ConvNP.')
+
 parser.add_argument('--validate_every',
-                    default=5,
+                    default=1,
                     type=int,
                     help='Number of epochs between validations.')
 
@@ -161,7 +167,7 @@ parser.add_argument('--validate_every',
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['convGNP'],
+                    choices=['convGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
@@ -177,12 +183,12 @@ parser.add_argument('--init_length_scale',
                     type=float)
 
 parser.add_argument('--num_basis_dim',
-                    default=64,
+                    default=512,
                     type=int,
                     help='Number of embedding basis dimensions.')
 
 parser.add_argument('--learning_rate',
-                    default=2e-4,
+                    default=5e-4,
                     type=float,
                     help='Learning rate.')
 
@@ -259,17 +265,28 @@ cov_types = {
     'kvv'       : MultiOutputKvvGaussianLayer
 }
 
-if args.cov_type == 'meanfield':
-    output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
+if args.model == 'convGNP':
+
+	if args.cov_type == 'meanfield':
+		output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
+		
+	else:
+		output_layer = cov_types[args.cov_type](num_outputs=args.num_channels_total,
+												num_embedding=args.num_basis_dim,
+												noise_type=args.noise_type,
+												jitter=args.jitter)
     
+	model = StandardEEGConvGNP(num_channels=args.num_channels_total,
+							   output_layer=output_layer)
+
 else:
-    output_layer = cov_types[args.cov_type](num_outputs=args.num_channels_total,
-                                            num_embedding=args.num_basis_dim,
-                                            noise_type=args.noise_type,
-                                            jitter=args.jitter)
-    
-model = StandardEEGConvGNP(num_channels=args.num_channels_total,
-                           output_layer=output_layer)
+
+	output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
+
+	model = StandardEEGConvNP(num_channels=args.num_channels_total,
+							  output_layer=output_layer,
+							  num_samples=args.np_samples)
+
 
 print(f'{data_params} '
       f'{args.model} '
