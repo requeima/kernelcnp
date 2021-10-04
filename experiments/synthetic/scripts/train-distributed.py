@@ -17,10 +17,13 @@ data_generators = ['eq',
                    'weakly-periodic']
 
 models = ['convGNP']
-covs = ['sum-kvv-homo']
+# covs = ['sum-kvv-homo']
+covs = ['innerprod-homo']
 x_dims = ['1']
 num_basis_dim = ["2", "16", "64", "128", "512"]
-num_sum_elements = ["1", "2", "8", "16", "32"]
+# num_sum_elements = ["1", "2", "8", "16", "32"]
+num_sum_elements = ["1"]
+
 
 seeds = [str(i) for i in range(1)]
 

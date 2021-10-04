@@ -12,9 +12,11 @@ GPUS_TO_USE = [str(i) for i in range(torch.cuda.device_count())]
 GPU_MEMORY_PERCENTAGE = 30.
 
 # Model and data generator configurations
-data_generators = [
-                   'weakly-periodic',
-                   ]
+data_generators = ['eq',
+                   'matern',
+                   'noisy-mixture',
+                   'weakly-periodic']
+
 
 x_dims = ['1']
 
