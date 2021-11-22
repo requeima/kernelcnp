@@ -585,6 +585,7 @@ class EEGGenerator:
         num_total_channels,
         num_target_channels,
         target_length,
+        fixed_target_length=None,
         device=None,
     ):
         
@@ -709,6 +710,8 @@ class EEGGenerator:
             1000367,
         ]
         
+        print('num subjects', len(all_subjects))
+        
         # Save random state and set the seed
         state = np.random.get_state()
         np.random.seed(0)
@@ -737,6 +740,10 @@ class EEGGenerator:
         # Load EEG data
         data = load_eeg()
         
+        self.fixed_target_length = fixed_target_length
+        
+        count = 0
+        
         self.trials = []
         for subject in subjects:
             for n in sorted(data[subject]["trials"].keys()):
@@ -747,12 +754,13 @@ class EEGGenerator:
                 # Keep only the first channels
                 trial = trial.iloc[:, :self.num_total_channels]
                 self.trials.append(trial)
+                count = count + 1
 
                 # Store the output names as well.
                 if not hasattr(self, "output_names"):
                     self.output_names = sorted(trial.columns)
         self.i = 0
-
+        
     def generate_batch(self):
         batch_trials = []
 
@@ -778,7 +786,10 @@ class EEGGenerator:
 #         y = y * 1e-1
 
         # Generate a context and target set by masking a random five outputs in a block
-        x_len = np.random.choice(np.arange(self.target_length)+1)
+        if self.fixed_target_length:
+            x_len = self.fixed_target_length
+        else:
+            x_len = np.random.choice(np.arange(self.target_length)+1)
         x_start = np.random.randint(y.shape[2] - x_len + 1)
 #         target_channels = set(np.random.permutation(y.shape[1])[:self.num_target_channels])
         target_channels = set([4, 5, 6])

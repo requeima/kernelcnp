@@ -16,6 +16,7 @@ from cnp.experiment import (
 )
 
 from cnp.cnp import StandardEEGConvGNP
+from cnp.lnp import StandardEEGConvNP
 
 from cnp.cov import (
     MultiOutputMeanFieldGaussianLayer,
@@ -51,14 +52,15 @@ def test(data_test, model, device, args):
                              batch['y_target'].to(device),
                              batch['m_target'].to(device))
             
-            nll = nll / (args.num_channels_target * args.target_length)
+            nll = nll / args.target_length
             
             nlls.append(nll.item())
             
     mean_nll = np.mean(nlls)
+    std_nll = np.std(nlls) / (args.batch_size*len(nlls))**0.5
 
     # Print validation loss and oracle loss
-    print(f"Test neg. log-lik: {mean_nll:.2f}")
+    print(f"Test neg. log-lik: {mean_nll:.2f} \pm {std_nll:.2f}")
     
     return mean_nll
         
@@ -112,7 +114,7 @@ parser.add_argument('--seed',
 # =============================================================================
 
 parser.add_argument('model',
-                    choices=['convGNP'],
+                    choices=['convGNP', 'convNP'],
                     help='Choice of model. ')
 
 parser.add_argument('cov_type',
@@ -127,8 +129,13 @@ parser.add_argument('--init_length_scale',
                     default=1e-3,
                     type=float)
 
+parser.add_argument('--num_np_samples',
+                    default=256,
+                    type=int,
+                    help='Number of NP samples.')
+
 parser.add_argument('--num_basis_dim',
-                    default=64,
+                    default=512,
                     type=int,
                     help='Number of embedding basis dimensions.')
 
@@ -203,17 +210,28 @@ cov_types = {
     'kvv'       : MultiOutputKvvGaussianLayer
 }
 
-if args.cov_type == 'meanfield':
-    output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
-    
+if args.model == 'convGNP':
+	if args.cov_type == 'meanfield':
+		output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
+		
+	else:
+		output_layer = cov_types[args.cov_type](num_outputs=args.num_channels_total,
+												num_embedding=args.num_basis_dim,
+												noise_type=args.noise_type,
+												jitter=args.jitter)
+		
+	model = StandardEEGConvGNP(num_channels=args.num_channels_total,
+							   output_layer=output_layer)
+
+elif args.model == 'convNP':
+	output_layer = cov_types['meanfield'](num_outputs=args.num_channels_total)
+		
+	model = StandardEEGConvNP(num_channels=args.num_channels_total,
+							  output_layer=output_layer,
+							  num_samples=args.num_np_samples)
+
 else:
-    output_layer = cov_types[args.cov_type](num_outputs=args.num_channels_total,
-                                            num_embedding=args.num_basis_dim,
-                                            noise_type=args.noise_type,
-                                            jitter=args.jitter)
-    
-model = StandardEEGConvGNP(num_channels=args.num_channels_total,
-                           output_layer=output_layer)
+	raise Exception
 
 print(f'{data_params} '
       f'{args.model} '
@@ -224,6 +242,9 @@ print(f'{data_params} '
 
 with open(working_directory.file('num_params.txt'), 'w') as f:
     f.write(f'{model.num_params}')
+
+load_dict = torch.load(working_directory.file('model_best.pth.tar', exists=True))
+model.load_state_dict(load_dict['state_dict'])
     
 # Load model to appropriate device
 model = model.to(device)
@@ -239,7 +260,8 @@ data_test = EEGGenerator(split='test',
                          num_total_channels=args.num_channels_total,
                          num_target_channels=args.num_channels_target,
                          target_length=args.target_length,
-                         device=device)
+                         device=device,
+						 fixed_target_length=args.target_length)
 
 # =============================================================================
 # Train or test model
