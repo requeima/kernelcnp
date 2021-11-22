@@ -296,7 +296,7 @@ model = model.to(device)
 
 latent_model = args.model in ['ANP', 'convNP']
 
-# Load model from saved state
+# Load model from saved statejj
 load_dict = torch.load(working_directory.file('model_best.pth.tar', exists=True))
 model.load_state_dict(load_dict['state_dict'])
 
